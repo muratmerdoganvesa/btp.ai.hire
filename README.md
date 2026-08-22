@@ -1,5 +1,6 @@
 # HireLens
 
+
 AI-assisted recruiting on SAP BTP. Phase 0 is a deployable multi-tenant skeleton: no CV parsing, scoring, or interviews yet.
 
 Read [docs/AGENT-BRIEF.md](docs/AGENT-BRIEF.md) and [docs/adr](docs/adr) before changing architecture.
