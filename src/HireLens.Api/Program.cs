@@ -81,7 +81,7 @@ if (auditBinding is not null)
 
 var app = builder.Build();
 
-if (DevAuth.IsEnabled(app.Environment, app.Configuration))
+if (HanaConnection.UsesInMemory(app.Configuration, app.Environment))
 {
     await using var scope = app.Services.CreateAsyncScope();
     var db = scope.ServiceProvider.GetRequiredService<HireLensDbContext>();

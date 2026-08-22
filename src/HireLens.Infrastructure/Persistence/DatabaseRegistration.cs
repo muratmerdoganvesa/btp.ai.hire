@@ -1,3 +1,4 @@
+using HireLens.Infrastructure.Btp;
 using HireLens.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -27,8 +28,7 @@ public static class DatabaseRegistration
             var interceptor = sp.GetRequiredService<AuditSaveChangesInterceptor>();
             options.AddInterceptors(interceptor);
 
-            var hana = configuration["HANA_CONNECTION"]
-                ?? configuration.GetConnectionString("Hana");
+            var hana = HanaConnection.Resolve(configuration);
 
             if (!string.IsNullOrWhiteSpace(hana))
             {
@@ -36,7 +36,7 @@ public static class DatabaseRegistration
                 return;
             }
 
-            if (environment.IsDevelopment() || environment.IsEnvironment("Testing"))
+            if (HanaConnection.UsesInMemory(configuration, environment))
             {
                 var name = configuration["INMEMORY_DATABASE_NAME"] ?? "HireLens";
                 options.UseInMemoryDatabase(name);
@@ -44,7 +44,7 @@ public static class DatabaseRegistration
             }
 
             throw new InvalidOperationException(
-                "HANA_CONNECTION is required outside Development and Testing.");
+                "HANA_CONNECTION or a bound HANA service is required outside Development and Testing.");
         });
 
         return services;
