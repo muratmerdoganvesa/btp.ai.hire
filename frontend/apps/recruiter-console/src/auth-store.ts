@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 export interface Session {
-  token: string;
+  token?: string;
   tenantId: string;
   subject: string;
   roles: string[];

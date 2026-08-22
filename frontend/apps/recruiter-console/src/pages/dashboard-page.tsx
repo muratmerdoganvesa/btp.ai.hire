@@ -4,6 +4,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
 import { AppShell } from "../components/app-shell";
+import { isDevAuth } from "../auth-mode";
 import { useAuthStore } from "../auth-store";
 
 export function DashboardPage() {
@@ -30,7 +31,9 @@ export function DashboardPage() {
   });
 
   if (!session) {
-    void navigate({ to: "/login" });
+    if (isDevAuth) {
+      void navigate({ to: "/login" });
+    }
     return null;
   }
 

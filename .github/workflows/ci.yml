@@ -112,8 +112,9 @@ jobs:
           ./cf start hirelens-worker
           API_HOST="$(./cf app hirelens-api | awk -F': *' '/^[[:space:]]*routes:/{print $2}' | tr -d '\r' | cut -d',' -f1 | tr -d ' ')"
           if [ -n "$API_HOST" ]; then
-            sed -i "s#API_UPSTREAM:.*#API_UPSTREAM: https://${API_HOST}#" /tmp/manifest.yml
+            sed -i "s#https://hirelens-api.cfapps.eu20-002.hana.ondemand.com#https://${API_HOST}#" /tmp/manifest.yml
           fi
+          ./cf update-service hirelens-xsuaa -c deploy/xs-security.json || echo "XSUAA update skipped; check redirect URIs if SAP login fails."
           ./cf push hirelens-web --docker-image "ghcr.io/${OWNER}/hirelens-web:${GITHUB_SHA}" --docker-username "${GITHUB_ACTOR}" -f /tmp/manifest.yml --no-start
           ./cf start hirelens-web
 

@@ -12,10 +12,14 @@ RUN pnpm --filter @hirelens/design-tokens build \
     && pnpm --filter @hirelens/ui build \
     && pnpm --filter @hirelens/recruiter-console build
 
-FROM nginxinc/nginx-unprivileged:1.27-alpine
-COPY deploy/nginx.conf /etc/nginx/templates/default.conf.template
-COPY --from=build /web/apps/recruiter-console/dist /usr/share/nginx/html
+FROM node:22-alpine
+WORKDIR /app
+COPY deploy/approuter/package.json ./
+RUN npm install --omit=dev
+COPY deploy/approuter/xs-app.json ./
+COPY --from=build /web/apps/recruiter-console/dist ./resources
+COPY deploy/approuter/logged-out.html ./resources/logged-out.html
 ENV PORT=8080
-ENV API_UPSTREAM=http://127.0.0.1:8080
-ENV NGINX_ENVSUBST_FILTER=PORT|API_UPSTREAM
+USER node
 EXPOSE 8080
+CMD ["node", "node_modules/@sap/approuter/approuter.js"]

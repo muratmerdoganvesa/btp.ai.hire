@@ -2,6 +2,7 @@ import { Button, InitialsAvatar, cn } from "@hirelens/ui";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { isDevAuth, logout as endSession } from "../auth-mode";
 import { useAuthStore } from "../auth-store";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -9,7 +10,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const session = useAuthStore((s) => s.session);
-  const clear = useAuthStore((s) => s.clear);
 
   const items = [
     { to: "/", label: t("nav.dashboard"), exact: true },
@@ -17,8 +17,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   ] as const;
 
   const logout = () => {
-    clear();
-    void navigate({ to: "/login" });
+    endSession();
+    if (isDevAuth) {
+      void navigate({ to: "/login" });
+    }
   };
 
   return (

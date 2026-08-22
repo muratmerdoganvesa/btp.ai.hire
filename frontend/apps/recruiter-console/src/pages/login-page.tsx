@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { api } from "../api";
+import { isDevAuth } from "../auth-mode";
 import { useAuthStore } from "../auth-store";
 import { Field, TextInput } from "../components/field";
 
@@ -28,8 +29,12 @@ export function LoginPage() {
       role: "Recruiter"
     }
   });
-
   const selectedRole = form.watch("role");
+
+  if (!isDevAuth) {
+    window.location.replace("/");
+    return null;
+  }
 
   const onSubmit = form.handleSubmit(async (values) => {
     const parsed = schema.safeParse(values);

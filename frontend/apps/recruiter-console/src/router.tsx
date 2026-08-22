@@ -1,4 +1,5 @@
 import { Outlet, createRootRoute, createRoute, createRouter, redirect } from "@tanstack/react-router";
+import { isDevAuth } from "./auth-mode";
 import { useAuthStore } from "./auth-store";
 import { CandidatesPage } from "./pages/candidates-page";
 import { DashboardPage } from "./pages/dashboard-page";
@@ -12,7 +13,7 @@ const rootRoute = createRootRoute({
 
 const requireSession = () => {
   if (!useAuthStore.getState().session) {
-    throw redirect({ to: "/login" });
+    throw redirect({ to: isDevAuth ? "/login" : "/" });
   }
 };
 

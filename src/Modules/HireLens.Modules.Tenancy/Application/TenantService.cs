@@ -26,9 +26,13 @@ public sealed class TenantService(
     {
         RepositoryGuard.RequireTenant(tenantContext);
         var tenant = await db.Set<Tenant>().SingleOrDefaultAsync(cancellationToken);
-        return tenant is null
-            ? Result.Failure<TenantDto>(Error.NotFound("Tenant was not found."))
-            : Result.Success(ToDto(tenant));
+        if (tenant is not null)
+        {
+            return Result.Success(ToDto(tenant));
+        }
+
+        var slug = $"btp-{tenantContext.TenantId:N}"[..16];
+        return await ProvisionAsync(tenantContext.TenantId, "HireLens", slug, cancellationToken);
     }
 
     public async Task<Result<TenantDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken)

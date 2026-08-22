@@ -3,6 +3,7 @@ import { RouterProvider } from "@tanstack/react-router";
 import { createI18n } from "@hirelens/i18n";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { bootstrapSession } from "./auth-mode";
 import { router } from "./router";
 import "./styles.css";
 
@@ -15,10 +16,16 @@ if (!root) {
   throw new Error("Root element is missing.");
 }
 
-createRoot(root).render(
-  <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-    </QueryClientProvider>
-  </StrictMode>
-);
+const render = () => {
+  createRoot(root).render(
+    <StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </StrictMode>
+  );
+};
+
+void bootstrapSession()
+  .catch(() => undefined)
+  .then(render);

@@ -80,6 +80,7 @@ export class ApiClient {
   public async putObject(uploadUrl: string, file: File): Promise<void> {
     const response = await fetch(`${this.baseUrl}${uploadUrl}`, {
       method: "PUT",
+      credentials: "same-origin",
       headers: this.headers(file.type || "text/plain"),
       body: file
     });
@@ -175,6 +176,7 @@ export class ApiClient {
   }): Promise<string> {
     const response = await fetch(`${this.baseUrl}/dev/token`, {
       method: "POST",
+      credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...input, issuerKind: "xsuaa" })
     });
@@ -184,7 +186,10 @@ export class ApiClient {
   }
 
   private async get<T>(path: string): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${path}`, { headers: this.headers() });
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      credentials: "same-origin",
+      headers: this.headers()
+    });
     this.throwIfFailed(response);
     return (await response.json()) as T;
   }
@@ -197,6 +202,7 @@ export class ApiClient {
 
     const response = await fetch(`${this.baseUrl}${path}`, {
       method,
+      credentials: "same-origin",
       headers,
       body: body === undefined ? undefined : JSON.stringify(body)
     });

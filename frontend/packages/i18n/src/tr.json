@@ -28,7 +28,7 @@
     },
     "newTenant": "Yeni kiracı",
     "submit": "Çalışma alanına gir",
-    "hint": "Yerel geliştirme: API Development ortamında /dev/token kullanılır."
+    "hint": "Bu form yalnızca yerelde vardır. BTP’de giriş SAP (IAS/XSUAA) üzerinden yapılır."
   },
   "dashboard": {
     "title": "Kontrol paneli",

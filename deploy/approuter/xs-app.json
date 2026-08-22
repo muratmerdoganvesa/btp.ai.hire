@@ -1,0 +1,52 @@
+{
+  "welcomeFile": "/index.html",
+  "authenticationMethod": "route",
+  "logout": {
+    "logoutEndpoint": "/logout",
+    "logoutPage": "/logged-out.html"
+  },
+  "routes": [
+    {
+      "source": "^/api/(.*)$",
+      "target": "/api/$1",
+      "destination": "hirelens-api",
+      "authenticationType": "xsuaa",
+      "csrfProtection": false
+    },
+    {
+      "source": "^/compliance/(.*)$",
+      "target": "/compliance/$1",
+      "destination": "hirelens-api",
+      "authenticationType": "xsuaa",
+      "csrfProtection": false
+    },
+    {
+      "source": "^/health/(.*)$",
+      "target": "/health/$1",
+      "destination": "hirelens-api",
+      "authenticationType": "none"
+    },
+    {
+      "source": "^/logged-out.html$",
+      "localDir": "resources",
+      "authenticationType": "none"
+    },
+    {
+      "source": "^/assets/(.*)$",
+      "localDir": "resources",
+      "authenticationType": "xsuaa"
+    },
+    {
+      "source": "^/index.html$",
+      "localDir": "resources",
+      "authenticationType": "xsuaa"
+    },
+    {
+      "source": "^/(.*)$",
+      "target": "/index.html",
+      "localDir": "resources",
+      "authenticationType": "xsuaa",
+      "cacheControl": "no-cache, no-store, must-revalidate"
+    }
+  ]
+}

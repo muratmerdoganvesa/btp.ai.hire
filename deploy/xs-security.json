@@ -19,5 +19,28 @@
       "name": "TenantAdmin",
       "scope-references": ["$XSAPPNAME.TenantAdmin"]
     }
-  ]
+  ],
+  "role-collections": [
+    {
+      "name": "HireLens Recruiter",
+      "description": "HireLens recruiter",
+      "role-template-references": ["$XSAPPNAME.Recruiter"]
+    },
+    {
+      "name": "HireLens Hiring Manager",
+      "description": "HireLens hiring manager",
+      "role-template-references": ["$XSAPPNAME.HiringManager"]
+    },
+    {
+      "name": "HireLens Tenant Admin",
+      "description": "HireLens tenant administrator",
+      "role-template-references": ["$XSAPPNAME.TenantAdmin"]
+    }
+  ],
+  "oauth2-configuration": {
+    "redirect-uris": [
+      "https://hirelens-web.cfapps.eu20-002.hana.ondemand.com/**",
+      "https://*hirelens-web.cfapps.eu20-002.hana.ondemand.com/**"
+    ]
+  }
 }

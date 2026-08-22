@@ -28,7 +28,7 @@
     },
     "newTenant": "New tenant",
     "submit": "Enter workspace",
-    "hint": "Local development uses /dev/token on the API Development environment."
+    "hint": "This form is local-only. On BTP, sign-in is SAP IAS/XSUAA."
   },
   "dashboard": {
     "title": "Dashboard",
