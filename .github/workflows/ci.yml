@@ -75,7 +75,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Deploy to Cloud Foundry
-        if: ${{ secrets.CF_API != '' }}
         env:
           CF_API: ${{ secrets.CF_API }}
           CF_USER: ${{ secrets.CF_USERNAME }}
@@ -84,6 +83,10 @@ jobs:
           CF_SPACE: ${{ secrets.CF_SPACE }}
           CF_DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          if [ -z "$CF_API" ] || [ -z "$CF_USER" ] || [ -z "$CF_PASSWORD" ] || [ -z "$CF_ORG" ] || [ -z "$CF_SPACE" ]; then
+            echo "CF secrets are not set; skipping Cloud Foundry deploy."
+            exit 0
+          fi
           curl -fsSL "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=v8&source=github" -o cf.tgz
           tar -xzf cf.tgz
           ./cf api "$CF_API"
@@ -105,10 +108,14 @@ jobs:
         with:
           dotnet-version: "10.0.x"
       - name: Integration tests against bound services
-        if: ${{ secrets.AICORE_SERVICE_KEY != '' && secrets.HANA_CONNECTION != '' }}
         env:
           AICORE_SERVICE_KEY: ${{ secrets.AICORE_SERVICE_KEY }}
           AICORE_DEPLOYMENT_ID: ${{ secrets.AICORE_DEPLOYMENT_ID }}
           AICORE_RESOURCE_GROUP: ${{ secrets.AICORE_RESOURCE_GROUP }}
           HANA_CONNECTION: ${{ secrets.HANA_CONNECTION }}
-        run: dotnet test tests/HireLens.Integration.Tests --filter "Category=Integration"
+        run: |
+          if [ -z "$AICORE_SERVICE_KEY" ] || [ -z "$HANA_CONNECTION" ]; then
+            echo "Live service secrets are not set; skipping integration tests."
+            exit 0
+          fi
+          dotnet test tests/HireLens.Integration.Tests --filter "Category=Integration"
