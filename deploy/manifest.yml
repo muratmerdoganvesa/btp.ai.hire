@@ -7,7 +7,7 @@ applications:
     docker:
       image: ghcr.io/OWNER/hirelens-api:latest
     services:
-      - hirelens-hana
+      - hana_dev
       - hirelens-xsuaa
       - hirelens-objectstore
       - hirelens-auditlog
@@ -21,7 +21,7 @@ applications:
     docker:
       image: ghcr.io/OWNER/hirelens-worker:latest
     services:
-      - hirelens-hana
+      - hana_dev
       - hirelens-xsuaa
       - hirelens-objectstore
       - hirelens-auditlog

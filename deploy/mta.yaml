@@ -12,7 +12,7 @@ modules:
     parameters:
       image: ghcr.io/OWNER/hirelens-api:latest
     requires:
-      - name: hirelens-hana
+      - name: hana_dev
       - name: hirelens-xsuaa
       - name: hirelens-objectstore
       - name: hirelens-auditlog
@@ -22,13 +22,13 @@ modules:
     parameters:
       image: ghcr.io/OWNER/hirelens-worker:latest
     requires:
-      - name: hirelens-hana
+      - name: hana_dev
       - name: hirelens-xsuaa
       - name: hirelens-objectstore
       - name: hirelens-auditlog
 
 resources:
-  - name: hirelens-hana
+  - name: hana_dev
     type: org.cloudfoundry.existing-service
   - name: hirelens-xsuaa
     type: org.cloudfoundry.existing-service

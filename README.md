@@ -67,7 +67,7 @@ docker build -f deploy/Dockerfile.api -t ghcr.io/<owner>/hirelens-api:local .
 cf push hirelens-api --docker-image ghcr.io/<owner>/hirelens-api:local -f deploy/manifest.yml
 ```
 
-Bind services named `hirelens-hana`, `hirelens-xsuaa`, `hirelens-objectstore`, `hirelens-auditlog` (create them in the cockpit first). XSUAA app security is in `deploy/xs-security.json`.
+Bind services named `hana_dev`, `hirelens-xsuaa`, `hirelens-objectstore`, `hirelens-auditlog` (create them in the cockpit first). XSUAA app security is in `deploy/xs-security.json`.
 
 ## Tests
 
