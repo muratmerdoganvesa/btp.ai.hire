@@ -83,6 +83,11 @@ jobs:
           CF_SPACE: ${{ secrets.CF_SPACE }}
           CF_DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          CF_API="$(printf '%s' "$CF_API" | tr -d '\r\n')"
+          CF_USER="$(printf '%s' "$CF_USER" | tr -d '\r\n')"
+          CF_PASSWORD="$(printf '%s' "$CF_PASSWORD" | tr -d '\r\n')"
+          CF_ORG="$(printf '%s' "$CF_ORG" | tr -d '\r\n')"
+          CF_SPACE="$(printf '%s' "$CF_SPACE" | tr -d '\r\n')"
           if [ -z "$CF_API" ] || [ -z "$CF_USER" ] || [ -z "$CF_PASSWORD" ] || [ -z "$CF_ORG" ] || [ -z "$CF_SPACE" ]; then
             echo "CF secrets are not set; skipping Cloud Foundry deploy."
             exit 0
