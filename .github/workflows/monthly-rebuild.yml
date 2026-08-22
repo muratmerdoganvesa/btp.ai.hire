@@ -34,3 +34,11 @@ jobs:
           pull: true
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/hirelens-worker:latest,ghcr.io/${{ github.repository_owner }}/hirelens-worker:monthly-${{ github.run_id }}
+      - name: Rebuild Web from current base image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile.web
+          pull: true
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/hirelens-web:latest,ghcr.io/${{ github.repository_owner }}/hirelens-web:monthly-${{ github.run_id }}

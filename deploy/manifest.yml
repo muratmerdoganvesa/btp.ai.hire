@@ -13,6 +13,7 @@ applications:
       - hirelens-auditlog
     env:
       ASPNETCORE_ENVIRONMENT: Production
+      HireLens__EnableDevAuth: "true"
 
   - name: hirelens-worker
     memory: 1G
@@ -27,3 +28,12 @@ applications:
       - hirelens-auditlog
     env:
       ASPNETCORE_ENVIRONMENT: Production
+
+  - name: hirelens-web
+    memory: 256M
+    instances: 1
+    timeout: 120
+    docker:
+      image: ghcr.io/OWNER/hirelens-web:latest
+    env:
+      API_UPSTREAM: https://hirelens-api.cfapps.eu20-002.hana.ondemand.com

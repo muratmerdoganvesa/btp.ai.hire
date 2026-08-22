@@ -67,6 +67,13 @@ jobs:
           file: deploy/Dockerfile.worker
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/hirelens-worker:${{ github.sha }},ghcr.io/${{ github.repository_owner }}/hirelens-worker:latest
+      - name: Build and push Web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile.web
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/hirelens-web:${{ github.sha }},ghcr.io/${{ github.repository_owner }}/hirelens-web:latest
 
   cf-push:
     needs: image
@@ -103,6 +110,12 @@ jobs:
           ./cf push hirelens-worker --docker-image "ghcr.io/${OWNER}/hirelens-worker:${GITHUB_SHA}" --docker-username "${GITHUB_ACTOR}" -f /tmp/manifest.yml --no-start
           ./cf start hirelens-api
           ./cf start hirelens-worker
+          API_HOST="$(./cf app hirelens-api | awk -F': *' '/^[[:space:]]*routes:/{print $2}' | tr -d '\r' | cut -d',' -f1 | tr -d ' ')"
+          if [ -n "$API_HOST" ]; then
+            sed -i "s#API_UPSTREAM:.*#API_UPSTREAM: https://${API_HOST}#" /tmp/manifest.yml
+          fi
+          ./cf push hirelens-web --docker-image "ghcr.io/${OWNER}/hirelens-web:${GITHUB_SHA}" --docker-username "${GITHUB_ACTOR}" -f /tmp/manifest.yml --no-start
+          ./cf start hirelens-web
 
   integration:
     if: github.event_name == 'push'

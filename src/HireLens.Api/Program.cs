@@ -81,7 +81,7 @@ if (auditBinding is not null)
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
+if (DevAuth.IsEnabled(app.Environment, app.Configuration))
 {
     await using var scope = app.Services.CreateAsyncScope();
     var db = scope.ServiceProvider.GetRequiredService<HireLensDbContext>();
@@ -93,7 +93,7 @@ app.UseAuthentication();
 app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthorization();
 
-if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
+if (DevAuth.IsEnabled(app.Environment, app.Configuration))
 {
     app.MapDevToken();
 }

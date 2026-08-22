@@ -49,7 +49,7 @@ public static class AuthRegistration
     {
         options.MapInboundClaims = false;
 
-        if (environment.IsDevelopment() || environment.IsEnvironment("Testing"))
+        if (DevAuth.IsEnabled(environment, configuration))
         {
             var key = Encoding.UTF8.GetBytes(DevAuth.SigningKey(configuration));
             options.RequireHttpsMetadata = false;

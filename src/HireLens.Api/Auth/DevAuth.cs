@@ -17,6 +17,11 @@ public static class DevAuth
 
     public static string SigningKey(IConfiguration configuration) =>
         configuration["DEV_JWT_SIGNING_KEY"] ?? "HireLens-dev-only-signing-key-32b!";
+
+    public static bool IsEnabled(IHostEnvironment environment, IConfiguration configuration) =>
+        environment.IsDevelopment()
+        || environment.IsEnvironment("Testing")
+        || configuration.GetValue("HireLens:EnableDevAuth", false);
 }
 
 public sealed record DevTokenRequest(
