@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>HireLens.SharedKernel</RootNamespace>
+    <AssemblyName>HireLens.SharedKernel</AssemblyName>
+  </PropertyGroup>
+</Project>

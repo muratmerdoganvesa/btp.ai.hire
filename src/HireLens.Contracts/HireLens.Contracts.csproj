@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>HireLens.Contracts</RootNamespace>
+    <AssemblyName>HireLens.Contracts</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HireLens.SharedKernel\HireLens.SharedKernel.csproj" />
+  </ItemGroup>
+</Project>

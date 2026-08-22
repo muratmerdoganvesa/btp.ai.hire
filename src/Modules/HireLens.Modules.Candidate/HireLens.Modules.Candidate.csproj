@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>HireLens.Modules.Candidate</RootNamespace>
+    <AssemblyName>HireLens.Modules.Candidate</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\HireLens.SharedKernel\HireLens.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\HireLens.Contracts\HireLens.Contracts.csproj" />
+    <ProjectReference Include="..\..\HireLens.Infrastructure\HireLens.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

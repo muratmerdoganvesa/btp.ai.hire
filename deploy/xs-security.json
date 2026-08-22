@@ -1,0 +1,23 @@
+{
+  "xsappname": "hirelens",
+  "tenant-mode": "shared",
+  "scopes": [
+    { "name": "$XSAPPNAME.Recruiter", "description": "Recruiter" },
+    { "name": "$XSAPPNAME.HiringManager", "description": "Hiring manager" },
+    { "name": "$XSAPPNAME.TenantAdmin", "description": "Tenant administrator" }
+  ],
+  "role-templates": [
+    {
+      "name": "Recruiter",
+      "scope-references": ["$XSAPPNAME.Recruiter"]
+    },
+    {
+      "name": "HiringManager",
+      "scope-references": ["$XSAPPNAME.HiringManager"]
+    },
+    {
+      "name": "TenantAdmin",
+      "scope-references": ["$XSAPPNAME.TenantAdmin"]
+    }
+  ]
+}

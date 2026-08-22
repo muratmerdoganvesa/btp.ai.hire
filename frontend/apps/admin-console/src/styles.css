@@ -1,0 +1,14 @@
+@import "tailwindcss";
+@import "@hirelens/design-tokens/tokens.css";
+
+html {
+  font-size: var(--hl-font-recruiter);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--hl-bg);
+  color: var(--hl-fg);
+  line-height: var(--hl-line);
+}

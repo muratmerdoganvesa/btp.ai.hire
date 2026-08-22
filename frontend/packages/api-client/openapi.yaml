@@ -1,0 +1,128 @@
+openapi: 3.1.0
+info:
+  title: HireLens API
+  version: 0.0.1
+paths:
+  /health/live:
+    get:
+      operationId: healthLive
+      responses:
+        "200":
+          description: Live
+  /health/ready:
+    get:
+      operationId: healthReady
+      responses:
+        "200":
+          description: Ready
+  /api/me:
+    get:
+      operationId: getMe
+      responses:
+        "200":
+          description: Current principal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+  /api/tenants/current:
+    get:
+      operationId: getCurrentTenant
+      responses:
+        "200":
+          description: Current tenant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tenant"
+  /api/identity/users:
+    get:
+      operationId: listUsers
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+    post:
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUser"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+components:
+  schemas:
+    Me:
+      type: object
+      required: [subject, tenantId, roles]
+      properties:
+        subject:
+          type: string
+          nullable: true
+        tenantId:
+          type: string
+          format: uuid
+          nullable: true
+        roles:
+          type: array
+          items:
+            type: string
+    Tenant:
+      type: object
+      required: [id, name, slug, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    User:
+      type: object
+      required: [id, tenantId, externalSubject, displayName, roles, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        externalSubject:
+          type: string
+        displayName:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+    CreateUser:
+      type: object
+      required: [externalSubject, displayName, roles]
+      properties:
+        externalSubject:
+          type: string
+        displayName:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string

@@ -1,0 +1,10 @@
+{
+  "name": "hirelens-frontend",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "pnpm --filter @hirelens/recruiter-console dev",
+    "build": "pnpm --filter @hirelens/design-tokens build && pnpm --filter @hirelens/domain build && pnpm --filter @hirelens/i18n build && pnpm --filter @hirelens/api-client build && pnpm --filter @hirelens/ui build && pnpm --filter @hirelens/candidate-portal build && pnpm --filter @hirelens/recruiter-console build && pnpm --filter @hirelens/admin-console build",
+    "lint": "pnpm -r --if-present lint"
+  }
+}

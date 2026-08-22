@@ -1,0 +1,46 @@
+# Build
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+*.cache
+artifacts/
+
+# IDE
+.vs/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# Secrets — never commit bindings or keys
+.env
+.env.*
+!.env.example
+**/appsettings.*.local.json
+secrets.json
+**/nupkg/
+
+# Frontend
+node_modules/
+dist/
+.turbo/
+*.tsbuildinfo
+frontend/**/coverage/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Test / coverage
+TestResults/
+coverage/
+*.trx
+*.coverage
+
+# Local tooling
+*.log
+.pnpm-store/
+App_Data/

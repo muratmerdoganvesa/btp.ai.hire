@@ -1,0 +1,16 @@
+namespace HireLens.SharedKernel;
+
+public sealed record Error(string Code, string Message)
+{
+    public static Error Validation(string message) => new("validation", message);
+
+    public static Error NotFound(string message) => new("not_found", message);
+
+    public static Error Conflict(string message) => new("conflict", message);
+
+    public static Error Unauthorized(string message) => new("unauthorized", message);
+
+    public static Error Forbidden(string message) => new("forbidden", message);
+
+    public static Error Unexpected(string message) => new("unexpected", message);
+}

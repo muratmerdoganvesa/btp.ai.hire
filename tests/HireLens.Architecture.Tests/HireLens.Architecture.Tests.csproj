@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>HireLens.Architecture.Tests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NetArchTest.Rules" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Tenancy\HireLens.Modules.Tenancy.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Identity\HireLens.Modules.Identity.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Recruiting\HireLens.Modules.Recruiting.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Candidate\HireLens.Modules.Candidate.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Documents\HireLens.Modules.Documents.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Evidence\HireLens.Modules.Evidence.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Matching\HireLens.Modules.Matching.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Review\HireLens.Modules.Review.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Compliance\HireLens.Modules.Compliance.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Taxonomy\HireLens.Modules.Taxonomy.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Privacy\HireLens.Modules.Privacy.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Interview\HireLens.Modules.Interview.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Notification\HireLens.Modules.Notification.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Configuration\HireLens.Modules.Configuration.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Metering\HireLens.Modules.Metering.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Integration\HireLens.Modules.Integration.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Analytics\HireLens.Modules.Analytics.csproj" />
+    <ProjectReference Include="..\..\src\HireLens.SharedKernel\HireLens.SharedKernel.csproj" />
+  </ItemGroup>
+</Project>

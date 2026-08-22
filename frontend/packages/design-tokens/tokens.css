@@ -1,0 +1,203 @@
+/*
+  HireLens design tokens. Apps must consume these custom properties only.
+  Light values live on :root. Dark must redefine every color token so no
+  color exists in only one theme.
+*/
+
+:root {
+  --hl-brand-hue: 250;
+  --hl-font-recruiter: 0.875rem;
+  --hl-font-candidate: 1rem;
+  --hl-radius-sm: 0.25rem;
+  --hl-radius-md: 0.5rem;
+  --hl-radius-lg: 0.75rem;
+  --hl-space-1: 0.25rem;
+  --hl-space-2: 0.5rem;
+  --hl-space-3: 0.75rem;
+  --hl-space-4: 1rem;
+  --hl-space-5: 1.25rem;
+  --hl-space-6: 1.5rem;
+  --hl-space-8: 2rem;
+  --hl-line: 1.5;
+
+  --hl-brand-0: oklch(0.99 0.01 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-1: oklch(0.97 0.02 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-2: oklch(0.93 0.04 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-3: oklch(0.87 0.07 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-4: oklch(0.78 0.1 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-5: oklch(0.68 0.13 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-6: oklch(0.58 0.14 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-7: oklch(0.48 0.13 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-8: oklch(0.4 0.11 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-9: oklch(0.32 0.08 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-10: oklch(0.24 0.05 calc(var(--hl-brand-hue) * 1deg));
+
+  --hl-bg: oklch(0.99 0.005 calc(var(--hl-brand-hue) * 1deg));
+  --hl-bg-raised: oklch(1 0.002 calc(var(--hl-brand-hue) * 1deg));
+  --hl-fg: oklch(0.22 0.02 calc(var(--hl-brand-hue) * 1deg));
+  --hl-fg-muted: oklch(0.45 0.02 calc(var(--hl-brand-hue) * 1deg));
+  --hl-border: oklch(0.88 0.02 calc(var(--hl-brand-hue) * 1deg));
+  --hl-focus: oklch(0.55 0.14 calc(var(--hl-brand-hue) * 1deg));
+
+  --hl-score-strong: oklch(0.62 0.14 150);
+  --hl-score-strong-fg: oklch(0.28 0.06 150);
+  --hl-score-solid: oklch(0.58 0.12 250);
+  --hl-score-solid-fg: oklch(0.28 0.06 250);
+  --hl-score-partial: oklch(0.78 0.03 240);
+  --hl-score-partial-fg: oklch(0.38 0.03 240);
+  --hl-score-limited: oklch(0.72 0.01 260);
+  --hl-score-limited-fg: oklch(0.36 0.01 260);
+
+  --hl-danger: oklch(0.55 0.19 25);
+  --hl-danger-fg: oklch(0.98 0.01 25);
+  --hl-danger-bg: oklch(0.95 0.03 25);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --hl-brand-0: oklch(0.18 0.03 calc(var(--hl-brand-hue) * 1deg));
+    --hl-brand-1: oklch(0.22 0.04 calc(var(--hl-brand-hue) * 1deg));
+    --hl-brand-2: oklch(0.28 0.05 calc(var(--hl-brand-hue) * 1deg));
+    --hl-brand-3: oklch(0.36 0.07 calc(var(--hl-brand-hue) * 1deg));
+    --hl-brand-4: oklch(0.46 0.1 calc(var(--hl-brand-hue) * 1deg));
+    --hl-brand-5: oklch(0.56 0.12 calc(var(--hl-brand-hue) * 1deg));
+    --hl-brand-6: oklch(0.66 0.12 calc(var(--hl-brand-hue) * 1deg));
+    --hl-brand-7: oklch(0.74 0.1 calc(var(--hl-brand-hue) * 1deg));
+    --hl-brand-8: oklch(0.82 0.07 calc(var(--hl-brand-hue) * 1deg));
+    --hl-brand-9: oklch(0.9 0.04 calc(var(--hl-brand-hue) * 1deg));
+    --hl-brand-10: oklch(0.96 0.02 calc(var(--hl-brand-hue) * 1deg));
+
+    --hl-bg: oklch(0.18 0.02 calc(var(--hl-brand-hue) * 1deg));
+    --hl-bg-raised: oklch(0.23 0.02 calc(var(--hl-brand-hue) * 1deg));
+    --hl-fg: oklch(0.95 0.01 calc(var(--hl-brand-hue) * 1deg));
+    --hl-fg-muted: oklch(0.75 0.02 calc(var(--hl-brand-hue) * 1deg));
+    --hl-border: oklch(0.35 0.03 calc(var(--hl-brand-hue) * 1deg));
+    --hl-focus: oklch(0.72 0.12 calc(var(--hl-brand-hue) * 1deg));
+
+    --hl-score-strong: oklch(0.7 0.13 150);
+    --hl-score-strong-fg: oklch(0.92 0.04 150);
+    --hl-score-solid: oklch(0.68 0.11 250);
+    --hl-score-solid-fg: oklch(0.92 0.04 250);
+    --hl-score-partial: oklch(0.45 0.03 240);
+    --hl-score-partial-fg: oklch(0.86 0.02 240);
+    --hl-score-limited: oklch(0.4 0.01 260);
+    --hl-score-limited-fg: oklch(0.84 0.01 260);
+
+    --hl-danger: oklch(0.65 0.18 25);
+    --hl-danger-fg: oklch(0.18 0.03 25);
+    --hl-danger-bg: oklch(0.28 0.06 25);
+  }
+}
+
+[data-theme="dark"] {
+  --hl-brand-0: oklch(0.18 0.03 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-1: oklch(0.22 0.04 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-2: oklch(0.28 0.05 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-3: oklch(0.36 0.07 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-4: oklch(0.46 0.1 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-5: oklch(0.56 0.12 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-6: oklch(0.66 0.12 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-7: oklch(0.74 0.1 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-8: oklch(0.82 0.07 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-9: oklch(0.9 0.04 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-10: oklch(0.96 0.02 calc(var(--hl-brand-hue) * 1deg));
+
+  --hl-bg: oklch(0.18 0.02 calc(var(--hl-brand-hue) * 1deg));
+  --hl-bg-raised: oklch(0.23 0.02 calc(var(--hl-brand-hue) * 1deg));
+  --hl-fg: oklch(0.95 0.01 calc(var(--hl-brand-hue) * 1deg));
+  --hl-fg-muted: oklch(0.75 0.02 calc(var(--hl-brand-hue) * 1deg));
+  --hl-border: oklch(0.35 0.03 calc(var(--hl-brand-hue) * 1deg));
+  --hl-focus: oklch(0.72 0.12 calc(var(--hl-brand-hue) * 1deg));
+
+  --hl-score-strong: oklch(0.7 0.13 150);
+  --hl-score-strong-fg: oklch(0.92 0.04 150);
+  --hl-score-solid: oklch(0.68 0.11 250);
+  --hl-score-solid-fg: oklch(0.92 0.04 250);
+  --hl-score-partial: oklch(0.45 0.03 240);
+  --hl-score-partial-fg: oklch(0.86 0.02 240);
+  --hl-score-limited: oklch(0.4 0.01 260);
+  --hl-score-limited-fg: oklch(0.84 0.01 260);
+
+  --hl-danger: oklch(0.65 0.18 25);
+  --hl-danger-fg: oklch(0.18 0.03 25);
+  --hl-danger-bg: oklch(0.28 0.06 25);
+}
+
+[data-theme="light"] {
+  --hl-brand-0: oklch(0.99 0.01 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-1: oklch(0.97 0.02 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-2: oklch(0.93 0.04 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-3: oklch(0.87 0.07 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-4: oklch(0.78 0.1 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-5: oklch(0.68 0.13 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-6: oklch(0.58 0.14 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-7: oklch(0.48 0.13 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-8: oklch(0.4 0.11 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-9: oklch(0.32 0.08 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-10: oklch(0.24 0.05 calc(var(--hl-brand-hue) * 1deg));
+
+  --hl-bg: oklch(0.99 0.005 calc(var(--hl-brand-hue) * 1deg));
+  --hl-bg-raised: oklch(1 0.002 calc(var(--hl-brand-hue) * 1deg));
+  --hl-fg: oklch(0.22 0.02 calc(var(--hl-brand-hue) * 1deg));
+  --hl-fg-muted: oklch(0.45 0.02 calc(var(--hl-brand-hue) * 1deg));
+  --hl-border: oklch(0.88 0.02 calc(var(--hl-brand-hue) * 1deg));
+  --hl-focus: oklch(0.55 0.14 calc(var(--hl-brand-hue) * 1deg));
+
+  --hl-score-strong: oklch(0.62 0.14 150);
+  --hl-score-strong-fg: oklch(0.28 0.06 150);
+  --hl-score-solid: oklch(0.58 0.12 250);
+  --hl-score-solid-fg: oklch(0.28 0.06 250);
+  --hl-score-partial: oklch(0.78 0.03 240);
+  --hl-score-partial-fg: oklch(0.38 0.03 240);
+  --hl-score-limited: oklch(0.72 0.01 260);
+  --hl-score-limited-fg: oklch(0.36 0.01 260);
+
+  --hl-danger: oklch(0.55 0.19 25);
+  --hl-danger-fg: oklch(0.98 0.01 25);
+  --hl-danger-bg: oklch(0.95 0.03 25);
+}
+
+@theme inline {
+  --color-background: var(--hl-bg);
+  --color-surface: var(--hl-bg-raised);
+  --color-foreground: var(--hl-fg);
+  --color-muted: var(--hl-fg-muted);
+  --color-border: var(--hl-border);
+  --color-focus: var(--hl-focus);
+  --color-brand: var(--hl-brand-6);
+  --color-brand-fg: var(--hl-brand-0);
+  --color-brand-0: var(--hl-brand-0);
+  --color-brand-1: var(--hl-brand-1);
+  --color-brand-2: var(--hl-brand-2);
+  --color-brand-3: var(--hl-brand-3);
+  --color-brand-4: var(--hl-brand-4);
+  --color-brand-5: var(--hl-brand-5);
+  --color-brand-6: var(--hl-brand-6);
+  --color-brand-7: var(--hl-brand-7);
+  --color-brand-8: var(--hl-brand-8);
+  --color-brand-9: var(--hl-brand-9);
+  --color-brand-10: var(--hl-brand-10);
+  --color-score-strong: var(--hl-score-strong);
+  --color-score-strong-fg: var(--hl-score-strong-fg);
+  --color-score-solid: var(--hl-score-solid);
+  --color-score-solid-fg: var(--hl-score-solid-fg);
+  --color-score-partial: var(--hl-score-partial);
+  --color-score-partial-fg: var(--hl-score-partial-fg);
+  --color-score-limited: var(--hl-score-limited);
+  --color-score-limited-fg: var(--hl-score-limited-fg);
+  --color-danger: var(--hl-danger);
+  --color-danger-fg: var(--hl-danger-fg);
+  --color-danger-bg: var(--hl-danger-bg);
+  --font-size-recruiter: var(--hl-font-recruiter);
+  --font-size-candidate: var(--hl-font-candidate);
+  --radius-sm: var(--hl-radius-sm);
+  --radius-md: var(--hl-radius-md);
+  --radius-lg: var(--hl-radius-lg);
+  --spacing-1: var(--hl-space-1);
+  --spacing-2: var(--hl-space-2);
+  --spacing-3: var(--hl-space-3);
+  --spacing-4: var(--hl-space-4);
+  --spacing-5: var(--hl-space-5);
+  --spacing-6: var(--hl-space-6);
+  --spacing-8: var(--hl-space-8);
+}

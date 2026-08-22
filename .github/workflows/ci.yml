@@ -1,0 +1,114 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Build
+        run: dotnet build HireLens.sln -c Release
+      - name: Test
+        run: dotnet test HireLens.sln -c Release --no-build --filter "Category!=Integration"
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+  image:
+    needs: [backend, frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push API
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile.api
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/hirelens-api:${{ github.sha }},ghcr.io/${{ github.repository_owner }}/hirelens-api:latest
+      - name: Build and push Worker
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile.worker
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/hirelens-worker:${{ github.sha }},ghcr.io/${{ github.repository_owner }}/hirelens-worker:latest
+
+  cf-push:
+    needs: image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Cloud Foundry
+        if: ${{ secrets.CF_API != '' }}
+        env:
+          CF_API: ${{ secrets.CF_API }}
+          CF_USER: ${{ secrets.CF_USERNAME }}
+          CF_PASSWORD: ${{ secrets.CF_PASSWORD }}
+          CF_ORG: ${{ secrets.CF_ORG }}
+          CF_SPACE: ${{ secrets.CF_SPACE }}
+          CF_DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -fsSL "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=v8&source=github" -o cf.tgz
+          tar -xzf cf.tgz
+          ./cf api "$CF_API"
+          ./cf auth "$CF_USER" "$CF_PASSWORD"
+          ./cf target -o "$CF_ORG" -s "$CF_SPACE"
+          OWNER="${GITHUB_REPOSITORY_OWNER}"
+          sed "s#ghcr.io/OWNER/#ghcr.io/${OWNER}/#g" deploy/manifest.yml > /tmp/manifest.yml
+          ./cf push hirelens-api --docker-image "ghcr.io/${OWNER}/hirelens-api:${GITHUB_SHA}" --docker-username "${GITHUB_ACTOR}" -f /tmp/manifest.yml --no-start
+          ./cf push hirelens-worker --docker-image "ghcr.io/${OWNER}/hirelens-worker:${GITHUB_SHA}" --docker-username "${GITHUB_ACTOR}" -f /tmp/manifest.yml --no-start
+          ./cf start hirelens-api
+          ./cf start hirelens-worker
+
+  integration:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Integration tests against bound services
+        if: ${{ secrets.AICORE_SERVICE_KEY != '' && secrets.HANA_CONNECTION != '' }}
+        env:
+          AICORE_SERVICE_KEY: ${{ secrets.AICORE_SERVICE_KEY }}
+          AICORE_DEPLOYMENT_ID: ${{ secrets.AICORE_DEPLOYMENT_ID }}
+          AICORE_RESOURCE_GROUP: ${{ secrets.AICORE_RESOURCE_GROUP }}
+          HANA_CONNECTION: ${{ secrets.HANA_CONNECTION }}
+        run: dotnet test tests/HireLens.Integration.Tests --filter "Category=Integration"

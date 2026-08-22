@@ -1,0 +1,29 @@
+---
+applications:
+  - name: hirelens-api
+    memory: 1G
+    instances: 1
+    timeout: 180
+    docker:
+      image: ghcr.io/OWNER/hirelens-api:latest
+    services:
+      - hirelens-hana
+      - hirelens-xsuaa
+      - hirelens-objectstore
+      - hirelens-auditlog
+    env:
+      ASPNETCORE_ENVIRONMENT: Production
+
+  - name: hirelens-worker
+    memory: 1G
+    instances: 1
+    timeout: 180
+    docker:
+      image: ghcr.io/OWNER/hirelens-worker:latest
+    services:
+      - hirelens-hana
+      - hirelens-xsuaa
+      - hirelens-objectstore
+      - hirelens-auditlog
+    env:
+      ASPNETCORE_ENVIRONMENT: Production

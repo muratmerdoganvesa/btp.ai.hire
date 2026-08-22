@@ -1,0 +1,38 @@
+_schema-version: "3.3"
+ID: hirelens
+version: 0.0.1
+description: HireLens multi-tenant recruiting platform on SAP BTP
+
+parameters:
+  deploy_mode: html5-repo
+
+modules:
+  - name: hirelens-api
+    type: docker
+    parameters:
+      image: ghcr.io/OWNER/hirelens-api:latest
+    requires:
+      - name: hirelens-hana
+      - name: hirelens-xsuaa
+      - name: hirelens-objectstore
+      - name: hirelens-auditlog
+
+  - name: hirelens-worker
+    type: docker
+    parameters:
+      image: ghcr.io/OWNER/hirelens-worker:latest
+    requires:
+      - name: hirelens-hana
+      - name: hirelens-xsuaa
+      - name: hirelens-objectstore
+      - name: hirelens-auditlog
+
+resources:
+  - name: hirelens-hana
+    type: org.cloudfoundry.existing-service
+  - name: hirelens-xsuaa
+    type: org.cloudfoundry.existing-service
+  - name: hirelens-objectstore
+    type: org.cloudfoundry.existing-service
+  - name: hirelens-auditlog
+    type: org.cloudfoundry.existing-service

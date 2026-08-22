@@ -1,0 +1,36 @@
+name: monthly-base-image-rebuild
+
+on:
+  schedule:
+    - cron: "17 4 1 * *"
+  workflow_dispatch:
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Rebuild API from current base image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile.api
+          pull: true
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/hirelens-api:latest,ghcr.io/${{ github.repository_owner }}/hirelens-api:monthly-${{ github.run_id }}
+      - name: Rebuild Worker from current base image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile.worker
+          pull: true
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/hirelens-worker:latest,ghcr.io/${{ github.repository_owner }}/hirelens-worker:monthly-${{ github.run_id }}

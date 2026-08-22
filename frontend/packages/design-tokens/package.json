@@ -1,0 +1,13 @@
+{
+  "name": "@hirelens/design-tokens",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./tokens.css",
+    "./tokens.css": "./tokens.css"
+  },
+  "scripts": {
+    "build": "node -e \"import('node:fs').then((fs) => fs.accessSync('tokens.css'))\""
+  }
+}

@@ -1,0 +1,149 @@
+{
+  "app": {
+    "recruiter": "HireLens Recruiter",
+    "candidate": "HireLens Candidate",
+    "admin": "HireLens Admin"
+  },
+  "nav": {
+    "positions": "Positions",
+    "dashboard": "Dashboard",
+    "workspace": "Workspace"
+  },
+  "login": {
+    "title": "Sign in",
+    "kicker": "Evidence-bound hiring",
+    "headline": "See the evidence before you see the score.",
+    "subhead": "HireLens binds a CV to a job description. The model cannot advance a stage; every number rests on a quote.",
+    "point1": "A numeric score cannot exist without a source quote.",
+    "point2": "No auto-accept or auto-reject. The rationale stays with the human.",
+    "point3": "Pre-interviews are text-only. No face, voice, or emotion inference.",
+    "workspace": "Local workspace",
+    "tenantId": "Tenant id",
+    "subject": "User subject",
+    "role": "Role",
+    "roles": {
+      "Recruiter": "Recruiter",
+      "HiringManager": "Hiring manager",
+      "TenantAdmin": "Tenant admin"
+    },
+    "newTenant": "New tenant",
+    "submit": "Enter workspace",
+    "hint": "Local development uses /dev/token on the API Development environment."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome",
+    "subtitle": "Open requisitions, evidence, and human decisions on one line.",
+    "tenant": "Tenant",
+    "subject": "Session",
+    "roles": "Roles",
+    "empty": "No positions yet. Create the first requisition.",
+    "logout": "Sign out",
+    "openPositions": "Go to positions",
+    "createFirst": "Open the first position",
+    "openReqs": "Open positions",
+    "criteria": "Defined criteria",
+    "session": "Active session",
+    "recent": "Latest requisitions"
+  },
+  "positions": {
+    "title": "Positions",
+    "list": "Open requisitions",
+    "empty": "The list is empty. Save the first position on the left.",
+    "weightSum": "Total weight",
+    "create": "Create position",
+    "name": "Title",
+    "jd": "Job description",
+    "criteria": "Criteria",
+    "criterionName": "Criterion",
+    "criterionDesc": "Description",
+    "weight": "Weight",
+    "addCriterion": "Add criterion",
+    "weightsHint": "Weights must sum to 100.",
+    "submit": "Save",
+    "open": "Candidates"
+  },
+  "candidates": {
+    "title": "Candidates",
+    "create": "Add candidate",
+    "displayName": "Display name",
+    "empty": "No candidates on this position yet.",
+    "open": "Evaluation",
+    "status": "Status",
+    "selectHint": "Select a candidate or add one before uploading a CV.",
+    "count": "Candidates"
+  },
+  "upload": {
+    "title": "Upload CV",
+    "hint": "PDF or plain text. Bytes go to object storage; the API only sees an evidence-bound score.",
+    "submit": "Upload and parse",
+    "working": "Parsing…"
+  },
+  "evaluation": {
+    "title": "Evaluation",
+    "summary": "Summary",
+    "overall": "Overall score",
+    "noScore": "No evidence, so there is no numeric score.",
+    "followUps": "Follow-ups",
+    "needsVerification": "Needs verification",
+    "source": "Source",
+    "confidence": "Confidence",
+    "risks": "Risk flags",
+    "noRisks": "No open risk flags.",
+    "audit": "Decision history",
+    "noAudit": "No decisions yet."
+  },
+  "decision": {
+    "title": "Decision",
+    "outcome": "Outcome",
+    "advance": "Advance",
+    "hold": "Hold",
+    "reject": "Reject",
+    "rationale": "Rationale",
+    "rationaleHint": "A rationale is required. The model cannot advance the stage alone.",
+    "submit": "Record decision",
+    "override": "Override score",
+    "overrideHint": "You record a reasoned decision, not a new number.",
+    "close": "Close"
+  },
+  "score": {
+    "strong": "Strong",
+    "solid": "Solid",
+    "partial": "Partial",
+    "limited": "Limited",
+    "unknown": "Unknown",
+    "insufficient": "Insufficient evidence"
+  },
+  "interview": {
+    "title": "AI pre-interview",
+    "invite": "Send interview invite",
+    "invited": "Invite link is ready",
+    "prep": "Preparation",
+    "expect": "What to expect",
+    "duration": "Estimated time",
+    "data": "How data is used",
+    "disclosure": "This interview is text-only. No voice, face, or emotion inference.",
+    "consent": "I have read the disclosure and I consent",
+    "start": "Start interview",
+    "pause": "Pause",
+    "resume": "Resume",
+    "answer": "Answer",
+    "send": "Send",
+    "transcript": "Transcript",
+    "gaps": "Evidence gaps"
+  },
+  "admin": {
+    "provision": "Provision tenant",
+    "rubrics": "Rubrics",
+    "theme": "Theme",
+    "models": "Model policy",
+    "metering": "Quota",
+    "bias": "Bias monitor",
+    "funnel": "Funnel"
+  },
+  "errors": {
+    "generic": "A system error occurred.",
+    "loginFailed": "Sign-in failed.",
+    "weights": "Criterion weights must sum to 100."
+  }
+}

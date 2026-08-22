@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>HireLens.Api</RootNamespace>
+    <AssemblyName>HireLens.Api</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HireLens.SharedKernel\HireLens.SharedKernel.csproj" />
+    <ProjectReference Include="..\HireLens.Contracts\HireLens.Contracts.csproj" />
+    <ProjectReference Include="..\HireLens.Infrastructure\HireLens.Infrastructure.csproj" />
+    <ProjectReference Include="..\HireLens.AiGateway\HireLens.AiGateway.csproj" />
+    <ProjectReference Include="..\Modules\HireLens.Modules.Tenancy\HireLens.Modules.Tenancy.csproj" />
+    <ProjectReference Include="..\Modules\HireLens.Modules.Identity\HireLens.Modules.Identity.csproj" />
+    <ProjectReference Include="..\Modules\HireLens.Modules.Recruiting\HireLens.Modules.Recruiting.csproj" />
+    <ProjectReference Include="..\Modules\HireLens.Modules.Candidate\HireLens.Modules.Candidate.csproj" />
+    <ProjectReference Include="..\Modules\HireLens.Modules.Documents\HireLens.Modules.Documents.csproj" />
+    <ProjectReference Include="..\Modules\HireLens.Modules.Evidence\HireLens.Modules.Evidence.csproj" />
+    <ProjectReference Include="..\Modules\HireLens.Modules.Matching\HireLens.Modules.Matching.csproj" />
+    <ProjectReference Include="..\Modules\HireLens.Modules.Review\HireLens.Modules.Review.csproj" />
+    <ProjectReference Include="..\Modules\HireLens.Modules.Compliance\HireLens.Modules.Compliance.csproj" />
+    <ProjectReference Include="..\Modules\HireLens.Modules.Taxonomy\HireLens.Modules.Taxonomy.csproj" />
+    <ProjectReference Include="..\Modules\HireLens.Modules.Privacy\HireLens.Modules.Privacy.csproj" />
+    <ProjectReference Include="..\Modules\HireLens.Modules.Interview\HireLens.Modules.Interview.csproj" />
+    <ProjectReference Include="..\Modules\HireLens.Modules.Notification\HireLens.Modules.Notification.csproj" />
+    <ProjectReference Include="..\Modules\HireLens.Modules.Configuration\HireLens.Modules.Configuration.csproj" />
+    <ProjectReference Include="..\Modules\HireLens.Modules.Metering\HireLens.Modules.Metering.csproj" />
+    <ProjectReference Include="..\Modules\HireLens.Modules.Integration\HireLens.Modules.Integration.csproj" />
+    <ProjectReference Include="..\Modules\HireLens.Modules.Analytics\HireLens.Modules.Analytics.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\prompts\**\*" CopyToOutputDirectory="PreserveNewest" Link="prompts\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

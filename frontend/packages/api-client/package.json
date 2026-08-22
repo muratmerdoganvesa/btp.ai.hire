@@ -1,0 +1,17 @@
+{
+  "name": "@hirelens/api-client",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json",
+    "generate": "openapi-typescript ./openapi.yaml -o ./src/schema.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.8.0",
+    "typescript": "^5.8.3"
+  }
+}

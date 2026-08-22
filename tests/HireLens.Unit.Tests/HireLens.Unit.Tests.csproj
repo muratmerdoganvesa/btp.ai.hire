@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>HireLens.Unit.Tests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\HireLens.AiGateway\HireLens.AiGateway.csproj" />
+    <ProjectReference Include="..\..\src\HireLens.Infrastructure\HireLens.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\HireLens.SharedKernel\HireLens.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\src\HireLens.Contracts\HireLens.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Evidence\HireLens.Modules.Evidence.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Recruiting\HireLens.Modules.Recruiting.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Review\HireLens.Modules.Review.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Matching\HireLens.Modules.Matching.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Interview\HireLens.Modules.Interview.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Configuration\HireLens.Modules.Configuration.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Analytics\HireLens.Modules.Analytics.csproj" />
+  </ItemGroup>
+</Project>

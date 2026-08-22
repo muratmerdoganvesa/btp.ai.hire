@@ -1,0 +1,149 @@
+{
+  "app": {
+    "recruiter": "HireLens Recruiter",
+    "candidate": "HireLens Aday",
+    "admin": "HireLens Yönetim"
+  },
+  "nav": {
+    "positions": "Pozisyonlar",
+    "dashboard": "Panel",
+    "workspace": "Çalışma alanı"
+  },
+  "login": {
+    "title": "Oturum aç",
+    "kicker": "Kanıta bağlı işe alım",
+    "headline": "Skoru görmeden önce kanıtı görün.",
+    "subhead": "HireLens CV’yi iş tanımına bağlar. Model tek başına ilerletmez; her sayı bir alıntıya yaslanır.",
+    "point1": "Sayısal skor, kaynak alıntısı olmadan üretilemez.",
+    "point2": "Otomatik kabul veya red yok; gerekçe insanda kalır.",
+    "point3": "Ön mülakat yalnızca metindir. Yüz, ses veya duygu çıkarılmaz.",
+    "workspace": "Yerel çalışma alanı",
+    "tenantId": "Kiracı kimliği",
+    "subject": "Kullanıcı kimliği",
+    "role": "Rol",
+    "roles": {
+      "Recruiter": "Recruiter",
+      "HiringManager": "Hiring manager",
+      "TenantAdmin": "Tenant admin"
+    },
+    "newTenant": "Yeni kiracı",
+    "submit": "Çalışma alanına gir",
+    "hint": "Yerel geliştirme: API Development ortamında /dev/token kullanılır."
+  },
+  "dashboard": {
+    "title": "Kontrol paneli",
+    "welcome": "Hoş geldiniz",
+    "subtitle": "Açık requisition’lar, kanıt ve insan kararı aynı hat üzerinde.",
+    "tenant": "Kiracı",
+    "subject": "Oturum",
+    "roles": "Roller",
+    "empty": "Henüz pozisyon yok. İlk requisition’ı oluşturun.",
+    "logout": "Çıkış",
+    "openPositions": "Pozisyonlara git",
+    "createFirst": "İlk pozisyonu aç",
+    "openReqs": "Açık pozisyon",
+    "criteria": "Tanımlı kriter",
+    "session": "Aktif oturum",
+    "recent": "Son requisition’lar"
+  },
+  "positions": {
+    "title": "Pozisyonlar",
+    "list": "Açık requisition’lar",
+    "empty": "Liste boş. Soldan ilk pozisyonu kaydedin.",
+    "weightSum": "Toplam ağırlık",
+    "create": "Pozisyon oluştur",
+    "name": "Başlık",
+    "jd": "İş tanımı",
+    "criteria": "Kriterler",
+    "criterionName": "Kriter",
+    "criterionDesc": "Açıklama",
+    "weight": "Ağırlık",
+    "addCriterion": "Kriter ekle",
+    "weightsHint": "Ağırlıkların toplamı 100 olmalıdır.",
+    "submit": "Kaydet",
+    "open": "Adaylar"
+  },
+  "candidates": {
+    "title": "Adaylar",
+    "create": "Aday ekle",
+    "displayName": "Görünen ad",
+    "empty": "Bu pozisyona henüz aday eklenmedi.",
+    "open": "Değerlendirme",
+    "status": "Durum",
+    "selectHint": "CV yüklemek için bir aday seçin veya yeni ekleyin.",
+    "count": "Aday"
+  },
+  "upload": {
+    "title": "CV yükle",
+    "hint": "PDF veya düz metin. Dosya nesne deposuna gider; API yalnızca kanıtlı skoru görür.",
+    "submit": "Yükle ve çözümle",
+    "working": "Çözümleniyor…"
+  },
+  "evaluation": {
+    "title": "Değerlendirme",
+    "summary": "Özet",
+    "overall": "Genel skor",
+    "noScore": "Kanıt yok; sayısal skor yok.",
+    "followUps": "Takip soruları",
+    "needsVerification": "Doğrulama gerekenler",
+    "source": "Kaynak",
+    "confidence": "Güven",
+    "risks": "Risk bayrakları",
+    "noRisks": "Açık risk bayrağı yok.",
+    "audit": "Karar geçmişi",
+    "noAudit": "Henüz karar yok."
+  },
+  "decision": {
+    "title": "Karar",
+    "outcome": "Sonuç",
+    "advance": "İlerlet",
+    "hold": "Beklet",
+    "reject": "Reddet",
+    "rationale": "Gerekçe",
+    "rationaleHint": "Gerekçe zorunludur. Model tek başına aşama ilerletmez.",
+    "submit": "Kararı kaydet",
+    "override": "Skoru geçersiz kıl",
+    "overrideHint": "Sayıyı değil, gerekçeli kararı kaydedersiniz.",
+    "close": "Kapat"
+  },
+  "score": {
+    "strong": "Güçlü",
+    "solid": "Sağlam",
+    "partial": "Kısmi",
+    "limited": "Sınırlı",
+    "unknown": "Bilinmiyor",
+    "insufficient": "Yetersiz kanıt"
+  },
+  "interview": {
+    "title": "AI ön mülakat",
+    "invite": "Mülakat daveti gönder",
+    "invited": "Davet linki hazır",
+    "prep": "Hazırlık",
+    "expect": "Ne bekleniyor",
+    "duration": "Tahmini süre",
+    "data": "Veri kullanımı",
+    "disclosure": "Bu görüşme metin tabanlıdır. Ses, yüz veya duygu çıkarımı yapılmaz.",
+    "consent": "Bilgilendirmeyi okudum ve onaylıyorum",
+    "start": "Mülakata başla",
+    "pause": "Duraklat",
+    "resume": "Devam et",
+    "answer": "Yanıt",
+    "send": "Gönder",
+    "transcript": "Transkript",
+    "gaps": "Kanıt boşlukları"
+  },
+  "admin": {
+    "provision": "Kiracı aç",
+    "rubrics": "Rubrikler",
+    "theme": "Tema",
+    "models": "Model politikası",
+    "metering": "Kota",
+    "bias": "Yanlılık izleme",
+    "funnel": "Huni"
+  },
+  "errors": {
+    "generic": "Bir sistem hatası oluştu.",
+    "loginFailed": "Giriş başarısız.",
+    "weights": "Kriter ağırlıkları 100 etmelidir."
+  }
+}
