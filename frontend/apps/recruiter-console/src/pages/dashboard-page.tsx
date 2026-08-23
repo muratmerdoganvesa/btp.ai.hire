@@ -1,5 +1,5 @@
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, InitialsAvatar } from "@hirelens/ui";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
@@ -11,6 +11,13 @@ export function DashboardPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const session = useAuthStore((s) => s.session);
+  const queryClient = useQueryClient();
+  const seed = useMutation({
+    mutationFn: () => api.seedDemo(),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["positions"] });
+    }
+  });
 
   const me = useQuery({
     queryKey: ["me"],
@@ -51,9 +58,19 @@ export function DashboardPage() {
             <p className="mt-1 text-sm text-muted">{t("dashboard.subtitle")}</p>
           </div>
         </div>
-        <Button asChild>
-          <Link to="/positions">{list.length === 0 ? t("dashboard.createFirst") : t("dashboard.openPositions")}</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" disabled={seed.isPending} onClick={() => seed.mutate()}>
+            {seed.isPending ? t("dashboard.seedDemoBusy") : t("dashboard.seedDemo")}
+          </Button>
+          <Button asChild>
+            <Link to="/positions">{list.length === 0 ? t("dashboard.createFirst") : t("dashboard.openPositions")}</Link>
+          </Button>
+        </div>
+        {seed.isSuccess ? (
+          <p className="basis-full text-sm text-muted">
+            {seed.data.skipped ? t("dashboard.seedDemoSkip") : t("dashboard.seedDemoDone")}
+          </p>
+        ) : null}
       </header>
 
       <section className="grid gap-4 sm:grid-cols-3">
@@ -84,6 +101,9 @@ export function DashboardPage() {
           {list.length === 0 ? (
             <div className="rounded-lg border border-dashed border-border bg-brand-1/50 px-6 py-10 text-center">
               <p className="text-sm text-muted">{t("dashboard.empty")}</p>
+              {seed.isSuccess ? (
+                <p className="mt-3 text-sm">{seed.data.skipped ? t("dashboard.seedDemoSkip") : t("dashboard.seedDemoDone")}</p>
+              ) : null}
               <Button asChild className="mt-4">
                 <Link to="/positions">{t("dashboard.createFirst")}</Link>
               </Button>

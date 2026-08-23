@@ -44,7 +44,11 @@
     "openReqs": "Açık pozisyon",
     "criteria": "Tanımlı kriter",
     "session": "Aktif oturum",
-    "recent": "Son requisition’lar"
+    "recent": "Son requisition’lar",
+    "seedDemo": "500 demo CV yükle",
+    "seedDemoBusy": "Yükleniyor…",
+    "seedDemoDone": "20 departman, 500 CV HANA’ya yazıldı.",
+    "seedDemoSkip": "Demo CV’ler zaten yüklü."
   },
   "positions": {
     "title": "Pozisyonlar",

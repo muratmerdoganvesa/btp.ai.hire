@@ -4,6 +4,7 @@ using HireLens.Api.Auth;
 using HireLens.Api.Endpoints;
 using HireLens.Api.Hosting;
 using HireLens.Api.Jobs;
+using HireLens.Api.Seed;
 using HireLens.Contracts.Matching;
 using HireLens.Infrastructure.Btp;
 using HireLens.Infrastructure.Hosting;
@@ -63,6 +64,7 @@ builder.Services.AddInterviewModule();
 builder.Services.AddSingleton<IObjectStore, LocalObjectStore>();
 builder.Services.AddSingleton<IFileGuard, FileGuard>();
 builder.Services.AddSingleton<IAnalysisJobs, ImmediateAnalysisJobs>();
+builder.Services.AddScoped<IDemoSeedService, DemoSeedService>();
 builder.Services.AddAiGateway(builder.Configuration);
 builder.Services.AddHireLensAuth(builder.Configuration, builder.Environment);
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -101,6 +103,7 @@ if (DevAuth.IsEnabled(app.Environment, app.Configuration))
 app.MapOpenApi().AllowAnonymous();
 app.MapHireLensHealth();
 app.MapMeEndpoints();
+app.MapSeedEndpoints();
 app.MapTenancyModule();
 app.MapIdentityModule();
 app.MapRecruitingModule();

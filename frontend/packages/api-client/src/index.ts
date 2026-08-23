@@ -161,6 +161,10 @@ export class ApiClient {
     return this.get("/api/analytics/bias");
   }
 
+  public async seedDemo(): Promise<{ skipped: boolean; positions: number; candidates: number; documents: number }> {
+    return this.send("/api/admin/seed-demo", "POST");
+  }
+
   public async provisionTenant(input: { tenantId: string; name: string; slug: string; adminSubject: string }): Promise<unknown> {
     return this.send("/api/admin/tenants/provision", "POST", input);
   }

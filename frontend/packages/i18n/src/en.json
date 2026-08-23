@@ -44,7 +44,11 @@
     "openReqs": "Open positions",
     "criteria": "Defined criteria",
     "session": "Active session",
-    "recent": "Latest requisitions"
+    "recent": "Latest requisitions",
+    "seedDemo": "Load 500 demo CVs",
+    "seedDemoBusy": "Loading…",
+    "seedDemoDone": "20 departments, 500 CVs written.",
+    "seedDemoSkip": "Demo CVs are already loaded."
   },
   "positions": {
     "title": "Positions",
