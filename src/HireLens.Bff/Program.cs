@@ -10,11 +10,9 @@ using Yarp.ReverseProxy.Transforms;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var port = Environment.GetEnvironmentVariable("PORT");
-if (!string.IsNullOrWhiteSpace(port))
-{
-    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
-}
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+Console.WriteLine($"HireLens BFF binding to http://0.0.0.0:{port}");
 
 builder.Host.UseSerilog((_, config) => config.WriteTo.Console());
 
@@ -22,6 +20,7 @@ var canonical = builder.Configuration["PUBLIC_HOST"] ?? CanonicalHost.Default;
 var publicOrigin = CanonicalHost.Origin(canonical);
 var apiUrl = (builder.Configuration["API_URL"] ?? "https://hirelens-api.cfapps.eu20-002.hana.ondemand.com").TrimEnd('/');
 var xsuaa = XsuaaBinding.Read(builder.Configuration);
+Console.WriteLine($"HireLens BFF xsuaa authority={xsuaa.Authority} clientId={xsuaa.ClientId[..Math.Min(12, xsuaa.ClientId.Length)]}…");
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {

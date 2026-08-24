@@ -151,6 +151,9 @@ jobs:
               --docker-image "ghcr.io/${OWNER}/hirelens-web:${GITHUB_SHA}" \
               --docker-username "${GITHUB_ACTOR}" \
               -f /tmp/manifest.yml \
+              -u http \
+              --endpoint /health/live \
+              -t 180 \
               --no-start
           }
           if ! push_web; then
