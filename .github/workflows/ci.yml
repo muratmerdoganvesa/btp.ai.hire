@@ -129,6 +129,7 @@ jobs:
           sed "s#ghcr.io/OWNER/#ghcr.io/${GITHUB_REPOSITORY_OWNER}/#g" deploy/manifest.yml > /tmp/manifest.yml
           ./cf update-service hirelens-xsuaa -c deploy/xs-security.json || echo "XSUAA update skipped"
           ./cf push hirelens-web -p /tmp/web-drop -f /tmp/manifest.yml --no-start
+          ./cf unset-env hirelens-web TENANT_HOST_PATTERN || true
           ./cf map-route hirelens-web cfapps.eu20-002.hana.ondemand.com --hostname hirelens-web || true
           ./cf map-route hirelens-web cfapps.eu20-002.hana.ondemand.com --hostname dev-2z4ga5d8-hirelens-web || true
           ./cf start hirelens-web

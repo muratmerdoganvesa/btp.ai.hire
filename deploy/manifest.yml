@@ -45,5 +45,4 @@ applications:
       - hirelens-xsuaa
     env:
       destinations: '[{"name":"hirelens-api","url":"https://hirelens-api.cfapps.eu20-002.hana.ondemand.com","forwardAuthToken":true}]'
-      TENANT_HOST_PATTERN: "^(.*)-hirelens-web.cfapps.eu20-002.hana.ondemand.com"
       XS_APP_LOG_LEVEL: info

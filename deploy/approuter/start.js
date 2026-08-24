@@ -89,7 +89,12 @@ function isProxyPath(pathname) {
 }
 
 function resolveUiFile(pathname) {
-  if (pathname === "/" || pathname === "" || pathname === "/index.html") {
+  const normalized = pathname.replace(/\/+$/, "") || "/";
+  if (
+    normalized === "/" ||
+    normalized === "/index.html" ||
+    normalized.endsWith("/index.html")
+  ) {
     return { file: indexHtml, missingAsset: false };
   }
   const exact = findFile(pathname.replace(/^\/+/, ""));
