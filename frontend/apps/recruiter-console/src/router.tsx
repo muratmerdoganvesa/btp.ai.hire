@@ -20,7 +20,7 @@ const requireSession = () => {
     throw redirect({ to: "/login" });
   }
 
-  window.location.assign("/login");
+  window.location.assign("/");
   throw new Error("xsuaa_login");
 };
 

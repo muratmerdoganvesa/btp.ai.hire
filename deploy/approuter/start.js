@@ -82,7 +82,7 @@ function isProxyPath(pathname) {
     pathname.startsWith("/api/") ||
     pathname.startsWith("/compliance/") ||
     pathname.startsWith("/health/") ||
-    pathname.startsWith("/login") ||
+    pathname.startsWith("/login/callback") ||
     pathname === "/logout" ||
     pathname.startsWith("/logout/")
   );
@@ -104,7 +104,14 @@ function resolveUiFile(pathname) {
 }
 
 function serveUi(req, res) {
-  const { file, missingAsset } = resolveUiFile(pathnameOf(req));
+  const pathname = pathnameOf(req);
+  if (pathname === "/login" || pathname === "/login/") {
+    res.writeHead(302, { Location: "/" });
+    res.end();
+    return;
+  }
+
+  const { file, missingAsset } = resolveUiFile(pathname);
   if (missingAsset || !file) {
     res.statusCode = 404;
     res.setHeader("Content-Type", "text/plain; charset=utf-8");

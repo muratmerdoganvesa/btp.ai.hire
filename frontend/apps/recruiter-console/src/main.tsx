@@ -36,6 +36,6 @@ void (async () => {
       return;
     }
 
-    window.location.assign("/login");
+    window.location.assign("/");
   }
 })();

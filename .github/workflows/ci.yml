@@ -44,7 +44,7 @@ jobs:
           path: frontend/apps/recruiter-console/dist
 
   image:
-    needs: [backend, frontend]
+    needs: [backend]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -72,8 +72,8 @@ jobs:
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/hirelens-worker:${{ github.sha }},ghcr.io/${{ github.repository_owner }}/hirelens-worker:latest
 
-  cf-push:
-    needs: [image, frontend]
+  cf-push-web:
+    needs: [frontend]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
@@ -102,8 +102,48 @@ jobs:
           cd /tmp/web-drop
           npm install --omit=dev
           test -f node_modules/@sap/approuter/approuter.js
-          find . -maxdepth 2 -type f | head
-      - name: Deploy to Cloud Foundry
+      - name: Deploy hirelens-web
+        env:
+          CF_API: ${{ secrets.CF_API }}
+          CF_USER: ${{ secrets.CF_USERNAME }}
+          CF_PASSWORD: ${{ secrets.CF_PASSWORD }}
+          CF_ORG: ${{ secrets.CF_ORG }}
+          CF_SPACE: ${{ secrets.CF_SPACE }}
+        run: |
+          CF_API="$(printf '%s' "$CF_API" | tr -d '\r\n')"
+          CF_USER="$(printf '%s' "$CF_USER" | tr -d '\r\n')"
+          CF_PASSWORD="$(printf '%s' "$CF_PASSWORD" | tr -d '\r\n')"
+          CF_ORG="$(printf '%s' "$CF_ORG" | tr -d '\r\n')"
+          CF_SPACE="$(printf '%s' "$CF_SPACE" | tr -d '\r\n')"
+          if [ -z "$CF_API" ] || [ -z "$CF_USER" ] || [ -z "$CF_PASSWORD" ] || [ -z "$CF_ORG" ] || [ -z "$CF_SPACE" ]; then
+            echo "CF secrets are not set; hirelens-web was not deployed."
+            exit 1
+          fi
+          curl -fsSL "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=v8&source=github" -o cf.tgz
+          tar -xzf cf.tgz
+          ./cf api "$CF_API"
+          ./cf auth "$CF_USER" "$CF_PASSWORD"
+          ./cf target -o "$CF_ORG" -s "$CF_SPACE"
+          sed "s#ghcr.io/OWNER/#ghcr.io/${GITHUB_REPOSITORY_OWNER}/#g" deploy/manifest.yml > /tmp/manifest.yml
+          ./cf update-service hirelens-xsuaa -c deploy/xs-security.json || echo "XSUAA update skipped"
+          ./cf push hirelens-web -p /tmp/web-drop -f /tmp/manifest.yml --no-start
+          ./cf map-route hirelens-web cfapps.eu20-002.hana.ondemand.com --hostname hirelens-web || true
+          ./cf map-route hirelens-web cfapps.eu20-002.hana.ondemand.com --hostname dev-2z4ga5d8-hirelens-web || true
+          ./cf start hirelens-web
+          ./cf app hirelens-web
+          if ./cf app hirelens-web | grep -Eqi 'crashed|instances:[[:space:]]*0/'; then
+            echo "hirelens-web did not start"
+            ./cf logs hirelens-web --recent
+            exit 1
+          fi
+
+  cf-push-backend:
+    needs: [image]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy API and worker
         env:
           CF_API: ${{ secrets.CF_API }}
           CF_USER: ${{ secrets.CF_USERNAME }}
@@ -118,8 +158,8 @@ jobs:
           CF_ORG="$(printf '%s' "$CF_ORG" | tr -d '\r\n')"
           CF_SPACE="$(printf '%s' "$CF_SPACE" | tr -d '\r\n')"
           if [ -z "$CF_API" ] || [ -z "$CF_USER" ] || [ -z "$CF_PASSWORD" ] || [ -z "$CF_ORG" ] || [ -z "$CF_SPACE" ]; then
-            echo "CF secrets are not set; skipping Cloud Foundry deploy."
-            exit 0
+            echo "CF secrets are not set; API/worker were not deployed."
+            exit 1
           fi
           curl -fsSL "https://packages.cloudfoundry.org/stable?release=linux64-binary&version=v8&source=github" -o cf.tgz
           tar -xzf cf.tgz
@@ -134,20 +174,10 @@ jobs:
           ./cf start hirelens-worker
           API_HOST="$(./cf app hirelens-api | awk -F': *' '/^[[:space:]]*routes:/{print $2}' | tr -d '\r' | cut -d',' -f1 | tr -d ' ')"
           if [ -n "$API_HOST" ]; then
-            sed -i "s#https://hirelens-api.cfapps.eu20-002.hana.ondemand.com#https://${API_HOST}#" /tmp/manifest.yml
+            ./cf set-env hirelens-web destinations "[{\"name\":\"hirelens-api\",\"url\":\"https://${API_HOST}\",\"forwardAuthToken\":true}]"
+            ./cf restart hirelens-web || true
           fi
-          ./cf update-service hirelens-xsuaa -c deploy/xs-security.json || echo "XSUAA update skipped; recreate as dedicated if login hits authentication.eu20 without a subdomain."
-          ./cf push hirelens-web -p /tmp/web-drop -f /tmp/manifest.yml --no-start
-          ./cf map-route hirelens-web cfapps.eu20-002.hana.ondemand.com --hostname hirelens-web || true
-          ./cf map-route hirelens-web cfapps.eu20-002.hana.ondemand.com --hostname dev-2z4ga5d8-hirelens-web || true
-          ./cf start hirelens-web
-          ./cf app hirelens-web
           ./cf app hirelens-api
-          if ./cf app hirelens-web | grep -Eqi 'crashed|0 of 1|0/1'; then
-            echo "hirelens-web did not start"
-            ./cf logs hirelens-web --recent
-            exit 1
-          fi
 
   integration:
     if: github.event_name == 'push'
