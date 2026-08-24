@@ -61,6 +61,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HireLens.Modules.Integratio
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HireLens.Modules.Analytics", "src\Modules\HireLens.Modules.Analytics\HireLens.Modules.Analytics.csproj", "{366AD6BC-A296-4B3A-8FDE-EC26DD0DC16D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HireLens.Bff", "src\HireLens.Bff\HireLens.Bff.csproj", "{380BB78A-8025-4EE6-8179-A8516F4B8F08}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -383,6 +385,18 @@ Global
 		{366AD6BC-A296-4B3A-8FDE-EC26DD0DC16D}.Release|x64.Build.0 = Release|Any CPU
 		{366AD6BC-A296-4B3A-8FDE-EC26DD0DC16D}.Release|x86.ActiveCfg = Release|Any CPU
 		{366AD6BC-A296-4B3A-8FDE-EC26DD0DC16D}.Release|x86.Build.0 = Release|Any CPU
+		{380BB78A-8025-4EE6-8179-A8516F4B8F08}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{380BB78A-8025-4EE6-8179-A8516F4B8F08}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{380BB78A-8025-4EE6-8179-A8516F4B8F08}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{380BB78A-8025-4EE6-8179-A8516F4B8F08}.Debug|x64.Build.0 = Debug|Any CPU
+		{380BB78A-8025-4EE6-8179-A8516F4B8F08}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{380BB78A-8025-4EE6-8179-A8516F4B8F08}.Debug|x86.Build.0 = Debug|Any CPU
+		{380BB78A-8025-4EE6-8179-A8516F4B8F08}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{380BB78A-8025-4EE6-8179-A8516F4B8F08}.Release|Any CPU.Build.0 = Release|Any CPU
+		{380BB78A-8025-4EE6-8179-A8516F4B8F08}.Release|x64.ActiveCfg = Release|Any CPU
+		{380BB78A-8025-4EE6-8179-A8516F4B8F08}.Release|x64.Build.0 = Release|Any CPU
+		{380BB78A-8025-4EE6-8179-A8516F4B8F08}.Release|x86.ActiveCfg = Release|Any CPU
+		{380BB78A-8025-4EE6-8179-A8516F4B8F08}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -415,5 +429,6 @@ Global
 		{E70DAE95-2ABA-4A42-B221-E952C0C252CF} = {A2222222-2222-2222-2222-222222222222}
 		{C1F4CDF0-A0E9-495C-AE00-D6759FB48A03} = {A2222222-2222-2222-2222-222222222222}
 		{366AD6BC-A296-4B3A-8FDE-EC26DD0DC16D} = {A2222222-2222-2222-2222-222222222222}
+		{380BB78A-8025-4EE6-8179-A8516F4B8F08} = {A1111111-1111-1111-1111-111111111111}
 	EndGlobalSection
 EndGlobal

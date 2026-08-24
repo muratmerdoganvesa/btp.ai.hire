@@ -12,6 +12,7 @@
     <PackageReference Include="xunit.runner.visualstudio" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\src\HireLens.Bff\HireLens.Bff.csproj" />
     <ProjectReference Include="..\..\src\HireLens.AiGateway\HireLens.AiGateway.csproj" />
     <ProjectReference Include="..\..\src\HireLens.Infrastructure\HireLens.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\HireLens.SharedKernel\HireLens.SharedKernel.csproj" />
