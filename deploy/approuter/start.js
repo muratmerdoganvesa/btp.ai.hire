@@ -1,12 +1,9 @@
 "use strict";
 
 const fs = require("fs");
-const http = require("http");
 const path = require("path");
 const approuter = require("@sap/approuter");
 
-const UI_HOST = "127.0.0.1";
-const UI_PORT = Number(process.env.HIRELENS_UI_PORT || 8099);
 const roots = [path.join(__dirname, "resources"), __dirname];
 
 const mime = {
@@ -71,8 +68,8 @@ function sendFile(res, file) {
   fs.createReadStream(file).pipe(res);
 }
 
-function pathnameOf(url) {
-  const raw = String(url || "/").split("?")[0];
+function pathnameOf(req) {
+  const raw = String(req._hirelensUrl || req.url || "").split("?")[0];
   try {
     return decodeURIComponent(raw);
   } catch {
@@ -80,12 +77,22 @@ function pathnameOf(url) {
   }
 }
 
+function isProxyPath(pathname) {
+  return (
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/compliance/") ||
+    pathname.startsWith("/health/") ||
+    pathname.startsWith("/login") ||
+    pathname === "/logout" ||
+    pathname.startsWith("/logout/")
+  );
+}
+
 function resolveUiFile(pathname) {
   if (pathname === "/" || pathname === "" || pathname === "/index.html") {
     return { file: indexHtml, missingAsset: false };
   }
-  const rel = pathname.replace(/^\/+/, "");
-  const exact = findFile(rel);
+  const exact = findFile(pathname.replace(/^\/+/, ""));
   if (exact) {
     return { file: exact, missingAsset: false };
   }
@@ -96,13 +103,8 @@ function resolveUiFile(pathname) {
   return { file: indexHtml, missingAsset: false };
 }
 
-const uiServer = http.createServer((req, res) => {
-  if (req.method !== "GET" && req.method !== "HEAD") {
-    res.statusCode = 405;
-    res.end();
-    return;
-  }
-  const { file, missingAsset } = resolveUiFile(pathnameOf(req.url));
+function serveUi(req, res) {
+  const { file, missingAsset } = resolveUiFile(pathnameOf(req));
   if (missingAsset || !file) {
     res.statusCode = 404;
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
@@ -116,24 +118,52 @@ const uiServer = http.createServer((req, res) => {
     return;
   }
   sendFile(res, file);
-});
+}
 
-uiServer.on("error", (err) => {
-  console.error("FATAL: static UI server failed", err);
-  process.exit(1);
-});
-
-uiServer.listen(UI_PORT, UI_HOST, () => {
-  const destinations = JSON.parse(process.env.destinations || "[]");
-  if (!destinations.some((item) => item && item.name === "hirelens-ui")) {
-    destinations.push({
-      name: "hirelens-ui",
-      url: `http://${UI_HOST}:${UI_PORT}`,
-      forwardAuthToken: false
-    });
-  }
-  process.env.destinations = JSON.stringify(destinations);
-  console.log("HireLens static UI:", `http://${UI_HOST}:${UI_PORT}`);
-
-  approuter().start({ workingDir: __dirname });
+const ar = approuter();
+ar.start({
+  workingDir: __dirname,
+  extensions: [
+    {
+      insertMiddleware: {
+        first: [
+          {
+            handler(req, res, next) {
+              req._hirelensUrl = req.url;
+              next();
+            }
+          }
+        ],
+        beforeRequestHandler: [
+          {
+            handler(req, res, next) {
+              if (req.method !== "GET" && req.method !== "HEAD") {
+                return next();
+              }
+              if (isProxyPath(pathnameOf(req))) {
+                return next();
+              }
+              return serveUi(req, res);
+            }
+          }
+        ],
+        beforeErrorHandler: [
+          {
+            handler(err, req, res, next) {
+              const status = err && (err.status || err.statusCode);
+              if (
+                err &&
+                status === 404 &&
+                (req.method === "GET" || req.method === "HEAD") &&
+                !isProxyPath(pathnameOf(req))
+              ) {
+                return serveUi(req, res);
+              }
+              return next(err);
+            }
+          }
+        ]
+      }
+    }
+  ]
 });

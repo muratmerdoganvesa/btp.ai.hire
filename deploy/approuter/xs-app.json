@@ -27,15 +27,15 @@
       "authenticationType": "none"
     },
     {
-      "source": "^/logged-out.html$",
-      "target": "/logged-out.html",
-      "destination": "hirelens-ui",
+      "source": "^/(logged-out\\.html)$",
+      "target": "$1",
+      "localDir": "resources",
       "authenticationType": "none"
     },
     {
       "source": "^/(.*)$",
-      "target": "/$1",
-      "destination": "hirelens-ui",
+      "target": "$1",
+      "localDir": "resources",
       "authenticationType": "xsuaa",
       "csrfProtection": false
     }
