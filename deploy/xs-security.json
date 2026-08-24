@@ -1,6 +1,6 @@
 {
   "xsappname": "hirelens",
-  "tenant-mode": "dedicated",
+  "tenant-mode": "shared",
   "scopes": [
     { "name": "$XSAPPNAME.Recruiter", "description": "Recruiter" },
     { "name": "$XSAPPNAME.HiringManager", "description": "Hiring manager" },
