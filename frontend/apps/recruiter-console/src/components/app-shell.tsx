@@ -90,7 +90,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Button>
           </div>
         </header>
-        <main className="hl-rise mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 p-4 sm:p-8">{children}</main>
+        <main className="hl-rise mx-auto flex w-full max-w-[90rem] flex-1 flex-col gap-8 p-4 sm:px-8 sm:py-8 lg:px-10">{children}</main>
       </div>
     </div>
   );

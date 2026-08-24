@@ -108,8 +108,8 @@ export function PositionsPage() {
         <h1 className="font-display mt-1 text-4xl font-semibold tracking-tight">{t("positions.title")}</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted">{t("positions.composerHint")}</p>
       </div>
-      <div className="hl-rise-delay grid gap-6 xl:grid-cols-[minmax(0,16rem)_minmax(0,1fr)_minmax(0,20rem)]">
-        <aside className="hidden rounded-xl border border-brand-3/40 bg-gradient-to-b from-brand-1 to-brand-1/40 px-5 py-8 text-sm leading-7 text-foreground xl:block">
+      <div className="hl-rise-delay grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,22rem)] 2xl:grid-cols-[minmax(0,14rem)_minmax(0,1.5fr)_minmax(0,22rem)]">
+        <aside className="hidden self-start rounded-xl border border-brand-3/40 bg-gradient-to-b from-brand-1 to-brand-1/40 px-5 py-6 text-sm leading-7 text-foreground 2xl:block">
           <p className="font-display text-lg font-semibold tracking-tight">
             {t("positions.composerPrompt", { title: title.trim() || t("positions.untitled") })}
           </p>
@@ -215,7 +215,7 @@ export function PositionsPage() {
           </CardContent>
         </Card>
 
-        <section className="flex flex-col gap-3">
+        <section className="flex min-w-0 flex-col gap-3 xl:sticky xl:top-24 xl:self-start">
           <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">{t("positions.list")}</h2>
           {(positions.data ?? []).length === 0 ? (
             <div className="rounded-xl border border-dashed border-border/80 bg-surface/80 px-6 py-12 text-center text-sm text-muted">
