@@ -14,6 +14,7 @@
     <PackageReference Include="Sap.EntityFrameworkCore.Hana.v10.0" />
     <PackageReference Include="Sap.Data.Hana.Net.v10.0" />
     <PackageReference Include="Dapper" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\HireLens.SharedKernel\HireLens.SharedKernel.csproj" />

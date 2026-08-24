@@ -260,7 +260,11 @@ export class ApiClient {
     }
 
     const trimmed = text.replace(/\s+/g, " ").trim();
-    return trimmed ? `http_${status}:${trimmed.slice(0, 180)}` : `http_${status}`;
+    if (trimmed) {
+      return `http_${status}:${trimmed.slice(0, 180)}`;
+    }
+
+    return `http_${status}:empty_body`;
   }
 
   private throwIfHtml(response: Response): void {

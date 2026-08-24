@@ -111,6 +111,17 @@ public static class VcapServices
             {
                 clientSecret ??= uaaSecret.GetString();
             }
+
+            if (uaa.TryGetProperty("identityzone", out var uaaZone))
+            {
+                identityZone ??= uaaZone.GetString();
+            }
+
+            if (uaa.TryGetProperty("verificationkey", out var uaaKey) ||
+                uaa.TryGetProperty("verificationKey", out uaaKey))
+            {
+                extra["uaa.verificationkey"] = uaaKey.GetString() ?? string.Empty;
+            }
         }
 
         return new VcapCredentials(url, clientId, clientSecret, identityZone, certificate, extra);

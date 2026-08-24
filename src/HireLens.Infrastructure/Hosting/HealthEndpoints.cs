@@ -31,6 +31,7 @@ public static class HealthEndpoints
         return context.Response.WriteAsJsonAsync(new
         {
             status = report.Status.ToString(),
+            gitSha = Environment.GetEnvironmentVariable("GIT_SHA"),
             checks = report.Entries.ToDictionary(
                 e => e.Key,
                 e => new { status = e.Value.Status.ToString(), e.Value.Description })

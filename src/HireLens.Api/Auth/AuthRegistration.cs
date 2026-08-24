@@ -1,6 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
 using HireLens.Contracts;
 using HireLens.Infrastructure.Btp;
@@ -51,23 +50,16 @@ public static class AuthRegistration
         IHostEnvironment environment)
     {
         options.MapInboundClaims = false;
+        options.IncludeErrorDetails = true;
+        options.UseSecurityTokenValidators = true;
+        options.TokenHandlers.Clear();
+        options.TokenHandlers.Add(new JwtSecurityTokenHandler { MapInboundClaims = false });
+        options.Events = CreateEvents();
 
         if (DevAuth.IsEnabled(environment, configuration))
         {
             var key = Encoding.UTF8.GetBytes(DevAuth.SigningKey(configuration));
             options.RequireHttpsMetadata = false;
-            options.IncludeErrorDetails = true;
-            options.UseSecurityTokenValidators = true;
-            options.TokenHandlers.Clear();
-            options.TokenHandlers.Add(new JwtSecurityTokenHandler());
-            options.Events = new JwtBearerEvents
-            {
-                OnAuthenticationFailed = context =>
-                {
-                    JwtDebug.LastFailure = $"{context.Exception.GetType().Name}: {context.Exception.Message}";
-                    return Task.CompletedTask;
-                }
-            };
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
@@ -91,72 +83,69 @@ public static class AuthRegistration
             ?? configuration["XSUAA_URL"]
             ?? throw new InvalidOperationException("XSUAA binding or XSUAA_URL is required in this environment.");
         authority = authority.TrimEnd('/');
-        var issuers = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            authority,
-            authority + "/oauth/token"
-        };
-        if (!string.IsNullOrWhiteSpace(xsuaa?.Credentials.IdentityZone) &&
-            Uri.TryCreate(authority, UriKind.Absolute, out var authorityUri))
-        {
-            var zone = xsuaa.Credentials.IdentityZone;
-            if (!authorityUri.Host.StartsWith(zone + ".", StringComparison.OrdinalIgnoreCase))
-            {
-                issuers.Add($"{authorityUri.Scheme}://{zone}.{authorityUri.Host}");
-                issuers.Add($"{authorityUri.Scheme}://{zone}.{authorityUri.Host}/oauth/token");
-            }
-        }
+        var verificationKey = xsuaa?.Credentials.Extra.GetValueOrDefault("verificationkey")
+            ?? xsuaa?.Credentials.Extra.GetValueOrDefault("verificationKey")
+            ?? xsuaa?.Credentials.Extra.GetValueOrDefault("uaa.verificationkey");
 
         options.RequireHttpsMetadata = true;
-        options.IncludeErrorDetails = true;
-        options.TokenValidationParameters.ValidateIssuer = true;
-        options.TokenValidationParameters.ValidIssuers = [.. issuers];
-        options.TokenValidationParameters.ValidateAudience = false;
-        options.TokenValidationParameters.NameClaimType = "sub";
-        options.TokenValidationParameters.RoleClaimType = ClaimTypes.Role;
-        options.TokenValidationParameters.ClockSkew = TimeSpan.FromMinutes(5);
-
-        var verificationKey = xsuaa?.Credentials.Extra.GetValueOrDefault("verificationkey")
-            ?? xsuaa?.Credentials.Extra.GetValueOrDefault("verificationKey");
-        if (!string.IsNullOrWhiteSpace(verificationKey))
-        {
-            var rsa = RSA.Create();
-            rsa.ImportFromPem(verificationKey.Replace("\\n", "\n", StringComparison.Ordinal));
-            options.TokenValidationParameters.IssuerSigningKey = new RsaSecurityKey(rsa);
-            options.TokenValidationParameters.ValidateIssuerSigningKey = true;
-            options.TokenValidationParameters.ValidateIssuer = false;
-        }
-        else
-        {
-            options.Authority = authority;
-            options.MetadataAddress = authority + "/.well-known/openid-configuration";
-        }
-
-        options.Events = new JwtBearerEvents
-        {
-            OnAuthenticationFailed = context =>
-            {
-                JwtDebug.LastFailure = $"{context.Exception.GetType().Name}: {context.Exception.Message}";
-                Log.Warning("XSUAA JWT rejected: {Message}", context.Exception.Message);
-                return Task.CompletedTask;
-            },
-            OnChallenge = async context =>
-            {
-                if (context.Response.HasStarted)
-                {
-                    return;
-                }
-
-                context.HandleResponse();
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                await context.Response.WriteAsJsonAsync(new
-                {
-                    error = "jwt_rejected",
-                    detail = JwtDebug.LastFailure ?? "missing_or_invalid_bearer"
-                });
-            }
-        };
+        options.TokenValidationParameters = XsuaaJwt.CreateParameters(authority, verificationKey);
+        Log.Information(
+            "XSUAA JWT authority={Authority} verificationKey={HasKey}",
+            authority,
+            !string.IsNullOrWhiteSpace(verificationKey));
     }
+
+    private static JwtBearerEvents CreateEvents() => new()
+    {
+        OnMessageReceived = context =>
+        {
+            if (!string.IsNullOrEmpty(context.Token))
+            {
+                return Task.CompletedTask;
+            }
+
+            var header = context.Request.Headers.Authorization.ToString();
+            if (header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                context.Token = header["Bearer ".Length..].Trim();
+                return Task.CompletedTask;
+            }
+
+            var forwarded = context.Request.Headers["x-approuter-authorization"].FirstOrDefault()
+                ?? context.Request.Headers["x-forwarded-access-token"].FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(forwarded))
+            {
+                return Task.CompletedTask;
+            }
+
+            context.Token = forwarded.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+                ? forwarded["Bearer ".Length..].Trim()
+                : forwarded.Trim();
+            return Task.CompletedTask;
+        },
+        OnAuthenticationFailed = context =>
+        {
+            JwtDebug.LastFailure = $"{context.Exception.GetType().Name}: {context.Exception.Message}";
+            Log.Warning("JWT rejected: {Message}", context.Exception.Message);
+            return Task.CompletedTask;
+        },
+        OnChallenge = async context =>
+        {
+            context.HandleResponse();
+            if (context.Response.HasStarted)
+            {
+                return;
+            }
+
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await context.Response.WriteAsJsonAsync(new
+            {
+                error = "jwt_rejected",
+                detail = JwtDebug.LastFailure ?? "missing_or_invalid_bearer",
+                hasAuthorization = context.HttpContext.Request.Headers.ContainsKey("Authorization")
+            });
+        }
+    };
 }
 
 public sealed class RoleClaimsTransformation : IClaimsTransformation
