@@ -145,7 +145,19 @@ jobs:
           OWNER="${GITHUB_REPOSITORY_OWNER}"
           sed "s#ghcr.io/OWNER/#ghcr.io/${OWNER}/#g" deploy/manifest.yml > /tmp/manifest.yml
           ./cf update-service hirelens-xsuaa -c deploy/xs-security.json || echo "XSUAA update skipped"
-          ./cf push hirelens-web --docker-image "ghcr.io/${OWNER}/hirelens-web:${GITHUB_SHA}" --docker-username "${GITHUB_ACTOR}" -f /tmp/manifest.yml --no-start
+          push_web() {
+            ./cf push hirelens-web \
+              --lifecycle docker \
+              --docker-image "ghcr.io/${OWNER}/hirelens-web:${GITHUB_SHA}" \
+              --docker-username "${GITHUB_ACTOR}" \
+              -f /tmp/manifest.yml \
+              --no-start
+          }
+          if ! push_web; then
+            echo "hirelens-web is still a buildpack app; recreating as docker lifecycle"
+            ./cf delete-app hirelens-web -f
+            push_web
+          fi
           ./cf unset-env hirelens-web TENANT_HOST_PATTERN || true
           ./cf unset-env hirelens-web destinations || true
           ./cf unset-env hirelens-web XS_APP_LOG_LEVEL || true
