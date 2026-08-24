@@ -134,14 +134,22 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseStaticFiles();
 
-app.MapGet("/health/live", () => Results.Ok(new { status = "Healthy", role = "bff", gitSha = Environment.GetEnvironmentVariable("GIT_SHA") }))
-    .AllowAnonymous();
-app.MapGet("/login/callback", () => Results.Redirect("/")).AllowAnonymous();
+app.MapGet("/health/live", () => Results.Ok(new
+{
+    status = "Healthy",
+    role = "bff",
+    gitSha = Environment.GetEnvironmentVariable("GIT_SHA"),
+    origin = publicOrigin
+})).AllowAnonymous();
+app.MapGet("/login/callback", () => Results.Content(
+    "<html><body><p>Eski Approuter callback. Lutfen <a href=\"/\">ana sayfadan</a> tekrar giris yapin.</p></body></html>",
+    "text/html; charset=utf-8")).AllowAnonymous();
 app.MapGet("/logout", async (HttpContext context) =>
 {
     await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+    await context.SignOutAsync(OpenIdConnectDefaults.AuthenticationScheme);
     return Results.Redirect("/");
-});
+}).AllowAnonymous();
 app.MapReverseProxy().RequireAuthorization();
 app.MapFallbackToFile("index.html").RequireAuthorization();
 

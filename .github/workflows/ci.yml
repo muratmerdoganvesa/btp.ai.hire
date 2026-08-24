@@ -141,12 +141,15 @@ jobs:
           OWNER="${GITHUB_REPOSITORY_OWNER}"
           sed "s#ghcr.io/OWNER/#ghcr.io/${OWNER}/#g" deploy/manifest.yml > /tmp/manifest.yml
           ./cf update-service hirelens-xsuaa -c deploy/xs-security.json || echo "XSUAA update skipped"
-          ./cf push hirelens-web --docker-image "ghcr.io/${OWNER}/hirelens-web:${GITHUB_SHA}" --docker-username "${GITHUB_ACTOR}" -f /tmp/manifest.yml --no-start
+          ./cf push hirelens-web --docker-image "ghcr.io/${OWNER}/hirelens-web:${GITHUB_SHA}" --docker-username "${GITHUB_ACTOR}" --docker-password "${CF_DOCKER_PASSWORD}" -f /tmp/manifest.yml --no-start
           ./cf unset-env hirelens-web TENANT_HOST_PATTERN || true
           ./cf unset-env hirelens-web destinations || true
           ./cf unset-env hirelens-web XS_APP_LOG_LEVEL || true
+          ./cf unset-env hirelens-web NPM_CONFIG_PRODUCTION || true
           ./cf set-env hirelens-web ASPNETCORE_ENVIRONMENT Production
           ./cf set-env hirelens-web PUBLIC_HOST hirelens-web.cfapps.eu20-002.hana.ondemand.com
+          ./cf set-env hirelens-web GIT_SHA "${GITHUB_SHA}"
+          ./cf set-env hirelens-web API_URL "https://hirelens-api.cfapps.eu20-002.hana.ondemand.com"
           ./cf map-route hirelens-web cfapps.eu20-002.hana.ondemand.com --hostname hirelens-web || true
           ./cf map-route hirelens-web cfapps.eu20-002.hana.ondemand.com --hostname dev-2z4ga5d8-hirelens-web || true
           ./cf start hirelens-web
@@ -156,6 +159,14 @@ jobs:
             ./cf logs hirelens-web --recent
             exit 1
           fi
+          sleep 15
+          HEALTH="$(curl -fsS "https://hirelens-web.cfapps.eu20-002.hana.ondemand.com/health/live")"
+          echo "$HEALTH"
+          echo "$HEALTH" | grep -q '"role":"bff"' || {
+            echo "hirelens-web is not running the BFF image"
+            ./cf logs hirelens-web --recent
+            exit 1
+          }
 
 
   cf-push-backend:
@@ -189,8 +200,8 @@ jobs:
           ./cf target -o "$CF_ORG" -s "$CF_SPACE"
           OWNER="${GITHUB_REPOSITORY_OWNER}"
           sed "s#ghcr.io/OWNER/#ghcr.io/${OWNER}/#g" deploy/manifest.yml > /tmp/manifest.yml
-          ./cf push hirelens-api --docker-image "ghcr.io/${OWNER}/hirelens-api:${GITHUB_SHA}" --docker-username "${GITHUB_ACTOR}" -f /tmp/manifest.yml --no-start
-          ./cf push hirelens-worker --docker-image "ghcr.io/${OWNER}/hirelens-worker:${GITHUB_SHA}" --docker-username "${GITHUB_ACTOR}" -f /tmp/manifest.yml --no-start
+          ./cf push hirelens-api --docker-image "ghcr.io/${OWNER}/hirelens-api:${GITHUB_SHA}" --docker-username "${GITHUB_ACTOR}" --docker-password "${CF_DOCKER_PASSWORD}" -f /tmp/manifest.yml --no-start
+          ./cf push hirelens-worker --docker-image "ghcr.io/${OWNER}/hirelens-worker:${GITHUB_SHA}" --docker-username "${GITHUB_ACTOR}" --docker-password "${CF_DOCKER_PASSWORD}" -f /tmp/manifest.yml --no-start
           ./cf set-env hirelens-api GIT_SHA "${GITHUB_SHA}"
           ./cf set-env hirelens-api ASPNETCORE_ENVIRONMENT Production
           ./cf unset-env hirelens-api HireLens__EnableDevAuth || true
