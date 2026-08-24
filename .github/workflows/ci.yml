@@ -129,13 +129,8 @@ jobs:
           if [ -n "$API_HOST" ]; then
             sed -i "s#https://hirelens-api.cfapps.eu20-002.hana.ondemand.com#https://${API_HOST}#" /tmp/manifest.yml
           fi
-          ./cf update-service hirelens-xsuaa -c deploy/xs-security.json || echo "XSUAA update skipped; check redirect URIs if SAP login fails."
+          ./cf update-service hirelens-xsuaa -c deploy/xs-security.json || echo "XSUAA update skipped; recreate as dedicated if login hits authentication.eu20 without a subdomain."
           ./cf push hirelens-web -p /tmp/web-drop -f /tmp/manifest.yml --no-start
-          WEB_GUID="$(./cf app hirelens-web --guid)"
-          UAA_HOST="$(./cf curl "/v3/apps/${WEB_GUID}/env" | python3 -c "import json,sys; u=json.load(sys.stdin)['system_env_json']['VCAP_SERVICES']['xsuaa'][0]['credentials']['url']; print(u.split('://',1)[1].split('.')[0])")"
-          if [ -n "$UAA_HOST" ]; then
-            ./cf map-route hirelens-web cfapps.eu20-002.hana.ondemand.com --hostname "${UAA_HOST}-hirelens-web" || true
-          fi
           ./cf start hirelens-web
 
   integration:
