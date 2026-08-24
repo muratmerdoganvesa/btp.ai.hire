@@ -220,6 +220,8 @@ export class ApiClient {
 
   private headers(contentType?: string): Headers {
     const headers = new Headers();
+    headers.set("Accept", "application/json");
+    headers.set("X-Requested-With", "XMLHttpRequest");
     const token = this.getToken();
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
@@ -235,6 +237,11 @@ export class ApiClient {
   private throwIfFailed(response: Response): void {
     if (!response.ok) {
       throw new ApiError(response.status, `http_${response.status}`);
+    }
+
+    const contentType = response.headers.get("content-type") ?? "";
+    if (contentType.includes("text/html")) {
+      throw new ApiError(response.status, "html_instead_of_json");
     }
   }
 }

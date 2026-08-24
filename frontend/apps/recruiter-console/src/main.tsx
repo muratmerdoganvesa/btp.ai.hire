@@ -3,6 +3,7 @@ import { RouterProvider } from "@tanstack/react-router";
 import { createI18n } from "@hirelens/i18n";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { ApiError } from "@hirelens/api-client";
 import { bootstrapSession, isDevAuth } from "./auth-mode";
 import { router } from "./router";
 import { SessionErrorPage } from "./pages/session-error-page";
@@ -39,12 +40,14 @@ void (async () => {
   try {
     await bootstrapSession();
     renderApp();
-  } catch {
+  } catch (error) {
     if (isDevAuth) {
       renderApp();
       return;
     }
 
+    const detail = error instanceof ApiError ? `${error.message}` : "me_failed";
+    sessionStorage.setItem("hirelens.apiError", detail);
     renderSessionError();
   }
 })();

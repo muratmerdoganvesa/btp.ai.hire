@@ -103,6 +103,7 @@ public static class VcapServices
 
             if (uaa.TryGetProperty("clientid", out var uaaId))
             {
+                extra["uaa.clientid"] = uaaId.GetString() ?? string.Empty;
                 clientId ??= uaaId.GetString();
             }
 

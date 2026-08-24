@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
 
 namespace HireLens.Api.Auth;
 
@@ -83,17 +84,21 @@ public static class AuthRegistration
         }
 
         var xsuaa = VcapServices.Find(configuration["VCAP_SERVICES"], "xsuaa");
-        var authority = xsuaa?.Credentials.Url
+        var uaaUrl = xsuaa?.Credentials.Extra.GetValueOrDefault("uaa.url");
+        var authority = (string.IsNullOrWhiteSpace(uaaUrl) ? xsuaa?.Credentials.Url : uaaUrl)
             ?? configuration["XSUAA_URL"]
             ?? throw new InvalidOperationException("XSUAA binding or XSUAA_URL is required in this environment.");
+        authority = authority.TrimEnd('/');
         var xsappname = xsuaa?.Credentials.Extra.GetValueOrDefault("xsappname")
             ?? configuration["XSUAA_XSAPPNAME"]
             ?? "hirelens";
         var audiences = new[]
             {
+                xsuaa?.Credentials.Extra.GetValueOrDefault("uaa.clientid"),
                 xsuaa?.Credentials.ClientId,
                 xsappname,
-                "hirelens"
+                "hirelens",
+                "uaa"
             }
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .Select(value => value!)
@@ -101,11 +106,24 @@ public static class AuthRegistration
             .ToArray();
 
         options.Authority = authority;
+        options.MetadataAddress = authority + "/.well-known/openid-configuration";
         options.RequireHttpsMetadata = true;
+        options.IncludeErrorDetails = true;
+        options.TokenValidationParameters.ValidateIssuer = true;
+        options.TokenValidationParameters.ValidIssuers = [authority, authority + "/oauth/token"];
         options.TokenValidationParameters.ValidateAudience = true;
         options.TokenValidationParameters.ValidAudiences = audiences;
         options.TokenValidationParameters.NameClaimType = "sub";
         options.TokenValidationParameters.RoleClaimType = ClaimTypes.Role;
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                JwtDebug.LastFailure = $"{context.Exception.GetType().Name}: {context.Exception.Message}";
+                Log.Warning("XSUAA JWT rejected: {Message}", context.Exception.Message);
+                return Task.CompletedTask;
+            }
+        };
     }
 }
 
