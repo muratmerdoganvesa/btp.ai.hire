@@ -131,6 +131,7 @@ jobs:
           fi
           ./cf update-service hirelens-xsuaa -c deploy/xs-security.json || echo "XSUAA update skipped; check redirect URIs if SAP login fails."
           ./cf push hirelens-web -p /tmp/web-drop -f /tmp/manifest.yml --no-start
+          ./cf unset-env hirelens-web TENANT_HOST_PATTERN || true
           ./cf start hirelens-web
 
   integration:
