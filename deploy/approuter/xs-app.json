@@ -28,19 +28,19 @@
     },
     {
       "source": "^/logged-out.html$",
-      "target": "logged-out.html",
+      "target": "/logged-out.html",
       "localDir": ".",
       "authenticationType": "none"
     },
     {
       "source": "^/assets/(.*)$",
-      "target": "assets/$1",
+      "target": "/assets/$1",
       "localDir": ".",
       "authenticationType": "xsuaa"
     },
     {
       "source": "^/(.*)$",
-      "target": "index.html",
+      "target": "/index.html",
       "localDir": ".",
       "authenticationType": "xsuaa",
       "cacheControl": "no-cache, no-store, must-revalidate"
