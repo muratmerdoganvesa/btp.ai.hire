@@ -5,6 +5,7 @@ import { CandidatesPage } from "./pages/candidates-page";
 import { DashboardPage } from "./pages/dashboard-page";
 import { EvaluationPage } from "./pages/evaluation-page";
 import { LoginPage } from "./pages/login-page";
+import { SessionErrorPage } from "./pages/session-error-page";
 import { PositionsPage } from "./pages/positions-page";
 
 const rootRoute = createRootRoute({
@@ -20,14 +21,19 @@ const requireSession = () => {
     throw redirect({ to: "/login" });
   }
 
-  window.location.assign("/");
-  throw new Error("xsuaa_login");
+  throw redirect({ to: "/session-error" });
 };
 
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/login",
   component: LoginPage
+});
+
+const sessionErrorRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/session-error",
+  component: SessionErrorPage
 });
 
 const indexRoute = createRoute({
@@ -61,6 +67,7 @@ const evaluationRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
+  sessionErrorRoute,
   positionsRoute,
   positionDetailRoute,
   evaluationRoute

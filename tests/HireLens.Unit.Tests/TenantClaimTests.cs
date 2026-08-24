@@ -36,6 +36,22 @@ public sealed class TenantClaimTests
         TenantResolutionMiddleware.ReadTenantId(user).Should().BeNull();
     }
 
+    [Fact]
+    public void Non_guid_zid_is_stable()
+    {
+        var user = new ClaimsPrincipal(new ClaimsIdentity(
+        [
+            new Claim("iss", "https://hirelens.authentication.eu10.hana.ondemand.com/oauth/token"),
+            new Claim("zid", "dev-2z4ga5d8"),
+            new Claim("sub", "tester")
+        ], "test"));
+
+        var first = TenantResolutionMiddleware.ReadTenantId(user);
+        var second = TenantResolutionMiddleware.ReadTenantId(user);
+        first.Should().NotBeNull();
+        first.Should().Be(second);
+    }
+
     private static ClaimsPrincipal Principal(string issuer, string claim, Guid tenantId) =>
         new(new ClaimsIdentity(
         [

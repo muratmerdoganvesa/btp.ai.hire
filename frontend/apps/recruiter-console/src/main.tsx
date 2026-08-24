@@ -5,6 +5,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { bootstrapSession, isDevAuth } from "./auth-mode";
 import { router } from "./router";
+import { SessionErrorPage } from "./pages/session-error-page";
 import "./styles.css";
 
 createI18n();
@@ -16,7 +17,7 @@ if (!root) {
   throw new Error("Root element is missing.");
 }
 
-const render = () => {
+const renderApp = () => {
   createRoot(root).render(
     <StrictMode>
       <QueryClientProvider client={queryClient}>
@@ -26,16 +27,24 @@ const render = () => {
   );
 };
 
+const renderSessionError = () => {
+  createRoot(root).render(
+    <StrictMode>
+      <SessionErrorPage />
+    </StrictMode>
+  );
+};
+
 void (async () => {
   try {
     await bootstrapSession();
-    render();
+    renderApp();
   } catch {
     if (isDevAuth) {
-      render();
+      renderApp();
       return;
     }
 
-    window.location.assign("/");
+    renderSessionError();
   }
 })();

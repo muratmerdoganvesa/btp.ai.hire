@@ -106,7 +106,7 @@ function resolveUiFile(pathname) {
 function serveUi(req, res) {
   const pathname = pathnameOf(req);
   if (pathname === "/login" || pathname === "/login/") {
-    res.writeHead(302, { Location: "/" });
+    res.writeHead(302, { Location: "/index.html" });
     res.end();
     return;
   }

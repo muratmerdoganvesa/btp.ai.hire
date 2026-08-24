@@ -7,6 +7,7 @@ import { api } from "../api";
 import { isDevAuth } from "../auth-mode";
 import { useAuthStore } from "../auth-store";
 import { Field, TextInput } from "../components/field";
+import { SessionErrorPage } from "./session-error-page";
 
 const schema = z.object({
   tenantId: z.string().uuid(),
@@ -32,8 +33,7 @@ export function LoginPage() {
   const selectedRole = form.watch("role");
 
   if (!isDevAuth) {
-    window.location.replace("/");
-    return null;
+    return <SessionErrorPage />;
   }
 
   const onSubmit = form.handleSubmit(async (values) => {

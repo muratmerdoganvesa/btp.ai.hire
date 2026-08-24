@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using HireLens.SharedKernel;
 using Microsoft.AspNetCore.Http;
 
@@ -58,7 +60,18 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next)
             ?? user.FindFirstValue(TenantClaimNames.XsuaaTenant)
             ?? user.FindFirstValue(TenantClaimNames.IasTenant);
 
-        return Guid.TryParse(raw, out var tenantId) ? tenantId : null;
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return null;
+        }
+
+        return Guid.TryParse(raw, out var tenantId) ? tenantId : GuidFromTenantKey(raw);
+    }
+
+    internal static Guid GuidFromTenantKey(string key)
+    {
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes("hirelens:" + key));
+        return new Guid(hash.AsSpan(0, 16));
     }
 
     private static bool IsIasIssuer(string issuer) =>
