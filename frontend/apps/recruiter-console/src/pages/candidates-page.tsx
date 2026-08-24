@@ -41,7 +41,7 @@ export function CandidatesPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm text-brand">{t("candidates.title")}</p>
-          <h1 className="text-2xl font-semibold tracking-tight">{position.data?.title ?? t("candidates.title")}</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">{position.data?.title ?? t("candidates.title")}</h1>
           <p className="mt-2 max-w-2xl text-sm text-muted">{position.data?.jobDescription}</p>
         </div>
         <p className="text-sm text-muted">
@@ -69,7 +69,7 @@ export function CandidatesPage() {
             onCompleted={() => void queryClient.invalidateQueries({ queryKey: ["candidates", positionId] })}
           />
         ) : (
-          <div className="flex items-center rounded-lg border border-dashed border-border bg-brand-1/40 px-6 py-10 text-sm text-muted">
+          <div className="flex items-center rounded-2xl border border-dashed border-border bg-brand-1/40 px-6 py-10 text-sm text-muted shadow-card">
             {t("candidates.selectHint")}
           </div>
         )}

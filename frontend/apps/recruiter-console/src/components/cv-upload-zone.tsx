@@ -43,7 +43,7 @@ export function CvUploadZone({
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <p className="text-sm text-muted">{t("upload.hint")}</p>
-        <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-border bg-brand-1/40 px-4 py-8 text-center transition-colors hover:border-brand-4">
+        <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-brand-1/40 px-4 py-8 text-center transition-colors hover:border-brand-4">
           <span className="text-sm font-medium">{file ? file.name : t("upload.title")}</span>
           <span className="mt-1 text-xs text-muted">{t("upload.hint")}</span>
           <input

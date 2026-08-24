@@ -2,7 +2,7 @@ import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTML
 import { cn } from "@hirelens/ui";
 
 const fieldClass =
-  "w-full rounded-md border border-border bg-background px-3 py-2 text-foreground shadow-sm outline-none transition-shadow placeholder:text-muted focus-visible:ring-2 focus-visible:ring-focus";
+  "w-full rounded-xl border border-border bg-surface px-4 py-3 text-foreground outline-none transition-shadow placeholder:text-muted focus-visible:ring-2 focus-visible:ring-focus";
 
 export function Field({
   label,

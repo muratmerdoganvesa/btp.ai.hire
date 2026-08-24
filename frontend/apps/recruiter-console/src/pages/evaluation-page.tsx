@@ -64,7 +64,7 @@ export function EvaluationPage() {
 
   return (
     <AppShell>
-      <div className="flex flex-wrap items-start justify-between gap-4 rounded-lg border border-border bg-surface p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl bg-surface p-6 shadow-card">
         <div>
           <p className="text-sm text-brand">{t("evaluation.title")}</p>
           <h1 className="text-2xl font-semibold tracking-tight">{candidate.data?.displayName ?? t("evaluation.title")}</h1>

@@ -25,12 +25,12 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-surface px-4 py-6 lg:flex">
-        <Link to="/" className="px-2 text-sm font-semibold tracking-tight">
+      <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col bg-surface px-5 py-8 shadow-card lg:flex">
+        <Link to="/" className="px-3 text-base font-semibold tracking-tight">
           {t("app.recruiter")}
         </Link>
-        <p className="mt-1 px-2 text-xs text-muted">{t("nav.workspace")}</p>
-        <nav className="mt-8 flex flex-col gap-1">
+        <p className="mt-1 px-3 text-sm text-muted">{t("nav.workspace")}</p>
+        <nav className="mt-10 flex flex-col gap-2">
           {items.map((item) => {
             const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
             return (
@@ -38,8 +38,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  "rounded-md px-3 py-2 text-sm transition-colors",
-                  active ? "bg-brand-1 font-medium text-foreground" : "text-muted hover:bg-brand-1 hover:text-foreground"
+                  "rounded-pill px-4 py-2.5 text-sm transition-colors",
+                  active ? "bg-brand font-medium text-brand-fg" : "text-muted hover:bg-brand-1 hover:text-foreground"
                 )}
               >
                 {item.label}
@@ -47,7 +47,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-        <div className="mt-auto rounded-lg border border-border bg-background p-3">
+        <div className="mt-auto rounded-2xl bg-brand-1 p-4">
           <div className="flex items-center gap-3">
             <InitialsAvatar name={session?.subject ?? "HL"} />
             <div className="min-w-0">
@@ -55,20 +55,20 @@ export function AppShell({ children }: { children: ReactNode }) {
               <p className="truncate text-xs text-muted">{session?.roles[0]}</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" className="mt-3 w-full" onClick={logout}>
+          <Button variant="outline" size="sm" className="mt-4 w-full" onClick={logout}>
             {t("dashboard.logout")}
           </Button>
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 border-b border-border bg-surface/90 backdrop-blur">
-          <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
-            <nav className="flex items-center gap-3 text-sm lg:hidden">
-              <Link to="/" className="font-semibold">
+        <header className="sticky top-0 z-10 bg-background/80 backdrop-blur">
+          <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-8">
+            <nav className="flex items-center gap-2 text-sm lg:hidden">
+              <Link to="/" className="rounded-pill bg-brand px-3 py-1.5 font-semibold text-brand-fg">
                 {t("app.recruiter")}
               </Link>
-              <Link to="/positions" className="text-muted">
+              <Link to="/positions" className="rounded-pill px-3 py-1.5 text-muted">
                 {t("nav.positions")}
               </Link>
             </nav>
@@ -78,7 +78,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Button>
           </div>
         </header>
-        <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 p-4 sm:p-6">{children}</main>
+        <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 p-4 sm:p-8">{children}</main>
       </div>
     </div>
   );

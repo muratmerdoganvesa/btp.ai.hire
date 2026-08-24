@@ -3,4 +3,5 @@ export { Card, CardContent, CardHeader, CardTitle } from "./card";
 export { Badge, type BadgeProps } from "./badge";
 export { ScoreBadge } from "./score-badge";
 export { InitialsAvatar } from "./avatar";
+export { Chip } from "./chip";
 export { cn } from "./cn";

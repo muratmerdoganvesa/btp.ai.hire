@@ -1,4 +1,4 @@
-import { Button, Card, CardContent } from "@hirelens/ui";
+import { Button, Card, CardContent, Chip } from "@hirelens/ui";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
@@ -72,7 +72,7 @@ export function LoginPage() {
         </div>
         <ul className="relative mt-12 flex max-w-md flex-col gap-4 text-sm leading-6">
           {[t("login.point1"), t("login.point2"), t("login.point3")].map((point) => (
-            <li key={point} className="flex gap-3 rounded-lg border border-brand-7/60 bg-brand-10/30 p-4">
+            <li key={point} className="flex gap-3 rounded-2xl border border-brand-7/60 bg-brand-10/30 p-4">
               <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-6 text-xs text-brand-0">
                 ✓
               </span>
@@ -110,20 +110,11 @@ export function LoginPage() {
                 </Field>
                 <fieldset className="flex flex-col gap-2">
                   <legend className="text-sm text-muted">{t("login.role")}</legend>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <div className="flex flex-wrap gap-2">
                     {roles.map((role) => (
-                      <button
-                        key={role}
-                        type="button"
-                        onClick={() => form.setValue("role", role)}
-                        className={
-                          selectedRole === role
-                            ? "rounded-md border border-brand bg-brand-1 px-3 py-2 text-left text-sm font-medium text-foreground ring-2 ring-focus"
-                            : "rounded-md border border-border bg-surface px-3 py-2 text-left text-sm text-muted hover:bg-brand-1"
-                        }
-                      >
+                      <Chip key={role} selected={selectedRole === role} onClick={() => form.setValue("role", role)}>
                         {t(`login.roles.${role}`)}
-                      </button>
+                      </Chip>
                     ))}
                   </div>
                 </fieldset>

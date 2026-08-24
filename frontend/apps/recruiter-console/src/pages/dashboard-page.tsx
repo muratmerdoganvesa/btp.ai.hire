@@ -54,7 +54,7 @@ export function DashboardPage() {
           <InitialsAvatar name={session.subject} className="size-12 text-sm" />
           <div>
             <p className="text-sm text-brand">{t("dashboard.welcome")}</p>
-            <h1 className="text-2xl font-semibold tracking-tight">{t("dashboard.title")}</h1>
+            <h1 className="text-3xl font-semibold tracking-tight">{t("dashboard.title")}</h1>
             <p className="mt-1 text-sm text-muted">{t("dashboard.subtitle")}</p>
           </div>
         </div>
@@ -99,7 +99,7 @@ export function DashboardPage() {
         </CardHeader>
         <CardContent>
           {list.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-border bg-brand-1/50 px-6 py-10 text-center">
+            <div className="rounded-2xl border border-dashed border-border bg-brand-1/50 px-6 py-10 text-center">
               <p className="text-sm text-muted">{t("dashboard.empty")}</p>
               {seed.isSuccess ? (
                 <p className="mt-3 text-sm">{seed.data.skipped ? t("dashboard.seedDemoSkip") : t("dashboard.seedDemoDone")}</p>

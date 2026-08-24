@@ -5,12 +5,14 @@
 */
 
 :root {
-  --hl-brand-hue: 250;
-  --hl-font-recruiter: 0.875rem;
-  --hl-font-candidate: 1rem;
-  --hl-radius-sm: 0.25rem;
-  --hl-radius-md: 0.5rem;
-  --hl-radius-lg: 0.75rem;
+  --hl-brand-hue: 264;
+  --hl-font-recruiter: 1rem;
+  --hl-font-candidate: 1.0625rem;
+  --hl-radius-sm: 0.5rem;
+  --hl-radius-md: 0.875rem;
+  --hl-radius-lg: 1.25rem;
+  --hl-radius-xl: 1.5rem;
+  --hl-radius-pill: 999px;
   --hl-space-1: 0.25rem;
   --hl-space-2: 0.5rem;
   --hl-space-3: 0.75rem;
@@ -24,25 +26,26 @@
   --hl-brand-1: oklch(0.97 0.02 calc(var(--hl-brand-hue) * 1deg));
   --hl-brand-2: oklch(0.93 0.04 calc(var(--hl-brand-hue) * 1deg));
   --hl-brand-3: oklch(0.87 0.07 calc(var(--hl-brand-hue) * 1deg));
-  --hl-brand-4: oklch(0.78 0.1 calc(var(--hl-brand-hue) * 1deg));
-  --hl-brand-5: oklch(0.68 0.13 calc(var(--hl-brand-hue) * 1deg));
-  --hl-brand-6: oklch(0.58 0.14 calc(var(--hl-brand-hue) * 1deg));
-  --hl-brand-7: oklch(0.48 0.13 calc(var(--hl-brand-hue) * 1deg));
-  --hl-brand-8: oklch(0.4 0.11 calc(var(--hl-brand-hue) * 1deg));
-  --hl-brand-9: oklch(0.32 0.08 calc(var(--hl-brand-hue) * 1deg));
-  --hl-brand-10: oklch(0.24 0.05 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-4: oklch(0.72 0.16 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-5: oklch(0.58 0.2 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-6: oklch(0.49 0.22 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-7: oklch(0.42 0.2 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-8: oklch(0.36 0.16 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-9: oklch(0.3 0.1 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-10: oklch(0.24 0.06 calc(var(--hl-brand-hue) * 1deg));
 
-  --hl-bg: oklch(0.99 0.005 calc(var(--hl-brand-hue) * 1deg));
+  --hl-bg: oklch(0.985 0.008 calc(var(--hl-brand-hue) * 1deg));
   --hl-bg-raised: oklch(1 0.002 calc(var(--hl-brand-hue) * 1deg));
-  --hl-fg: oklch(0.22 0.02 calc(var(--hl-brand-hue) * 1deg));
-  --hl-fg-muted: oklch(0.45 0.02 calc(var(--hl-brand-hue) * 1deg));
-  --hl-border: oklch(0.88 0.02 calc(var(--hl-brand-hue) * 1deg));
-  --hl-focus: oklch(0.55 0.14 calc(var(--hl-brand-hue) * 1deg));
+  --hl-fg: oklch(0.2 0.03 calc(var(--hl-brand-hue) * 1deg));
+  --hl-fg-muted: oklch(0.48 0.02 calc(var(--hl-brand-hue) * 1deg));
+  --hl-border: oklch(0.9 0.015 calc(var(--hl-brand-hue) * 1deg));
+  --hl-focus: oklch(0.49 0.22 calc(var(--hl-brand-hue) * 1deg));
+  --hl-shadow-card: 0 18px 50px oklch(0.32 0.08 calc(var(--hl-brand-hue) * 1deg) / 0.1);
 
   --hl-score-strong: oklch(0.62 0.14 150);
   --hl-score-strong-fg: oklch(0.28 0.06 150);
-  --hl-score-solid: oklch(0.58 0.12 250);
-  --hl-score-solid-fg: oklch(0.28 0.06 250);
+  --hl-score-solid: oklch(0.58 0.12 264);
+  --hl-score-solid-fg: oklch(0.28 0.06 264);
   --hl-score-partial: oklch(0.78 0.03 240);
   --hl-score-partial-fg: oklch(0.38 0.03 240);
   --hl-score-limited: oklch(0.72 0.01 260);
@@ -60,9 +63,9 @@
     --hl-brand-2: oklch(0.28 0.05 calc(var(--hl-brand-hue) * 1deg));
     --hl-brand-3: oklch(0.36 0.07 calc(var(--hl-brand-hue) * 1deg));
     --hl-brand-4: oklch(0.46 0.1 calc(var(--hl-brand-hue) * 1deg));
-    --hl-brand-5: oklch(0.56 0.12 calc(var(--hl-brand-hue) * 1deg));
-    --hl-brand-6: oklch(0.66 0.12 calc(var(--hl-brand-hue) * 1deg));
-    --hl-brand-7: oklch(0.74 0.1 calc(var(--hl-brand-hue) * 1deg));
+    --hl-brand-5: oklch(0.56 0.14 calc(var(--hl-brand-hue) * 1deg));
+    --hl-brand-6: oklch(0.68 0.16 calc(var(--hl-brand-hue) * 1deg));
+    --hl-brand-7: oklch(0.76 0.12 calc(var(--hl-brand-hue) * 1deg));
     --hl-brand-8: oklch(0.82 0.07 calc(var(--hl-brand-hue) * 1deg));
     --hl-brand-9: oklch(0.9 0.04 calc(var(--hl-brand-hue) * 1deg));
     --hl-brand-10: oklch(0.96 0.02 calc(var(--hl-brand-hue) * 1deg));
@@ -72,12 +75,13 @@
     --hl-fg: oklch(0.95 0.01 calc(var(--hl-brand-hue) * 1deg));
     --hl-fg-muted: oklch(0.75 0.02 calc(var(--hl-brand-hue) * 1deg));
     --hl-border: oklch(0.35 0.03 calc(var(--hl-brand-hue) * 1deg));
-    --hl-focus: oklch(0.72 0.12 calc(var(--hl-brand-hue) * 1deg));
+    --hl-focus: oklch(0.72 0.14 calc(var(--hl-brand-hue) * 1deg));
+    --hl-shadow-card: 0 18px 50px oklch(0.1 0.03 calc(var(--hl-brand-hue) * 1deg) / 0.45);
 
     --hl-score-strong: oklch(0.7 0.13 150);
     --hl-score-strong-fg: oklch(0.92 0.04 150);
-    --hl-score-solid: oklch(0.68 0.11 250);
-    --hl-score-solid-fg: oklch(0.92 0.04 250);
+    --hl-score-solid: oklch(0.68 0.11 264);
+    --hl-score-solid-fg: oklch(0.92 0.04 264);
     --hl-score-partial: oklch(0.45 0.03 240);
     --hl-score-partial-fg: oklch(0.86 0.02 240);
     --hl-score-limited: oklch(0.4 0.01 260);
@@ -95,9 +99,9 @@
   --hl-brand-2: oklch(0.28 0.05 calc(var(--hl-brand-hue) * 1deg));
   --hl-brand-3: oklch(0.36 0.07 calc(var(--hl-brand-hue) * 1deg));
   --hl-brand-4: oklch(0.46 0.1 calc(var(--hl-brand-hue) * 1deg));
-  --hl-brand-5: oklch(0.56 0.12 calc(var(--hl-brand-hue) * 1deg));
-  --hl-brand-6: oklch(0.66 0.12 calc(var(--hl-brand-hue) * 1deg));
-  --hl-brand-7: oklch(0.74 0.1 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-5: oklch(0.56 0.14 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-6: oklch(0.68 0.16 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-7: oklch(0.76 0.12 calc(var(--hl-brand-hue) * 1deg));
   --hl-brand-8: oklch(0.82 0.07 calc(var(--hl-brand-hue) * 1deg));
   --hl-brand-9: oklch(0.9 0.04 calc(var(--hl-brand-hue) * 1deg));
   --hl-brand-10: oklch(0.96 0.02 calc(var(--hl-brand-hue) * 1deg));
@@ -107,12 +111,13 @@
   --hl-fg: oklch(0.95 0.01 calc(var(--hl-brand-hue) * 1deg));
   --hl-fg-muted: oklch(0.75 0.02 calc(var(--hl-brand-hue) * 1deg));
   --hl-border: oklch(0.35 0.03 calc(var(--hl-brand-hue) * 1deg));
-  --hl-focus: oklch(0.72 0.12 calc(var(--hl-brand-hue) * 1deg));
+  --hl-focus: oklch(0.72 0.14 calc(var(--hl-brand-hue) * 1deg));
+  --hl-shadow-card: 0 18px 50px oklch(0.1 0.03 calc(var(--hl-brand-hue) * 1deg) / 0.45);
 
   --hl-score-strong: oklch(0.7 0.13 150);
   --hl-score-strong-fg: oklch(0.92 0.04 150);
-  --hl-score-solid: oklch(0.68 0.11 250);
-  --hl-score-solid-fg: oklch(0.92 0.04 250);
+  --hl-score-solid: oklch(0.68 0.11 264);
+  --hl-score-solid-fg: oklch(0.92 0.04 264);
   --hl-score-partial: oklch(0.45 0.03 240);
   --hl-score-partial-fg: oklch(0.86 0.02 240);
   --hl-score-limited: oklch(0.4 0.01 260);
@@ -128,25 +133,26 @@
   --hl-brand-1: oklch(0.97 0.02 calc(var(--hl-brand-hue) * 1deg));
   --hl-brand-2: oklch(0.93 0.04 calc(var(--hl-brand-hue) * 1deg));
   --hl-brand-3: oklch(0.87 0.07 calc(var(--hl-brand-hue) * 1deg));
-  --hl-brand-4: oklch(0.78 0.1 calc(var(--hl-brand-hue) * 1deg));
-  --hl-brand-5: oklch(0.68 0.13 calc(var(--hl-brand-hue) * 1deg));
-  --hl-brand-6: oklch(0.58 0.14 calc(var(--hl-brand-hue) * 1deg));
-  --hl-brand-7: oklch(0.48 0.13 calc(var(--hl-brand-hue) * 1deg));
-  --hl-brand-8: oklch(0.4 0.11 calc(var(--hl-brand-hue) * 1deg));
-  --hl-brand-9: oklch(0.32 0.08 calc(var(--hl-brand-hue) * 1deg));
-  --hl-brand-10: oklch(0.24 0.05 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-4: oklch(0.72 0.16 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-5: oklch(0.58 0.2 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-6: oklch(0.49 0.22 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-7: oklch(0.42 0.2 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-8: oklch(0.36 0.16 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-9: oklch(0.3 0.1 calc(var(--hl-brand-hue) * 1deg));
+  --hl-brand-10: oklch(0.24 0.06 calc(var(--hl-brand-hue) * 1deg));
 
-  --hl-bg: oklch(0.99 0.005 calc(var(--hl-brand-hue) * 1deg));
+  --hl-bg: oklch(0.985 0.008 calc(var(--hl-brand-hue) * 1deg));
   --hl-bg-raised: oklch(1 0.002 calc(var(--hl-brand-hue) * 1deg));
-  --hl-fg: oklch(0.22 0.02 calc(var(--hl-brand-hue) * 1deg));
-  --hl-fg-muted: oklch(0.45 0.02 calc(var(--hl-brand-hue) * 1deg));
-  --hl-border: oklch(0.88 0.02 calc(var(--hl-brand-hue) * 1deg));
-  --hl-focus: oklch(0.55 0.14 calc(var(--hl-brand-hue) * 1deg));
+  --hl-fg: oklch(0.2 0.03 calc(var(--hl-brand-hue) * 1deg));
+  --hl-fg-muted: oklch(0.48 0.02 calc(var(--hl-brand-hue) * 1deg));
+  --hl-border: oklch(0.9 0.015 calc(var(--hl-brand-hue) * 1deg));
+  --hl-focus: oklch(0.49 0.22 calc(var(--hl-brand-hue) * 1deg));
+  --hl-shadow-card: 0 18px 50px oklch(0.32 0.08 calc(var(--hl-brand-hue) * 1deg) / 0.1);
 
   --hl-score-strong: oklch(0.62 0.14 150);
   --hl-score-strong-fg: oklch(0.28 0.06 150);
-  --hl-score-solid: oklch(0.58 0.12 250);
-  --hl-score-solid-fg: oklch(0.28 0.06 250);
+  --hl-score-solid: oklch(0.58 0.12 264);
+  --hl-score-solid-fg: oklch(0.28 0.06 264);
   --hl-score-partial: oklch(0.78 0.03 240);
   --hl-score-partial-fg: oklch(0.38 0.03 240);
   --hl-score-limited: oklch(0.72 0.01 260);
@@ -193,6 +199,9 @@
   --radius-sm: var(--hl-radius-sm);
   --radius-md: var(--hl-radius-md);
   --radius-lg: var(--hl-radius-lg);
+  --radius-xl: var(--hl-radius-xl);
+  --radius-pill: var(--hl-radius-pill);
+  --shadow-card: var(--hl-shadow-card);
   --spacing-1: var(--hl-space-1);
   --spacing-2: var(--hl-space-2);
   --spacing-3: var(--hl-space-3);
