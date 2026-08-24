@@ -49,13 +49,15 @@ export function DashboardPage() {
 
   return (
     <AppShell>
-      <header className="flex flex-wrap items-end justify-between gap-4">
+      <header className="flex flex-wrap items-end justify-between gap-6">
         <div className="flex items-center gap-4">
-          <InitialsAvatar name={session.subject} className="size-12 text-sm" />
+          <InitialsAvatar name={session.subject} className="size-14 rounded-2xl text-sm shadow-card" />
           <div>
-            <p className="text-sm text-brand">{t("dashboard.welcome")}</p>
-            <h1 className="text-3xl font-semibold tracking-tight">{t("dashboard.title")}</h1>
-            <p className="mt-1 text-sm text-muted">{t("dashboard.subtitle")}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand">{t("dashboard.welcome")}</p>
+            <h1 className="font-display mt-1 text-4xl font-semibold tracking-tight text-foreground">
+              {t("dashboard.title")}
+            </h1>
+            <p className="mt-2 max-w-lg text-sm text-muted">{t("dashboard.subtitle")}</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -73,15 +75,17 @@ export function DashboardPage() {
         ) : null}
       </header>
 
-      <section className="grid gap-4 sm:grid-cols-3">
+      <section className="hl-rise-delay grid gap-4 sm:grid-cols-3">
         <Metric label={t("dashboard.openReqs")} value={String(list.length)} />
         <Metric label={t("dashboard.criteria")} value={String(criteriaCount)} />
-        <Card className="overflow-hidden">
-          <CardContent className="pt-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("dashboard.session")}</p>
-            <p className="mt-2 truncate text-lg font-semibold">{tenant.data?.name ?? t("dashboard.tenant")}</p>
+        <Card className="overflow-hidden border-border/80 bg-surface/90">
+          <CardContent className="pt-5">
+            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted">{t("dashboard.session")}</p>
+            <p className="font-display mt-3 truncate text-2xl font-semibold tracking-tight">
+              {tenant.data?.name ?? t("dashboard.tenant")}
+            </p>
             <p className="mt-1 truncate text-sm text-muted">{me.data?.subject ?? session.subject}</p>
-            <div className="mt-3 flex flex-wrap gap-2" aria-label={t("dashboard.roles")}>
+            <div className="mt-4 flex flex-wrap gap-2" aria-label={t("dashboard.roles")}>
               {(me.data?.roles ?? session.roles).map((role) => (
                 <Badge key={role}>{role}</Badge>
               ))}
@@ -90,38 +94,40 @@ export function DashboardPage() {
         </Card>
       </section>
 
-      <Card>
+      <Card className="border-border/80 bg-surface/90">
         <CardHeader className="flex-row items-center justify-between">
-          <CardTitle>{t("dashboard.recent")}</CardTitle>
-          <Link to="/positions" className="text-sm font-medium text-brand">
+          <CardTitle className="font-display text-2xl">{t("dashboard.recent")}</CardTitle>
+          <Link to="/positions" className="text-sm font-semibold text-brand transition-colors hover:text-brand-7">
             {t("dashboard.openPositions")}
           </Link>
         </CardHeader>
         <CardContent>
           {list.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border bg-brand-1/50 px-6 py-10 text-center">
-              <p className="text-sm text-muted">{t("dashboard.empty")}</p>
+            <div className="rounded-xl border border-dashed border-brand-3/70 bg-gradient-to-br from-brand-1/80 to-transparent px-6 py-12 text-center">
+              <p className="font-display text-lg text-foreground">{t("dashboard.empty")}</p>
               {seed.isSuccess ? (
-                <p className="mt-3 text-sm">{seed.data.skipped ? t("dashboard.seedDemoSkip") : t("dashboard.seedDemoDone")}</p>
+                <p className="mt-3 text-sm text-muted">
+                  {seed.data.skipped ? t("dashboard.seedDemoSkip") : t("dashboard.seedDemoDone")}
+                </p>
               ) : null}
-              <Button asChild className="mt-4">
+              <Button asChild className="mt-5">
                 <Link to="/positions">{t("dashboard.createFirst")}</Link>
               </Button>
             </div>
           ) : (
-            <ul className="divide-y divide-border">
+            <ul className="divide-y divide-border/80">
               {list.slice(0, 5).map((position) => (
-                <li key={position.id} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
+                <li key={position.id} className="flex items-center justify-between gap-4 py-3.5 first:pt-0 last:pb-0">
                   <div>
                     <p className="font-medium">{position.title}</p>
-                    <p className="text-sm text-muted">
+                    <p className="mt-0.5 text-sm text-muted">
                       {position.criteria.map((criterion) => `${criterion.name} ${criterion.weight}`).join(" · ")}
                     </p>
                   </div>
                   <Link
                     to="/positions/$positionId"
                     params={{ positionId: position.id }}
-                    className="text-sm font-medium text-brand"
+                    className="text-sm font-semibold text-brand transition-colors hover:text-brand-7"
                   >
                     {t("positions.open")}
                   </Link>
@@ -137,10 +143,10 @@ export function DashboardPage() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <Card>
-      <CardContent className="pt-4">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
-        <p className="mt-3 text-3xl font-semibold tracking-tight">{value}</p>
+    <Card className="border-border/80 bg-surface/90 transition-transform duration-300 hover:-translate-y-0.5">
+      <CardContent className="pt-5">
+        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted">{label}</p>
+        <p className="font-display mt-3 text-4xl font-semibold tracking-tight tabular-nums">{value}</p>
       </CardContent>
     </Card>
   );

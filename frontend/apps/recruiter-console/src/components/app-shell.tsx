@@ -24,13 +24,17 @@ export function AppShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
-      <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col bg-surface px-5 py-8 shadow-card lg:flex">
-        <Link to="/" className="px-3 text-base font-semibold tracking-tight">
-          {t("app.recruiter")}
+    <div className="flex min-h-screen text-foreground">
+      <aside className="hl-fade sticky top-0 hidden h-screen w-[17.5rem] shrink-0 flex-col border-r border-border/70 bg-surface/80 px-5 py-8 backdrop-blur-xl lg:flex">
+        <Link to="/" className="group px-3">
+          <span className="font-display text-[1.35rem] font-semibold tracking-tight text-foreground transition-colors group-hover:text-brand">
+            HireLens
+          </span>
+          <span className="mt-0.5 block text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-muted">
+            {t("nav.workspace")}
+          </span>
         </Link>
-        <p className="mt-1 px-3 text-sm text-muted">{t("nav.workspace")}</p>
-        <nav className="mt-10 flex flex-col gap-2">
+        <nav className="mt-12 flex flex-col gap-1">
           {items.map((item) => {
             const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
             return (
@@ -38,8 +42,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  "rounded-pill px-4 py-2.5 text-sm transition-colors",
-                  active ? "bg-brand font-medium text-brand-fg" : "text-muted hover:bg-brand-1 hover:text-foreground"
+                  "rounded-lg px-4 py-2.5 text-sm transition-all duration-200",
+                  active
+                    ? "hl-nav-active bg-brand-1 font-semibold text-brand-8"
+                    : "text-muted hover:bg-brand-1/70 hover:text-foreground"
                 )}
               >
                 {item.label}
@@ -47,9 +53,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-        <div className="mt-auto rounded-2xl bg-brand-1 p-4">
-          <div className="flex items-center gap-3">
-            <InitialsAvatar name={session?.subject ?? "HL"} />
+        <div className="mt-auto border-t border-border/80 pt-5">
+          <div className="flex items-center gap-3 px-1">
+            <InitialsAvatar name={session?.subject ?? "HL"} className="size-9 rounded-lg" />
             <div className="min-w-0">
               <p className="truncate text-sm font-medium">{session?.subject}</p>
               <p className="truncate text-xs text-muted">{session?.roles[0]}</p>
@@ -62,23 +68,29 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 bg-background/80 backdrop-blur">
-          <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-8">
+        <header className="sticky top-0 z-10 border-b border-border/50 bg-background/70 backdrop-blur-xl">
+          <div className="flex items-center justify-between gap-4 px-4 py-3.5 sm:px-8">
             <nav className="flex items-center gap-2 text-sm lg:hidden">
-              <Link to="/" className="rounded-pill bg-brand px-3 py-1.5 font-semibold text-brand-fg">
-                {t("app.recruiter")}
+              <Link to="/" className="font-display text-lg font-semibold tracking-tight">
+                HireLens
               </Link>
-              <Link to="/positions" className="rounded-pill px-3 py-1.5 text-muted">
+              <Link
+                to="/positions"
+                className={cn(
+                  "rounded-lg px-3 py-1.5",
+                  pathname.startsWith("/positions") ? "bg-brand-1 font-medium text-brand-8" : "text-muted"
+                )}
+              >
                 {t("nav.positions")}
               </Link>
             </nav>
-            <p className="hidden text-sm text-muted lg:block">{t("dashboard.subtitle")}</p>
+            <p className="hidden max-w-xl text-sm text-muted lg:block">{t("dashboard.subtitle")}</p>
             <Button variant="ghost" size="sm" className="lg:hidden" onClick={logout}>
               {t("dashboard.logout")}
             </Button>
           </div>
         </header>
-        <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 p-4 sm:p-8">{children}</main>
+        <main className="hl-rise mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 p-4 sm:p-8">{children}</main>
       </div>
     </div>
   );

@@ -4,12 +4,12 @@ import type { ButtonHTMLAttributes } from "react";
 import { cn } from "./cn";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
   {
     variants: {
       variant: {
         default: "rounded-pill bg-brand text-brand-fg hover:bg-brand-7",
-        outline: "rounded-pill border border-foreground/20 bg-surface text-foreground hover:bg-brand-1",
+        outline: "rounded-pill border border-border bg-surface/90 text-foreground hover:border-brand-4 hover:bg-brand-1",
         ghost: "rounded-pill text-foreground hover:bg-brand-1",
         danger: "rounded-pill bg-danger text-danger-fg"
       },

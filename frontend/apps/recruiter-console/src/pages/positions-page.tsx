@@ -104,17 +104,20 @@ export function PositionsPage() {
   return (
     <AppShell>
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight">{t("positions.title")}</h1>
-        <p className="mt-2 text-sm text-muted">{t("positions.composerHint")}</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand">{t("nav.positions")}</p>
+        <h1 className="font-display mt-1 text-4xl font-semibold tracking-tight">{t("positions.title")}</h1>
+        <p className="mt-2 max-w-2xl text-sm text-muted">{t("positions.composerHint")}</p>
       </div>
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,16rem)_minmax(0,1fr)_minmax(0,20rem)]">
-        <aside className="hidden rounded-2xl bg-brand-1 px-5 py-8 text-sm leading-6 text-foreground xl:block">
-          {t("positions.composerPrompt", { title: title.trim() || t("positions.untitled") })}
+      <div className="hl-rise-delay grid gap-6 xl:grid-cols-[minmax(0,16rem)_minmax(0,1fr)_minmax(0,20rem)]">
+        <aside className="hidden rounded-xl border border-brand-3/40 bg-gradient-to-b from-brand-1 to-brand-1/40 px-5 py-8 text-sm leading-7 text-foreground xl:block">
+          <p className="font-display text-lg font-semibold tracking-tight">
+            {t("positions.composerPrompt", { title: title.trim() || t("positions.untitled") })}
+          </p>
         </aside>
 
-        <Card>
+        <Card className="border-border/80 bg-surface/95">
           <CardHeader>
-            <CardTitle>{t("positions.create")}</CardTitle>
+            <CardTitle className="font-display text-2xl">{t("positions.create")}</CardTitle>
             <p className="text-sm text-muted">{t("positions.multiSelect")}</p>
           </CardHeader>
           <CardContent className="flex flex-col gap-6">
@@ -213,22 +216,22 @@ export function PositionsPage() {
         </Card>
 
         <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-medium text-muted">{t("positions.list")}</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">{t("positions.list")}</h2>
           {(positions.data ?? []).length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border bg-surface px-6 py-12 text-center text-sm text-muted shadow-card">
+            <div className="rounded-xl border border-dashed border-border/80 bg-surface/80 px-6 py-12 text-center text-sm text-muted">
               {t("positions.empty")}
             </div>
           ) : (
             (positions.data ?? []).map((position) => (
-              <Card key={position.id} className="transition-colors hover:border-brand-4">
+              <Card key={position.id} className="border-border/80 bg-surface/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-4">
                 <CardContent className="flex flex-col gap-3 pt-6">
-                  <p className="font-medium">{position.title}</p>
+                  <p className="font-display text-lg font-semibold tracking-tight">{position.title}</p>
                   <p className="line-clamp-2 text-sm text-muted">{position.jobDescription}</p>
                   <div className="flex flex-wrap gap-2">
                     {position.criteria.map((criterion) => (
                       <span
                         key={criterion.id}
-                        className="rounded-pill bg-brand-1 px-3 py-1 text-xs text-foreground"
+                        className="rounded-md bg-brand-1 px-2.5 py-1 text-xs font-medium text-foreground"
                       >
                         {criterion.name}
                       </span>
