@@ -1,32 +1,78 @@
 "use strict";
 
 const fs = require("fs");
+const http = require("http");
 const path = require("path");
 const approuter = require("@sap/approuter");
 
-const ar = approuter();
-const roots = [
-  path.join(__dirname, "resources"),
-  __dirname
-];
+const UI_HOST = "127.0.0.1";
+const UI_PORT = Number(process.env.HIRELENS_UI_PORT || 8099);
+const roots = [path.join(__dirname, "resources"), __dirname];
 
 const mime = {
-  ".html": "text/html; charset=utf-8",
-  ".js": "application/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8",
-  ".json": "application/json; charset=utf-8",
-  ".svg": "image/svg+xml",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
+  ".html": "text/html; charset=utf-8",
   ".ico": "image/x-icon",
+  ".jpeg": "image/jpeg",
+  ".jpg": "image/jpeg",
+  ".js": "application/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".map": "application/json",
+  ".mjs": "application/javascript; charset=utf-8",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+  ".txt": "text/plain; charset=utf-8",
+  ".webp": "image/webp",
   ".woff": "font/woff",
-  ".woff2": "font/woff2",
-  ".map": "application/json"
+  ".woff2": "font/woff2"
 };
 
-function pathnameOf(req) {
-  const raw = String(req._hirelensUrl || req.url || "").split("?")[0];
+function findFile(rel) {
+  const clean = String(rel || "")
+    .replace(/^\/+/, "")
+    .replace(/\\/g, "/");
+  if (!clean || clean.includes("..")) {
+    return null;
+  }
+  for (const root of roots) {
+    const base = path.resolve(root);
+    const candidate = path.resolve(root, clean);
+    if (!candidate.startsWith(base + path.sep) && candidate !== base) {
+      continue;
+    }
+    try {
+      if (fs.statSync(candidate).isFile()) {
+        return candidate;
+      }
+    } catch {
+      /* missing */
+    }
+  }
+  return null;
+}
+
+const indexHtml = findFile("index.html");
+if (!indexHtml) {
+  console.error("FATAL: React index.html missing. cwd=", process.cwd(), "dir=", __dirname);
+  try {
+    console.error("root listing:", fs.readdirSync(__dirname).join(", "));
+  } catch {
+    /* ignore */
+  }
+  process.exit(1);
+}
+console.log("HireLens UI index.html:", indexHtml);
+
+function sendFile(res, file) {
+  const type = mime[path.extname(file).toLowerCase()] || "application/octet-stream";
+  res.statusCode = 200;
+  res.setHeader("Content-Type", type);
+  res.setHeader("Cache-Control", file === indexHtml ? "no-cache, no-store, must-revalidate" : "public, max-age=31536000, immutable");
+  fs.createReadStream(file).pipe(res);
+}
+
+function pathnameOf(url) {
+  const raw = String(url || "/").split("?")[0];
   try {
     return decodeURIComponent(raw);
   } catch {
@@ -34,85 +80,60 @@ function pathnameOf(req) {
   }
 }
 
-function isApprouterPath(pathname) {
-  return (
-    pathname.startsWith("/api/") ||
-    pathname.startsWith("/compliance/") ||
-    pathname.startsWith("/health/") ||
-    pathname.startsWith("/login") ||
-    pathname === "/logout" ||
-    pathname.startsWith("/logout/")
-  );
-}
-
-function findFile(rel) {
-  const clean = rel.replace(/^\/+/, "").replace(/\\/g, "/");
-  if (clean.includes("..")) {
-    return null;
+function resolveUiFile(pathname) {
+  if (pathname === "/" || pathname === "" || pathname === "/index.html") {
+    return { file: indexHtml, missingAsset: false };
   }
-  for (const root of roots) {
-    const candidate = path.resolve(root, clean);
-    if (!candidate.startsWith(path.resolve(root))) {
-      continue;
-    }
-    if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
-      return candidate;
-    }
+  const rel = pathname.replace(/^\/+/, "");
+  const exact = findFile(rel);
+  if (exact) {
+    return { file: exact, missingAsset: false };
   }
-  return null;
+  const ext = path.extname(pathname);
+  if (ext && ext !== ".html") {
+    return { file: null, missingAsset: true };
+  }
+  return { file: indexHtml, missingAsset: false };
 }
 
-function sendFile(res, file) {
-  res.statusCode = 200;
-  res.setHeader("Content-Type", mime[path.extname(file).toLowerCase()] || "application/octet-stream");
-  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-  fs.createReadStream(file).pipe(res);
-}
+const uiServer = http.createServer((req, res) => {
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    res.statusCode = 405;
+    res.end();
+    return;
+  }
+  const { file, missingAsset } = resolveUiFile(pathnameOf(req.url));
+  if (missingAsset || !file) {
+    res.statusCode = 404;
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.end("Not Found");
+    return;
+  }
+  if (req.method === "HEAD") {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", mime[path.extname(file).toLowerCase()] || "application/octet-stream");
+    res.end();
+    return;
+  }
+  sendFile(res, file);
+});
 
-ar.start({
-  workingDir: __dirname,
-  extensions: [
-    {
-      insertMiddleware: {
-        first: [
-          {
-            handler(req, res, next) {
-              req._hirelensUrl = req.url;
-              next();
-            }
-          }
-        ],
-        beforeRequestHandler: [
-          {
-            handler(req, res, next) {
-              if (req.method !== "GET" && req.method !== "HEAD") {
-                return next();
-              }
-              const pathname = pathnameOf(req);
-              if (isApprouterPath(pathname)) {
-                return next();
-              }
+uiServer.on("error", (err) => {
+  console.error("FATAL: static UI server failed", err);
+  process.exit(1);
+});
 
-              const rel =
-                pathname === "/" || pathname === ""
-                  ? "index.html"
-                  : pathname.replace(/^\/+/, "");
-              const file = findFile(rel) || findFile("index.html");
-              if (!file) {
-                res.statusCode = 500;
-                res.setHeader("Content-Type", "text/plain; charset=utf-8");
-                return res.end("HireLens UI missing. Looked for index.html under resources/ and app root.");
-              }
-              if (req.method === "HEAD") {
-                res.statusCode = 200;
-                res.setHeader("Content-Type", mime[path.extname(file).toLowerCase()] || "application/octet-stream");
-                return res.end();
-              }
-              return sendFile(res, file);
-            }
-          }
-        ]
-      }
-    }
-  ]
+uiServer.listen(UI_PORT, UI_HOST, () => {
+  const destinations = JSON.parse(process.env.destinations || "[]");
+  if (!destinations.some((item) => item && item.name === "hirelens-ui")) {
+    destinations.push({
+      name: "hirelens-ui",
+      url: `http://${UI_HOST}:${UI_PORT}`,
+      forwardAuthToken: false
+    });
+  }
+  process.env.destinations = JSON.stringify(destinations);
+  console.log("HireLens static UI:", `http://${UI_HOST}:${UI_PORT}`);
+
+  approuter().start({ workingDir: __dirname });
 });

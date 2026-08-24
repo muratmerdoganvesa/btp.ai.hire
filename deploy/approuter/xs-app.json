@@ -28,13 +28,16 @@
     },
     {
       "source": "^/logged-out.html$",
-      "localDir": "resources",
+      "target": "/logged-out.html",
+      "destination": "hirelens-ui",
       "authenticationType": "none"
     },
     {
       "source": "^/(.*)$",
-      "localDir": "resources",
-      "authenticationType": "xsuaa"
+      "target": "/$1",
+      "destination": "hirelens-ui",
+      "authenticationType": "xsuaa",
+      "csrfProtection": false
     }
   ]
 }

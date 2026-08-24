@@ -87,15 +87,18 @@ jobs:
           node-version: "22"
       - name: Vendor Approuter
         run: |
-          cp deploy/approuter/start.js /tmp/web-drop/start.js
           cp deploy/approuter/package.json /tmp/web-drop/package.json
           cp deploy/approuter/xs-app.json /tmp/web-drop/xs-app.json
           cp deploy/approuter/.npmrc /tmp/web-drop/.npmrc
-          cp deploy/approuter/logged-out.html /tmp/web-drop/logged-out.html
           cp deploy/approuter/logged-out.html /tmp/web-drop/resources/logged-out.html
           test -f /tmp/web-drop/resources/index.html
+          grep -q "HireLens Recruiter" /tmp/web-drop/resources/index.html
           cp -a /tmp/web-drop/resources/. /tmp/web-drop/
+          cp deploy/approuter/start.js /tmp/web-drop/start.js
+          cp deploy/approuter/logged-out.html /tmp/web-drop/logged-out.html
           test -f /tmp/web-drop/index.html
+          test -f /tmp/web-drop/start.js
+          node --check /tmp/web-drop/start.js
           cd /tmp/web-drop
           npm install --omit=dev
           test -f node_modules/@sap/approuter/approuter.js
