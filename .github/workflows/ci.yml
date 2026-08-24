@@ -105,6 +105,25 @@ jobs:
           build-args: |
             GIT_SHA=${{ github.sha }}
           tags: ghcr.io/${{ github.repository_owner }}/hirelens-web:${{ github.sha }},ghcr.io/${{ github.repository_owner }}/hirelens-web:latest
+      # CF Diego cells cannot use GITHUB_TOKEN to pull private GHCR images (403).
+      # Public package avoids CF_DOCKER_PASSWORD / PAT package-ACL mismatches for hirelens-web.
+      - name: Make hirelens-web package public for CF pull
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          PKG=hirelens-web
+          CODE=$(curl -sS -o /tmp/pkg-vis.json -w "%{http_code}" -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/user/packages/container/${PKG}/visibility" \
+            -d '{"visibility":"public"}' || true)
+          echo "visibility API HTTP ${CODE}"
+          cat /tmp/pkg-vis.json || true
+          if [ "${CODE}" != "204" ] && [ "${CODE}" != "200" ]; then
+            echo "::warning::Could not set ${PKG} public (HTTP ${CODE}). CF pull may 403 unless GHCR_PULL_TOKEN can read this package."
+          fi
 
   cf-push-web:
     needs: [image-web]
@@ -122,7 +141,9 @@ jobs:
           CF_PASSWORD: ${{ secrets.CF_PASSWORD }}
           CF_ORG: ${{ secrets.CF_ORG }}
           CF_SPACE: ${{ secrets.CF_SPACE }}
+          # Prefer a classic PAT (read:packages). GITHUB_TOKEN often yields 403 from CF cells.
           CF_DOCKER_PASSWORD: ${{ secrets.GHCR_PULL_TOKEN || secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ secrets.GHCR_PULL_USERNAME || github.repository_owner }}
         run: |
           CF_API="$(printf '%s' "$CF_API" | tr -d '\r\n')"
           CF_USER="$(printf '%s' "$CF_USER" | tr -d '\r\n')"
@@ -142,14 +163,15 @@ jobs:
           ./cf api "$CF_API"
           ./cf auth "$CF_USER" "$CF_PASSWORD"
           ./cf target -o "$CF_ORG" -s "$CF_SPACE"
-          OWNER="${GITHUB_REPOSITORY_OWNER}"
+          OWNER="$(printf '%s' "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
+          DOCKER_USER="$(printf '%s' "${GHCR_USER}" | tr '[:upper:]' '[:lower:]' | tr -d '\r\n')"
           sed "s#ghcr.io/OWNER/#ghcr.io/${OWNER}/#g" deploy/manifest.yml > /tmp/manifest.yml
           ./cf update-service hirelens-xsuaa -c deploy/xs-security.json || echo "XSUAA update skipped"
           push_web() {
             ./cf push hirelens-web \
               --lifecycle docker \
               --docker-image "ghcr.io/${OWNER}/hirelens-web:${GITHUB_SHA}" \
-              --docker-username "${GITHUB_ACTOR}" \
+              --docker-username "${DOCKER_USER}" \
               -f /tmp/manifest.yml \
               -u http \
               --endpoint /health/live \
