@@ -38,6 +38,10 @@ jobs:
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: recruiter-dist
+          path: frontend/apps/recruiter-console/dist
 
   image:
     needs: [backend, frontend]
@@ -67,20 +71,17 @@ jobs:
           file: deploy/Dockerfile.worker
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/hirelens-worker:${{ github.sha }},ghcr.io/${{ github.repository_owner }}/hirelens-worker:latest
-      - name: Build and push Web
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: deploy/Dockerfile.web
-          push: true
-          tags: ghcr.io/${{ github.repository_owner }}/hirelens-web:${{ github.sha }},ghcr.io/${{ github.repository_owner }}/hirelens-web:latest
 
   cf-push:
-    needs: image
+    needs: [image, frontend]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: recruiter-dist
+          path: /tmp/web-drop/resources
       - name: Deploy to Cloud Foundry
         env:
           CF_API: ${{ secrets.CF_API }}
@@ -115,7 +116,11 @@ jobs:
             sed -i "s#https://hirelens-api.cfapps.eu20-002.hana.ondemand.com#https://${API_HOST}#" /tmp/manifest.yml
           fi
           ./cf update-service hirelens-xsuaa -c deploy/xs-security.json || echo "XSUAA update skipped; check redirect URIs if SAP login fails."
-          ./cf push hirelens-web --docker-image "ghcr.io/${OWNER}/hirelens-web:${GITHUB_SHA}" --docker-username "${GITHUB_ACTOR}" -f /tmp/manifest.yml --no-start
+          cp deploy/approuter/package.json /tmp/web-drop/package.json
+          cp deploy/approuter/xs-app.json /tmp/web-drop/xs-app.json
+          cp deploy/approuter/logged-out.html /tmp/web-drop/resources/logged-out.html
+          ./cf delete hirelens-web -f || true
+          ./cf push hirelens-web -p /tmp/web-drop -f /tmp/manifest.yml --no-start
           ./cf start hirelens-web
 
   integration:

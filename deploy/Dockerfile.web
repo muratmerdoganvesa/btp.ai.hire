@@ -1,4 +1,4 @@
-FROM node:22-alpine AS build
+FROM node:22-bookworm-slim AS build
 WORKDIR /web
 RUN corepack enable
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
@@ -12,14 +12,17 @@ RUN pnpm --filter @hirelens/design-tokens build \
     && pnpm --filter @hirelens/ui build \
     && pnpm --filter @hirelens/recruiter-console build
 
-FROM node:22-alpine
+FROM node:22-bookworm-slim
 WORKDIR /app
 COPY deploy/approuter/package.json ./
 RUN npm install --omit=dev
 COPY deploy/approuter/xs-app.json ./
 COPY --from=build /web/apps/recruiter-console/dist ./resources
 COPY deploy/approuter/logged-out.html ./resources/logged-out.html
+RUN chown -R node:node /app
 ENV PORT=8080
+ENV NODE_ENV=production
+ENV HOME=/home/node
 USER node
 EXPOSE 8080
 CMD ["node", "node_modules/@sap/approuter/approuter.js"]

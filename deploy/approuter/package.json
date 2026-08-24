@@ -2,10 +2,10 @@
   "name": "hirelens-web",
   "private": true,
   "engines": {
-    "node": ">=20"
+    "node": "20.x"
   },
   "dependencies": {
-    "@sap/approuter": "^20.8.0"
+    "@sap/approuter": "^16.7.1"
   },
   "scripts": {
     "start": "node node_modules/@sap/approuter/approuter.js"
