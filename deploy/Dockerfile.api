@@ -13,6 +13,7 @@ RUN useradd --create-home --uid 10001 hirelens
 COPY --from=build /app .
 USER 10001
 ENV ASPNETCORE_URLS=
+ENV ASPNETCORE_ENVIRONMENT=Production
 ENV GIT_SHA=$GIT_SHA
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "HireLens.Api.dll"]

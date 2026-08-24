@@ -32,6 +32,7 @@ public static class HealthEndpoints
         {
             status = report.Status.ToString(),
             gitSha = Environment.GetEnvironmentVariable("GIT_SHA"),
+            authMode = Environment.GetEnvironmentVariable("HIRELENS_AUTH_MODE"),
             checks = report.Entries.ToDictionary(
                 e => e.Key,
                 e => new { status = e.Value.Status.ToString(), e.Value.Description })

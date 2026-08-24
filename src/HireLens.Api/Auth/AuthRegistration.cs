@@ -55,6 +55,13 @@ public static class AuthRegistration
         options.TokenHandlers.Clear();
         options.TokenHandlers.Add(new JwtSecurityTokenHandler { MapInboundClaims = false });
         options.Events = CreateEvents();
+        Environment.SetEnvironmentVariable("HIRELENS_AUTH_MODE", HireLensAuthMode.Name(environment, configuration));
+
+        if (HireLensAuthMode.HasXsuaa(configuration))
+        {
+            ConfigureXsuaaJwt(options, configuration);
+            return;
+        }
 
         if (DevAuth.IsEnabled(environment, configuration))
         {
@@ -77,7 +84,12 @@ public static class AuthRegistration
             return;
         }
 
-        var xsuaa = VcapServices.Find(configuration["VCAP_SERVICES"], "xsuaa");
+        throw new InvalidOperationException("XSUAA binding or XSUAA_URL is required in this environment.");
+    }
+
+    private static void ConfigureXsuaaJwt(JwtBearerOptions options, IConfiguration configuration)
+    {
+        var xsuaa = VcapServices.Find(HireLensAuthMode.ReadVcap(configuration), "xsuaa");
         var uaaUrl = xsuaa?.Credentials.Extra.GetValueOrDefault("uaa.url");
         var authority = (string.IsNullOrWhiteSpace(uaaUrl) ? xsuaa?.Credentials.Url : uaaUrl)
             ?? configuration["XSUAA_URL"]

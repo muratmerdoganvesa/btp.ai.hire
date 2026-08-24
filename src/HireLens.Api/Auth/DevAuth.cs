@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using HireLens.Contracts;
+using HireLens.Infrastructure.Btp;
 using HireLens.Infrastructure.Tenancy;
 using HireLens.Modules.Tenancy.Application;
 using HireLens.SharedKernel;
@@ -19,9 +20,7 @@ public static class DevAuth
         configuration["DEV_JWT_SIGNING_KEY"] ?? "HireLens-dev-only-signing-key-32b!";
 
     public static bool IsEnabled(IHostEnvironment environment, IConfiguration configuration) =>
-        environment.IsDevelopment()
-        || environment.IsEnvironment("Testing")
-        || configuration.GetValue("HireLens:EnableDevAuth", false);
+        HireLensAuthMode.UseDevTokens(environment, configuration);
 }
 
 public sealed record DevTokenRequest(

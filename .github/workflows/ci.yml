@@ -173,6 +173,9 @@ jobs:
           ./cf push hirelens-api --docker-image "ghcr.io/${OWNER}/hirelens-api:${GITHUB_SHA}" --docker-username "${GITHUB_ACTOR}" -f /tmp/manifest.yml --no-start
           ./cf push hirelens-worker --docker-image "ghcr.io/${OWNER}/hirelens-worker:${GITHUB_SHA}" --docker-username "${GITHUB_ACTOR}" -f /tmp/manifest.yml --no-start
           ./cf set-env hirelens-api GIT_SHA "${GITHUB_SHA}"
+          ./cf set-env hirelens-api ASPNETCORE_ENVIRONMENT Production
+          ./cf unset-env hirelens-api HireLens__EnableDevAuth || true
+          ./cf unset-env hirelens-api DOTNET_ENVIRONMENT || true
           ./cf start hirelens-api
           ./cf start hirelens-worker
           API_HOST="$(./cf app hirelens-api | awk -F': *' '/^[[:space:]]*routes:/{print $2}' | tr -d '\r' | cut -d',' -f1 | tr -d ' ')"
