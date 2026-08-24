@@ -108,6 +108,14 @@ function resolveUiFile(pathname) {
   return { file: indexHtml, missingAsset: false };
 }
 
+const canonicalHost = "hirelens-web.cfapps.eu20-002.hana.ondemand.com";
+const tenantAppHost = /^[a-z0-9-]+-hirelens-web\.cfapps\.eu20-002\.hana\.ondemand\.com$/i;
+
+function isTenantAliasHost(host) {
+  const hostname = String(host || "").split(":")[0];
+  return tenantAppHost.test(hostname) && hostname.toLowerCase() !== canonicalHost;
+}
+
 function serveUi(req, res) {
   const pathname = pathnameOf(req);
   if (pathname === "/login" || pathname === "/login/") {
@@ -142,6 +150,15 @@ ar.start({
           {
             handler(req, res, next) {
               req._hirelensUrl = req.url;
+              const pathname = pathnameOf(req);
+              if (isTenantAliasHost(req.headers.host) && !pathname.startsWith("/login/callback")) {
+                res.writeHead(302, {
+                  Location: `https://${canonicalHost}${req.url || "/"}`,
+                  "Cache-Control": "no-store"
+                });
+                res.end();
+                return;
+              }
               next();
             }
           }
