@@ -90,9 +90,11 @@ jobs:
           cp deploy/approuter/package.json /tmp/web-drop/package.json
           cp deploy/approuter/xs-app.json /tmp/web-drop/xs-app.json
           cp deploy/approuter/.npmrc /tmp/web-drop/.npmrc
+          cp deploy/approuter/logged-out.html /tmp/web-drop/logged-out.html
           cp deploy/approuter/logged-out.html /tmp/web-drop/resources/logged-out.html
           test -f /tmp/web-drop/resources/index.html
-          cp /tmp/web-drop/resources/index.html /tmp/web-drop/index.html
+          cp -a /tmp/web-drop/resources/. /tmp/web-drop/
+          test -f /tmp/web-drop/index.html
           cd /tmp/web-drop
           npm install --omit=dev
           test -f node_modules/@sap/approuter/approuter.js
