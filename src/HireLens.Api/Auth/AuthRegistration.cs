@@ -1,11 +1,13 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using HireLens.Contracts;
 using HireLens.Infrastructure.Btp;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 
@@ -89,32 +91,47 @@ public static class AuthRegistration
             ?? configuration["XSUAA_URL"]
             ?? throw new InvalidOperationException("XSUAA binding or XSUAA_URL is required in this environment.");
         authority = authority.TrimEnd('/');
-        var xsappname = xsuaa?.Credentials.Extra.GetValueOrDefault("xsappname")
-            ?? configuration["XSUAA_XSAPPNAME"]
-            ?? "hirelens";
-        var audiences = new[]
+        var issuers = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            authority,
+            authority + "/oauth/token"
+        };
+        if (!string.IsNullOrWhiteSpace(xsuaa?.Credentials.IdentityZone) &&
+            Uri.TryCreate(authority, UriKind.Absolute, out var authorityUri))
+        {
+            var zone = xsuaa.Credentials.IdentityZone;
+            if (!authorityUri.Host.StartsWith(zone + ".", StringComparison.OrdinalIgnoreCase))
             {
-                xsuaa?.Credentials.Extra.GetValueOrDefault("uaa.clientid"),
-                xsuaa?.Credentials.ClientId,
-                xsappname,
-                "hirelens",
-                "uaa"
+                issuers.Add($"{authorityUri.Scheme}://{zone}.{authorityUri.Host}");
+                issuers.Add($"{authorityUri.Scheme}://{zone}.{authorityUri.Host}/oauth/token");
             }
-            .Where(value => !string.IsNullOrWhiteSpace(value))
-            .Select(value => value!)
-            .Distinct(StringComparer.Ordinal)
-            .ToArray();
+        }
 
-        options.Authority = authority;
-        options.MetadataAddress = authority + "/.well-known/openid-configuration";
         options.RequireHttpsMetadata = true;
         options.IncludeErrorDetails = true;
         options.TokenValidationParameters.ValidateIssuer = true;
-        options.TokenValidationParameters.ValidIssuers = [authority, authority + "/oauth/token"];
-        options.TokenValidationParameters.ValidateAudience = true;
-        options.TokenValidationParameters.ValidAudiences = audiences;
+        options.TokenValidationParameters.ValidIssuers = [.. issuers];
+        options.TokenValidationParameters.ValidateAudience = false;
         options.TokenValidationParameters.NameClaimType = "sub";
         options.TokenValidationParameters.RoleClaimType = ClaimTypes.Role;
+        options.TokenValidationParameters.ClockSkew = TimeSpan.FromMinutes(5);
+
+        var verificationKey = xsuaa?.Credentials.Extra.GetValueOrDefault("verificationkey")
+            ?? xsuaa?.Credentials.Extra.GetValueOrDefault("verificationKey");
+        if (!string.IsNullOrWhiteSpace(verificationKey))
+        {
+            var rsa = RSA.Create();
+            rsa.ImportFromPem(verificationKey.Replace("\\n", "\n", StringComparison.Ordinal));
+            options.TokenValidationParameters.IssuerSigningKey = new RsaSecurityKey(rsa);
+            options.TokenValidationParameters.ValidateIssuerSigningKey = true;
+            options.TokenValidationParameters.ValidateIssuer = false;
+        }
+        else
+        {
+            options.Authority = authority;
+            options.MetadataAddress = authority + "/.well-known/openid-configuration";
+        }
+
         options.Events = new JwtBearerEvents
         {
             OnAuthenticationFailed = context =>
@@ -122,6 +139,21 @@ public static class AuthRegistration
                 JwtDebug.LastFailure = $"{context.Exception.GetType().Name}: {context.Exception.Message}";
                 Log.Warning("XSUAA JWT rejected: {Message}", context.Exception.Message);
                 return Task.CompletedTask;
+            },
+            OnChallenge = async context =>
+            {
+                if (context.Response.HasStarted)
+                {
+                    return;
+                }
+
+                context.HandleResponse();
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await context.Response.WriteAsJsonAsync(new
+                {
+                    error = "jwt_rejected",
+                    detail = JwtDebug.LastFailure ?? "missing_or_invalid_bearer"
+                });
             }
         };
     }

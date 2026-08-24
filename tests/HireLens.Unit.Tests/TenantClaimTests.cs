@@ -52,6 +52,34 @@ public sealed class TenantClaimTests
         first.Should().Be(second);
     }
 
+    [Fact]
+    public void Json_array_zid_is_unwrapped()
+    {
+        var tenantId = Guid.NewGuid();
+        var user = new ClaimsPrincipal(new ClaimsIdentity(
+        [
+            new Claim("iss", "https://hirelens.authentication.eu10.hana.ondemand.com/oauth/token"),
+            new Claim("zid", $"[\"{tenantId}\"]"),
+            new Claim("sub", "tester")
+        ], "test"));
+
+        TenantResolutionMiddleware.ReadTenantId(user).Should().Be(tenantId);
+    }
+
+    [Fact]
+    public void Ext_attr_zid_is_read()
+    {
+        var tenantId = Guid.NewGuid();
+        var user = new ClaimsPrincipal(new ClaimsIdentity(
+        [
+            new Claim("iss", "https://hirelens.authentication.eu10.hana.ondemand.com/oauth/token"),
+            new Claim("ext_attr", $"{{\"zid\":\"{tenantId}\"}}"),
+            new Claim("sub", "tester")
+        ], "test"));
+
+        TenantResolutionMiddleware.ReadTenantId(user).Should().Be(tenantId);
+    }
+
     private static ClaimsPrincipal Principal(string issuer, string claim, Guid tenantId) =>
         new(new ClaimsIdentity(
         [

@@ -194,8 +194,7 @@ export class ApiClient {
       credentials: "same-origin",
       headers: this.headers()
     });
-    this.throwIfFailed(response);
-    return (await response.json()) as T;
+    return this.readJson<T>(response);
   }
 
   private async send<T>(path: string, method: string, body?: unknown): Promise<T> {
@@ -210,12 +209,15 @@ export class ApiClient {
       headers,
       body: body === undefined ? undefined : JSON.stringify(body)
     });
-    this.throwIfFailed(response);
     if (response.status === 204) {
+      this.throwIfHtml(response);
+      if (!response.ok) {
+        await this.throwHttpError(response);
+      }
       return undefined as T;
     }
 
-    return (await response.json()) as T;
+    return this.readJson<T>(response);
   }
 
   private headers(contentType?: string): Headers {
@@ -234,14 +236,47 @@ export class ApiClient {
     return headers;
   }
 
-  private throwIfFailed(response: Response): void {
+  private async readJson<T>(response: Response): Promise<T> {
+    const text = await response.text();
+    this.throwIfHtmlText(response, text);
     if (!response.ok) {
-      throw new ApiError(response.status, `http_${response.status}`);
+      throw new ApiError(response.status, this.errorDetail(response.status, text));
     }
 
+    return text ? (JSON.parse(text) as T) : (undefined as T);
+  }
+
+  private errorDetail(status: number, text: string): string {
+    try {
+      const payload = JSON.parse(text) as { error?: string; detail?: string };
+      const parts = [payload.error, payload.detail].filter((part) => Boolean(part));
+      if (parts.length > 0) {
+        return parts.join(":");
+      }
+    } catch {
+      /* plain text */
+    }
+
+    const trimmed = text.replace(/\s+/g, " ").trim();
+    return trimmed ? `http_${status}:${trimmed.slice(0, 180)}` : `http_${status}`;
+  }
+
+  private throwIfHtml(response: Response): void {
     const contentType = response.headers.get("content-type") ?? "";
     if (contentType.includes("text/html")) {
       throw new ApiError(response.status, "html_instead_of_json");
     }
+  }
+
+  private throwIfHtmlText(response: Response, text: string): void {
+    const contentType = response.headers.get("content-type") ?? "";
+    if (contentType.includes("text/html") || text.trimStart().startsWith("<")) {
+      throw new ApiError(response.status, "html_instead_of_json");
+    }
+  }
+
+  private async throwHttpError(response: Response): Promise<never> {
+    const text = await response.text();
+    throw new ApiError(response.status, this.errorDetail(response.status, text));
   }
 }
