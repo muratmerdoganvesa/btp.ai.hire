@@ -6,6 +6,8 @@ applications:
     timeout: 180
     docker:
       image: ghcr.io/OWNER/hirelens-api:latest
+    routes:
+      - route: hirelens-api.cfapps.eu20-002.hana.ondemand.com
     services:
       - hana_dev
       - hirelens-xsuaa
@@ -18,6 +20,7 @@ applications:
     memory: 1G
     instances: 1
     timeout: 180
+    no-route: true
     docker:
       image: ghcr.io/OWNER/hirelens-worker:latest
     services:
@@ -37,9 +40,10 @@ applications:
       - nodejs_buildpack
     routes:
       - route: hirelens-web.cfapps.eu20-002.hana.ondemand.com
+      - route: dev-2z4ga5d8-hirelens-web.cfapps.eu20-002.hana.ondemand.com
     services:
       - hirelens-xsuaa
     env:
       destinations: '[{"name":"hirelens-api","url":"https://hirelens-api.cfapps.eu20-002.hana.ondemand.com","forwardAuthToken":true}]'
+      TENANT_HOST_PATTERN: "^(.*)-hirelens-web.cfapps.eu20-002.hana.ondemand.com"
       XS_APP_LOG_LEVEL: info
-

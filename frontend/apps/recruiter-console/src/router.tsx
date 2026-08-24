@@ -12,9 +12,16 @@ const rootRoute = createRootRoute({
 });
 
 const requireSession = () => {
-  if (!useAuthStore.getState().session) {
-    throw redirect({ to: isDevAuth ? "/login" : "/" });
+  if (useAuthStore.getState().session) {
+    return;
   }
+
+  if (isDevAuth) {
+    throw redirect({ to: "/login" });
+  }
+
+  window.location.assign("/login");
+  throw new Error("xsuaa_login");
 };
 
 const loginRoute = createRoute({

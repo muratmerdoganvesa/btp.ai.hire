@@ -86,13 +86,24 @@ public static class AuthRegistration
         var authority = xsuaa?.Credentials.Url
             ?? configuration["XSUAA_URL"]
             ?? throw new InvalidOperationException("XSUAA binding or XSUAA_URL is required in this environment.");
-        var audience = xsuaa?.Credentials.Extra.GetValueOrDefault("xsappname")
+        var xsappname = xsuaa?.Credentials.Extra.GetValueOrDefault("xsappname")
             ?? configuration["XSUAA_XSAPPNAME"]
             ?? "hirelens";
+        var audiences = new[]
+            {
+                xsuaa?.Credentials.ClientId,
+                xsappname,
+                "hirelens"
+            }
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
 
         options.Authority = authority;
-        options.Audience = audience;
         options.RequireHttpsMetadata = true;
+        options.TokenValidationParameters.ValidateAudience = true;
+        options.TokenValidationParameters.ValidAudiences = audiences;
         options.TokenValidationParameters.NameClaimType = "sub";
         options.TokenValidationParameters.RoleClaimType = ClaimTypes.Role;
     }

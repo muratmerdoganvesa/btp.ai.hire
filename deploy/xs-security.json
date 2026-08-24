@@ -40,6 +40,7 @@
   "oauth2-configuration": {
     "redirect-uris": [
       "https://hirelens-web.cfapps.eu20-002.hana.ondemand.com/**",
+      "https://dev-2z4ga5d8-hirelens-web.cfapps.eu20-002.hana.ondemand.com/**",
       "https://*hirelens-web.cfapps.eu20-002.hana.ondemand.com/**"
     ]
   }

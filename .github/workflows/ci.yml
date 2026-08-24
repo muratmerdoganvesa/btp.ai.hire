@@ -138,7 +138,16 @@ jobs:
           fi
           ./cf update-service hirelens-xsuaa -c deploy/xs-security.json || echo "XSUAA update skipped; recreate as dedicated if login hits authentication.eu20 without a subdomain."
           ./cf push hirelens-web -p /tmp/web-drop -f /tmp/manifest.yml --no-start
+          ./cf map-route hirelens-web cfapps.eu20-002.hana.ondemand.com --hostname hirelens-web || true
+          ./cf map-route hirelens-web cfapps.eu20-002.hana.ondemand.com --hostname dev-2z4ga5d8-hirelens-web || true
           ./cf start hirelens-web
+          ./cf app hirelens-web
+          ./cf app hirelens-api
+          if ./cf app hirelens-web | grep -Eqi 'crashed|0 of 1|0/1'; then
+            echo "hirelens-web did not start"
+            ./cf logs hirelens-web --recent
+            exit 1
+          fi
 
   integration:
     if: github.event_name == 'push'

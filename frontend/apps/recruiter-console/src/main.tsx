@@ -3,7 +3,7 @@ import { RouterProvider } from "@tanstack/react-router";
 import { createI18n } from "@hirelens/i18n";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { bootstrapSession } from "./auth-mode";
+import { bootstrapSession, isDevAuth } from "./auth-mode";
 import { router } from "./router";
 import "./styles.css";
 
@@ -26,6 +26,16 @@ const render = () => {
   );
 };
 
-void bootstrapSession()
-  .catch(() => undefined)
-  .then(render);
+void (async () => {
+  try {
+    await bootstrapSession();
+    render();
+  } catch {
+    if (isDevAuth) {
+      render();
+      return;
+    }
+
+    window.location.assign("/login");
+  }
+})();

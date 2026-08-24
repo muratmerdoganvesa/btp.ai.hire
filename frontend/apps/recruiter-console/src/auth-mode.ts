@@ -10,6 +10,7 @@ export async function bootstrapSession(): Promise<void> {
 
   const me = await api.getMe();
   if (!me.tenantId || !me.subject) {
+    window.location.assign("/login");
     throw new Error("me_incomplete");
   }
 
