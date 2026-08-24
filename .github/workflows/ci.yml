@@ -82,6 +82,20 @@ jobs:
         with:
           name: recruiter-dist
           path: /tmp/web-drop/resources
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Vendor Approuter
+        run: |
+          cp deploy/approuter/package.json /tmp/web-drop/package.json
+          cp deploy/approuter/xs-app.json /tmp/web-drop/xs-app.json
+          cp deploy/approuter/.npmrc /tmp/web-drop/.npmrc
+          cp deploy/approuter/logged-out.html /tmp/web-drop/resources/logged-out.html
+          test -f /tmp/web-drop/resources/index.html
+          cd /tmp/web-drop
+          npm install --omit=dev
+          test -f node_modules/@sap/approuter/approuter.js
+          find . -maxdepth 2 -type f | head
       - name: Deploy to Cloud Foundry
         env:
           CF_API: ${{ secrets.CF_API }}
@@ -116,10 +130,6 @@ jobs:
             sed -i "s#https://hirelens-api.cfapps.eu20-002.hana.ondemand.com#https://${API_HOST}#" /tmp/manifest.yml
           fi
           ./cf update-service hirelens-xsuaa -c deploy/xs-security.json || echo "XSUAA update skipped; check redirect URIs if SAP login fails."
-          cp deploy/approuter/package.json /tmp/web-drop/package.json
-          cp deploy/approuter/xs-app.json /tmp/web-drop/xs-app.json
-          cp deploy/approuter/logged-out.html /tmp/web-drop/resources/logged-out.html
-          ./cf delete hirelens-web -f || true
           ./cf push hirelens-web -p /tmp/web-drop -f /tmp/manifest.yml --no-start
           ./cf start hirelens-web
 
