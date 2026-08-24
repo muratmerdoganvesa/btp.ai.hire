@@ -70,6 +70,7 @@ function sendFile(res, file) {
 }
 
 ar.start({
+  workingDir: __dirname,
   extensions: [
     {
       insertMiddleware: {

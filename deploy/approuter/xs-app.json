@@ -28,10 +28,12 @@
     },
     {
       "source": "^/logged-out.html$",
+      "localDir": "resources",
       "authenticationType": "none"
     },
     {
       "source": "^/(.*)$",
+      "localDir": "resources",
       "authenticationType": "xsuaa"
     }
   ]
