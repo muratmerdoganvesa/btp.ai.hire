@@ -35,6 +35,7 @@ applications:
     memory: 512M
     instances: 1
     timeout: 180
+    lifecycle: docker
     docker:
       image: ghcr.io/OWNER/hirelens-web:latest
     routes:

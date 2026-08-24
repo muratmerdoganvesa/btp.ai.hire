@@ -155,7 +155,7 @@ jobs:
           }
           if ! push_web; then
             echo "hirelens-web is still a buildpack app; recreating as docker lifecycle"
-            ./cf delete-app hirelens-web -f
+            ./cf delete hirelens-web -f || true
             push_web
           fi
           ./cf unset-env hirelens-web TENANT_HOST_PATTERN || true
