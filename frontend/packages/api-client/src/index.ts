@@ -84,7 +84,10 @@ export class ApiClient {
       headers: this.headers(file.type || "text/plain"),
       body: file
     });
-    this.throwIfFailed(response);
+    if (!response.ok) {
+      await this.throwHttpError(response);
+    }
+    this.throwIfHtml(response);
   }
 
   public async completeUpload(documentId: string): Promise<JobStatus> {
@@ -184,8 +187,7 @@ export class ApiClient {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...input, issuerKind: "xsuaa" })
     });
-    this.throwIfFailed(response);
-    const payload = (await response.json()) as { accessToken: string };
+    const payload = await this.readJson<{ accessToken: string }>(response);
     return payload.accessToken;
   }
 
