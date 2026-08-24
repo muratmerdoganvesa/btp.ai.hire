@@ -87,6 +87,7 @@ jobs:
           node-version: "22"
       - name: Vendor Approuter
         run: |
+          cp deploy/approuter/start.js /tmp/web-drop/start.js
           cp deploy/approuter/package.json /tmp/web-drop/package.json
           cp deploy/approuter/xs-app.json /tmp/web-drop/xs-app.json
           cp deploy/approuter/.npmrc /tmp/web-drop/.npmrc

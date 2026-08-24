@@ -28,31 +28,11 @@
     },
     {
       "source": "^/logged-out.html$",
-      "localDir": "resources",
       "authenticationType": "none"
     },
     {
-      "source": "^/assets/(.*)$",
-      "localDir": "resources",
-      "authenticationType": "xsuaa"
-    },
-    {
-      "source": "^/index.html$",
-      "localDir": "resources",
-      "authenticationType": "xsuaa"
-    },
-    {
-      "source": "^/$",
-      "target": "/index.html",
-      "localDir": "resources",
-      "authenticationType": "xsuaa"
-    },
-    {
       "source": "^/(.*)$",
-      "target": "/index.html",
-      "localDir": "resources",
-      "authenticationType": "xsuaa",
-      "cacheControl": "no-cache, no-store, must-revalidate"
+      "authenticationType": "xsuaa"
     }
   ]
 }
