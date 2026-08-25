@@ -25,13 +25,6 @@ export const TOUR_STEPS: TourStepDef[] = [
     bodyKey: "tour.stepRecentBody"
   },
   {
-    id: "oversight",
-    route: "/",
-    target: "tour-oversight",
-    titleKey: "tour.stepOversightTitle",
-    bodyKey: "tour.stepOversightBody"
-  },
-  {
     id: "nav-positions",
     route: "/",
     target: "tour-nav-positions",
