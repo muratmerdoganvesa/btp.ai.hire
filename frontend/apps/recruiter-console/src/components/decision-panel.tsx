@@ -30,16 +30,16 @@ export function DecisionPanel({
   };
 
   return (
-    <Card className="border-border/80 bg-surface/95">
+    <Card>
       <CardHeader>
-        <CardTitle className="font-display text-xl">{t("decision.title")}</CardTitle>
+        <CardTitle>{t("decision.title")}</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-col gap-4">
         <p className="text-sm text-muted">{t("decision.rationaleHint")}</p>
-        <label className="flex flex-col gap-1 text-sm text-muted">
+        <label className="flex flex-col gap-2 text-sm font-semibold text-foreground">
           {t("decision.outcome")}
           <select
-            className="rounded-md border border-border bg-background px-3 py-2 text-foreground"
+            className="h-11 rounded-xl border border-border bg-white px-3 text-sm font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-focus"
             value={outcome}
             onChange={(event) => setOutcome(event.target.value as RecordDecision["outcome"])}
           >
@@ -48,10 +48,10 @@ export function DecisionPanel({
             <option value="reject">{t("decision.reject")}</option>
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-sm text-muted">
+        <label className="flex flex-col gap-2 text-sm font-semibold text-foreground">
           {t("decision.rationale")}
           <textarea
-            className="min-h-24 rounded-md border border-border bg-background px-3 py-2 text-foreground"
+            className="min-h-28 rounded-xl border border-border bg-white px-3 py-3 text-sm font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-focus"
             value={rationale}
             onChange={(event) => setRationale(event.target.value)}
           />
@@ -61,11 +61,11 @@ export function DecisionPanel({
             {error}
           </p>
         ) : null}
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" disabled={busy} onClick={() => void submit()}>
+        <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+          <Button type="button" className="sm:min-w-[9.5rem]" disabled={busy} onClick={() => void submit()}>
             {t("decision.submit")}
           </Button>
-          <Button type="button" variant="outline" onClick={() => setOpen(true)}>
+          <Button type="button" variant="outline" className="sm:min-w-[9.5rem]" onClick={() => setOpen(true)}>
             {t("decision.override")}
           </Button>
         </div>
@@ -75,10 +75,10 @@ export function DecisionPanel({
           busy={busy}
           onConfirm={() => void submit()}
         >
-          <label className="flex flex-col gap-1 text-sm text-muted">
+          <label className="flex flex-col gap-2 text-sm font-semibold text-foreground">
             {t("decision.outcome")}
             <select
-              className="rounded-md border border-border bg-background px-3 py-2 text-foreground"
+              className="h-11 rounded-xl border border-border bg-white px-3 text-sm font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-focus"
               value={outcome}
               onChange={(event) => setOutcome(event.target.value as RecordDecision["outcome"])}
             >
@@ -87,10 +87,10 @@ export function DecisionPanel({
               <option value="reject">{t("decision.reject")}</option>
             </select>
           </label>
-          <label className="mt-3 flex flex-col gap-1 text-sm text-muted">
+          <label className="mt-3 flex flex-col gap-2 text-sm font-semibold text-foreground">
             {t("decision.rationale")}
             <textarea
-              className="min-h-24 rounded-md border border-border bg-background px-3 py-2 text-foreground"
+              className="min-h-28 rounded-xl border border-border bg-white px-3 py-3 text-sm font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-focus"
               value={rationale}
               onChange={(event) => setRationale(event.target.value)}
               placeholder={t("decision.overrideHint")}

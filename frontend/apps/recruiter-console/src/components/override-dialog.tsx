@@ -26,14 +26,14 @@ export function OverrideDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="override-title"
-        className="w-full max-w-lg rounded-xl border border-border bg-surface p-5 shadow-card"
+        className="w-full max-w-lg rounded-2xl border border-border bg-surface p-6 shadow-card"
       >
-        <h2 id="override-title" className="mb-1 text-base font-semibold">
+        <h2 id="override-title" className="mb-1 text-lg font-extrabold tracking-tight">
           {t("decision.override")}
         </h2>
         <p className="mb-4 text-sm text-muted">{t("decision.overrideHint")}</p>
         {children}
-        <div className="mt-4 flex justify-end gap-2">
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
             {t("decision.close")}
           </Button>

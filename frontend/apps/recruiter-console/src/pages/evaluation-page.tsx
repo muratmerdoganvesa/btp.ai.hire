@@ -118,21 +118,21 @@ export function EvaluationPage() {
         <span>{candidate.data?.displayName ?? t("evaluation.title")}</span>
       </div>
 
-      <header className="flex flex-wrap items-start justify-between gap-6 rounded-2xl border border-border/80 bg-surface/95 p-6 shadow-card">
+      <header className="flex flex-col gap-5 rounded-2xl border border-border bg-surface p-6 shadow-card sm:flex-row sm:items-start sm:justify-between sm:gap-6 sm:p-7">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone="muted">{t("evaluation.humanReview")}</Badge>
             {latestDecision ? <Badge>{latestDecision.outcome}</Badge> : null}
             {evaluation.data?.status ? <Badge tone="muted">{evaluation.data.status}</Badge> : null}
           </div>
-          <h1 className="font-display mt-3 text-3xl font-semibold tracking-tight">
+          <h1 className="mt-3 text-3xl font-extrabold tracking-tight">
             {candidate.data?.displayName ?? t("evaluation.title")}
           </h1>
           <p className="mt-1 text-sm text-muted">
             {position.data?.title ?? t("evaluation.candidateSubtitle")}
           </p>
         </div>
-        <div className="flex flex-col items-end gap-3">
+        <div className="flex w-full shrink-0 flex-col gap-3 sm:w-auto sm:items-end">
           <ScoreBadge
             score={evaluation.data?.overallScore ?? candidate.data?.overallScore ?? null}
             label={
@@ -141,17 +141,15 @@ export function EvaluationPage() {
                 : t("evaluation.overallOf100")
             }
           />
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={invite.isPending || !hasEvaluation}
-              onClick={() => invite.mutate()}
-            >
-              {t("interview.invite")}
-            </Button>
-          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full sm:w-auto"
+            disabled={invite.isPending || !hasEvaluation}
+            onClick={() => invite.mutate()}
+          >
+            {t("interview.invite")}
+          </Button>
         </div>
       </header>
 
@@ -215,11 +213,11 @@ export function EvaluationPage() {
 
             <RiskFlagList flags={[...(evaluation.data!.needsVerification ?? [])]} />
 
-            <Card className="border-border/80 bg-surface/95">
+            <Card>
               <CardHeader>
-                <CardTitle className="font-display text-xl">{t("evaluation.recruiterActions")}</CardTitle>
+                <CardTitle>{t("evaluation.recruiterActions")}</CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-col gap-2">
+              <CardContent className="flex flex-col gap-3">
                 <Button
                   type="button"
                   disabled={decide.isPending}
@@ -258,21 +256,21 @@ export function EvaluationPage() {
           </aside>
         </div>
       ) : (
-        <Card className="border-dashed border-border/80 bg-surface/80">
-          <CardContent className="py-10 text-center text-sm text-muted">
-            {evaluation.isLoading
-              ? t("evaluation.loading")
-              : evalMissing
-                ? t("evaluation.awaitingCv")
-                : t("evaluation.noScore")}
+        <Card>
+          <CardContent className="flex flex-col items-center gap-5 px-6 py-12 text-center text-sm text-muted">
+            <p>
+              {evaluation.isLoading
+                ? t("evaluation.loading")
+                : evalMissing
+                  ? t("evaluation.awaitingCv")
+                  : t("evaluation.noScore")}
+            </p>
             {candidate.data?.positionId ? (
-              <div className="mt-4">
-                <Button asChild variant="outline" size="sm">
-                  <Link to="/positions/$positionId" params={{ positionId: candidate.data.positionId }}>
-                    {t("evaluation.backToCandidates")}
-                  </Link>
-                </Button>
-              </div>
+              <Button asChild variant="outline">
+                <Link to="/positions/$positionId" params={{ positionId: candidate.data.positionId }}>
+                  {t("evaluation.backToCandidates")}
+                </Link>
+              </Button>
             ) : null}
           </CardContent>
         </Card>

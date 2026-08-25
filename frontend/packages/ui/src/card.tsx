@@ -3,12 +3,15 @@ import { cn } from "./cn";
 
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("rounded-2xl border border-border bg-surface text-foreground shadow-card", className)} {...props} />
+    <div
+      className={cn("rounded-2xl border border-border bg-surface text-foreground shadow-card", className)}
+      {...props}
+    />
   );
 }
 
 export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("flex flex-col gap-1 px-6 pt-6", className)} {...props} />;
+  return <div className={cn("flex flex-col gap-1.5 px-6 pt-6 pb-2", className)} {...props} />;
 }
 
 export function CardTitle({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) {
@@ -16,5 +19,5 @@ export function CardTitle({ className, ...props }: HTMLAttributes<HTMLHeadingEle
 }
 
 export function CardContent({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("px-6 py-5", className)} {...props} />;
+  return <div className={cn("px-6 pb-6 pt-3", className)} {...props} />;
 }
