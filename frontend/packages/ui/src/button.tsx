@@ -4,20 +4,19 @@ import type { ButtonHTMLAttributes } from "react";
 import { cn } from "./cn";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-md font-semibold tracking-tight transition-[background-color,border-color,box-shadow,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-45 active:translate-y-px",
+  "inline-flex items-center justify-center rounded-full font-semibold tracking-tight transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-45 active:scale-[0.98]",
   {
     variants: {
       variant: {
-        default: "bg-brand-8 text-brand-0 shadow-sm hover:bg-brand-9",
-        outline:
-          "border border-border bg-surface text-foreground shadow-sm hover:border-brand-4 hover:bg-brand-0",
+        default: "bg-brand-6 text-white shadow-md shadow-brand-6/25 hover:bg-brand-7",
+        outline: "border border-border bg-white text-foreground hover:border-brand-4 hover:bg-brand-1",
         ghost: "text-foreground hover:bg-brand-1",
-        danger: "bg-danger text-danger-fg shadow-sm"
+        danger: "bg-danger text-danger-fg"
       },
       size: {
-        default: "h-10 px-4 text-sm",
-        sm: "h-8 px-3 text-xs",
-        lg: "h-11 px-6 text-sm"
+        default: "h-11 px-6 text-sm",
+        sm: "h-9 px-4 text-sm",
+        lg: "h-12 px-8 text-base"
       }
     },
     defaultVariants: {

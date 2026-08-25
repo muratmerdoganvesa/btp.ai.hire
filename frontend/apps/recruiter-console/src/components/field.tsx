@@ -2,7 +2,7 @@ import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTML
 import { cn } from "@hirelens/ui";
 
 const fieldClass =
-  "w-full rounded-md border border-border bg-surface px-3.5 py-2.5 text-sm text-foreground shadow-sm outline-none transition-[border-color,box-shadow] placeholder:text-muted/80 hover:border-brand-4 focus-visible:border-brand-6 focus-visible:ring-2 focus-visible:ring-focus/25";
+  "w-full rounded-2xl border border-border bg-white px-4 py-3.5 text-sm text-foreground outline-none transition-shadow placeholder:text-muted focus-visible:border-brand-5 focus-visible:ring-4 focus-visible:ring-brand-6/15";
 
 export function Field({
   label,
@@ -12,8 +12,8 @@ export function Field({
   children: ReactNode;
 }) {
   return (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">{label}</span>
+    <label className="flex flex-col gap-2">
+      <span className="text-sm font-semibold text-foreground">{label}</span>
       {children}
     </label>
   );

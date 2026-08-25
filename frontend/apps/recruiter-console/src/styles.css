@@ -9,8 +9,9 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    linear-gradient(180deg, oklch(0.985 0.01 calc(var(--hl-brand-hue) * 1deg)) 0%, var(--hl-bg) 42%),
-    radial-gradient(ellipse 70% 40% at 0% 0%, oklch(0.93 0.025 calc(var(--hl-brand-hue) * 1deg) / 0.7), transparent 60%);
+    radial-gradient(ellipse 55% 45% at 18% 20%, oklch(0.42 0.18 255 / 0.35), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 82% 70%, oklch(0.35 0.12 280 / 0.28), transparent 50%),
+    linear-gradient(160deg, oklch(0.17 0.03 255) 0%, oklch(0.12 0.02 260) 100%);
   background-attachment: fixed;
   color: var(--hl-fg);
   font-family: var(--hl-font-sans);
@@ -26,14 +27,13 @@ body {
 
 .font-display {
   font-family: var(--hl-font-display);
-  font-optical-sizing: auto;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 
 @keyframes hl-rise {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -51,15 +51,15 @@ body {
 }
 
 .hl-rise {
-  animation: hl-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: hl-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .hl-rise-delay {
-  animation: hl-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.06s both;
+  animation: hl-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
 }
 
 .hl-fade {
-  animation: hl-fade 0.35s ease both;
+  animation: hl-fade 0.4s ease both;
 }
 
 .hl-nav-active {
@@ -70,11 +70,11 @@ body {
   content: "";
   position: absolute;
   left: 0;
-  top: 18%;
-  bottom: 18%;
-  width: 2px;
-  border-radius: 1px;
-  background: var(--hl-brand-7);
+  top: 22%;
+  bottom: 22%;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--hl-brand-6);
 }
 
 .hl-metric {
@@ -88,8 +88,14 @@ body {
   left: 0;
   top: 0;
   bottom: 0;
-  width: 3px;
-  background: var(--hl-brand-7);
+  width: 4px;
+  background: linear-gradient(180deg, var(--hl-brand-5), var(--hl-brand-7));
+}
+
+.hl-prompt-glow {
+  background:
+    radial-gradient(ellipse 80% 70% at 30% 40%, oklch(0.7 0.14 255 / 0.35), transparent 65%),
+    linear-gradient(160deg, oklch(0.94 0.04 255), oklch(0.98 0.02 255));
 }
 
 .tour-cursor {
@@ -99,6 +105,6 @@ body {
 
 .tour-spotlight {
   box-shadow:
-    0 0 0 9999px rgb(15 23 32 / 0.5),
-    0 0 0 2px color-mix(in oklch, var(--hl-brand-7) 80%, white);
+    0 0 0 9999px rgb(8 10 20 / 0.62),
+    0 0 0 3px color-mix(in oklch, var(--hl-brand-6) 80%, white);
 }

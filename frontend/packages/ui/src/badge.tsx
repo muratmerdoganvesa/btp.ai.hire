@@ -3,12 +3,12 @@ import type { HTMLAttributes } from "react";
 import { cn } from "./cn";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-md px-2 py-0.5 text-[0.7rem] font-semibold uppercase tracking-[0.06em]",
+  "inline-flex items-center rounded-full px-2.5 py-0.5 text-[0.7rem] font-bold tracking-wide",
   {
     variants: {
       tone: {
-        default: "bg-brand-2 text-brand-9",
-        muted: "bg-brand-1 text-muted",
+        default: "bg-brand-1 text-brand-7",
+        muted: "bg-brand-1/80 text-muted",
         danger: "bg-danger-bg text-danger"
       }
     },

@@ -63,13 +63,13 @@ export function DashboardPage() {
         <div className="flex items-center gap-4">
           <InitialsAvatar name={displayName} className="size-12 rounded-lg text-sm" />
           <div>
-            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-brand-7">
+            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-brand-4">
               {t("dashboard.welcome")}
             </p>
-            <h1 className="font-display mt-1 text-[2.35rem] font-semibold leading-none tracking-tight text-foreground">
+            <h1 className="mt-1 text-4xl font-extrabold tracking-tight text-white">
               {t("dashboard.title")}
             </h1>
-            <p className="mt-2 max-w-lg text-sm text-muted">{t("dashboard.subtitle")}</p>
+            <p className="mt-2 max-w-lg text-sm text-white/60">{t("dashboard.subtitle")}</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">

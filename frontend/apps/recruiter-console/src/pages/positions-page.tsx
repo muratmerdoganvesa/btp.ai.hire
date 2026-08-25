@@ -187,19 +187,25 @@ export function PositionsPage() {
   return (
     <AppShell>
       <div>
-        <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-brand-7">{t("nav.positions")}</p>
-        <h1 className="font-display mt-1 text-[2.35rem] font-semibold leading-none tracking-tight">
-          {t("positions.title")}
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted">{t("positions.composerHint")}</p>
+        <p className="text-sm font-semibold text-white/55">{t("nav.positions")}</p>
+        <h1 className="mt-1 text-4xl font-extrabold tracking-tight text-white">{t("positions.title")}</h1>
+        <p className="mt-2 max-w-2xl text-sm text-white/60">{t("positions.composerHint")}</p>
       </div>
-      <div className="hl-rise-delay grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,24rem)]">
+      <div className="hl-rise-delay grid gap-5 xl:grid-cols-[minmax(0,13rem)_minmax(0,1.45fr)_minmax(0,22rem)]">
+        <aside className="hl-prompt-glow hidden self-start rounded-2xl px-5 py-6 text-sm leading-7 text-foreground shadow-card xl:block">
+          <p className="text-base font-bold tracking-tight">
+            {isEditing
+              ? t("positions.composerPromptEdit", { title: title.trim() || t("positions.untitled") })
+              : t("positions.composerPrompt", { title: title.trim() || t("positions.untitled") })}
+          </p>
+        </aside>
+
         <Card data-tour="tour-composer">
           <CardHeader>
             <CardTitle>{isEditing ? t("positions.edit") : t("positions.create")}</CardTitle>
             <p className="text-sm text-muted">{t("positions.multiSelect")}</p>
           </CardHeader>
-          <CardContent className="flex flex-col gap-6">
+          <CardContent className="flex flex-col gap-7">
             <Field label={t("positions.name")}>
               <TextInput
                 value={title}
@@ -219,9 +225,9 @@ export function PositionsPage() {
               />
             </Field>
 
-            <section className="flex flex-col gap-2.5">
-              <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">{t("positions.level")}</h3>
-              <div className="flex flex-wrap gap-2">
+            <section className="flex flex-col gap-3">
+              <h3 className="text-sm font-bold text-foreground">{t("positions.level")}</h3>
+              <div className="flex flex-wrap gap-2.5">
                 {levels.map((item) => (
                   <Chip key={item} selected={level === item} onClick={() => setLevel(item)}>
                     {item}
@@ -230,14 +236,19 @@ export function PositionsPage() {
               </div>
             </section>
 
-            <section className="flex flex-col gap-2.5">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">{t("positions.skills")}</h3>
-                <p className={`text-xs font-medium ${selected.length >= 3 ? "text-muted" : "text-danger"}`}>
+            <section className="flex flex-col gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h3 className="text-sm font-bold text-foreground">{t("positions.skills")}</h3>
+                <p
+                  className={`flex items-center gap-1.5 text-sm font-semibold ${
+                    selected.length >= 3 ? "text-success-fg" : "text-danger"
+                  }`}
+                >
+                  {selected.length >= 3 ? "✓ " : ""}
                   {selected.length >= 3 ? t("positions.skillsOk") : t("positions.skillsMin")}
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2.5">
                 {allSkills.map((skill) => (
                   <Chip key={skill} selected={selected.includes(skill)} onClick={() => toggleSkill(skill)}>
                     {skill}
@@ -246,9 +257,9 @@ export function PositionsPage() {
               </div>
             </section>
 
-            <section className="flex flex-col gap-2">
-              <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">{t("positions.selected")}</h3>
-              <div className="overflow-hidden rounded-md border border-border">
+            <section className="flex flex-col gap-3">
+              <h3 className="text-sm font-bold text-foreground">{t("positions.selected")}</h3>
+              <div className="flex flex-col gap-1">
                 {selected.map((skill, index) => (
                   <div
                     key={skill}
@@ -261,16 +272,22 @@ export function PositionsPage() {
                         setDragIndex(null);
                       }
                     }}
-                    className="flex items-center gap-3 border-b border-border/80 bg-surface px-3 py-2.5 last:border-b-0 hover:bg-brand-0"
+                    className="group flex items-center gap-3 rounded-xl px-2 py-2.5 hover:bg-brand-1/80"
                   >
-                    <span aria-hidden="true" className="cursor-grab text-muted">
-                      ∷
+                    <span aria-hidden="true" className="cursor-grab text-muted opacity-0 transition-opacity group-hover:opacity-100">
+                      ⋮⋮
                     </span>
-                    <span className="flex-1 text-sm font-medium">{skill}</span>
-                    <span className="tabular-nums text-xs font-semibold text-muted">{weights[index]}%</span>
+                    <span
+                      aria-hidden="true"
+                      className="inline-flex size-5 items-center justify-center rounded-md bg-brand-6 text-[0.65rem] font-bold text-white"
+                    >
+                      ✓
+                    </span>
+                    <span className="flex-1 text-sm font-semibold">{skill}</span>
+                    <span className="tabular-nums text-xs font-bold text-muted">{weights[index]}%</span>
                     <button
                       type="button"
-                      className="text-xs font-medium text-muted hover:text-foreground"
+                      className="text-xs font-semibold text-muted hover:text-danger"
                       onClick={() => toggleSkill(skill)}
                     >
                       {t("positions.remove")}
@@ -278,21 +295,27 @@ export function PositionsPage() {
                   </div>
                 ))}
               </div>
-              <TextInput
-                placeholder={t("positions.addPlaceholder")}
-                value={customSkill}
-                onChange={(event) => setCustomSkill(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    addCustom();
-                  }
-                }}
-              />
+              <div className="flex gap-2">
+                <TextInput
+                  className="flex-1"
+                  placeholder={t("positions.addPlaceholder")}
+                  value={customSkill}
+                  onChange={(event) => setCustomSkill(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      addCustom();
+                    }
+                  }}
+                />
+                <Button type="button" variant="outline" onClick={addCustom} disabled={!customSkill.trim()}>
+                  {t("positions.addCriterion")}
+                </Button>
+              </div>
             </section>
 
             {error ? (
-              <p className="text-sm text-danger" role="alert">
+              <p className="text-sm font-medium text-danger" role="alert">
                 {error}
               </p>
             ) : !ready ? (
@@ -300,27 +323,18 @@ export function PositionsPage() {
                 {t("positions.saveBlocked")} {blockers.join(" · ")}
               </p>
             ) : null}
-            <div className="flex flex-col gap-2 border-t border-border/80 pt-4 sm:flex-row">
-              <Button type="button" size="lg" className="w-full flex-1" onClick={trySave} disabled={save.isPending}>
-                {save.isPending
-                  ? t("positions.saving")
-                  : isEditing
-                    ? t("positions.update")
-                    : t("positions.submit")}
+            <Button type="button" size="lg" className="w-full" onClick={trySave} disabled={save.isPending}>
+              {save.isPending
+                ? t("positions.saving")
+                : isEditing
+                  ? t("positions.update")
+                  : t("positions.submit")}
+            </Button>
+            {isEditing ? (
+              <Button type="button" variant="outline" className="w-full" onClick={resetForm} disabled={save.isPending}>
+                {t("positions.cancelEdit")}
               </Button>
-              {isEditing ? (
-                <Button
-                  type="button"
-                  size="lg"
-                  variant="outline"
-                  className="w-full sm:w-auto"
-                  onClick={resetForm}
-                  disabled={save.isPending}
-                >
-                  {t("positions.cancelEdit")}
-                </Button>
-              ) : null}
-            </div>
+            ) : null}
           </CardContent>
         </Card>
 
@@ -328,31 +342,31 @@ export function PositionsPage() {
           data-tour="tour-position-list"
           className="flex min-w-0 flex-col gap-3 xl:sticky xl:top-24 xl:self-start"
         >
-          <h2 className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-muted">{t("positions.list")}</h2>
+          <h2 className="px-1 text-xs font-bold uppercase tracking-[0.14em] text-white/50">{t("positions.list")}</h2>
           {(positions.data ?? []).length === 0 ? (
-            <div className="rounded-md border border-dashed border-border bg-surface px-5 py-10 text-center text-sm text-muted">
+            <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 px-5 py-10 text-center text-sm text-white/55">
               {t("positions.empty")}
             </div>
           ) : (
             (positions.data ?? []).map((position) => (
               <Card
                 key={position.id}
-                className={editingId === position.id ? "border-brand-6 ring-1 ring-brand-6/25" : ""}
+                className={editingId === position.id ? "ring-2 ring-brand-6/40" : ""}
               >
-                <CardContent className="flex flex-col gap-3 !py-4">
-                  <p className="font-display text-lg font-semibold tracking-tight">{position.title}</p>
+                <CardContent className="flex flex-col gap-3 !py-5">
+                  <p className="text-lg font-bold tracking-tight">{position.title}</p>
                   <p className="line-clamp-2 text-sm leading-5 text-muted">{position.jobDescription}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {position.criteria.map((criterion) => (
                       <span
                         key={criterion.id}
-                        className="rounded-md bg-brand-1 px-2 py-0.5 text-[0.7rem] font-semibold text-brand-9"
+                        className="rounded-full bg-brand-1 px-2.5 py-1 text-[0.7rem] font-bold text-brand-7"
                       >
                         {criterion.name}
                       </span>
                     ))}
                   </div>
-                  <div className="mt-1 flex flex-wrap gap-2 border-t border-border/70 pt-3">
+                  <div className="mt-1 flex flex-wrap gap-2 pt-1">
                     <Button type="button" variant="outline" size="sm" onClick={() => loadForEdit(position)}>
                       {t("positions.editAction")}
                     </Button>

@@ -37,16 +37,16 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen text-foreground">
       <ProductTour />
-      <aside className="hl-fade sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-border bg-surface px-4 py-7 lg:flex">
+      <aside className="hl-fade sticky top-0 m-4 hidden h-[calc(100vh-2rem)] w-60 shrink-0 flex-col rounded-2xl border border-white/50 bg-surface px-4 py-6 shadow-card lg:flex">
         <Link to="/" className="group px-2">
-          <span className="font-display text-[1.5rem] font-semibold tracking-tight text-brand-9 transition-colors group-hover:text-brand-7">
+          <span className="text-[1.45rem] font-extrabold tracking-tight text-brand-7 transition-colors group-hover:text-brand-6">
             HireLens
           </span>
-          <span className="mt-1 block text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-muted">
+          <span className="mt-1 block text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-muted">
             {t("nav.workspace")}
           </span>
         </Link>
-        <nav className="mt-10 flex flex-col gap-0.5">
+        <nav className="mt-8 flex flex-col gap-1">
           {items.map((item) => {
             const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
             return (
@@ -55,10 +55,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                 to={item.to}
                 data-tour={item.tour}
                 className={cn(
-                  "rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                  "rounded-full px-4 py-2.5 text-sm font-semibold transition-colors",
                   active
-                    ? "hl-nav-active bg-brand-1 text-brand-9"
-                    : "text-muted hover:bg-brand-1/60 hover:text-foreground"
+                    ? "hl-nav-active bg-brand-1 text-brand-7"
+                    : "text-muted hover:bg-brand-1/70 hover:text-foreground"
                 )}
               >
                 {item.label}
@@ -68,9 +68,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="mt-auto border-t border-border pt-4">
           <div className="flex items-center gap-3 px-1">
-            <InitialsAvatar name={session?.roles[0] ?? "HL"} className="size-9 rounded-md" />
+            <InitialsAvatar name={session?.roles[0] ?? "HL"} className="size-9 rounded-full" />
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{session?.roles[0] ?? "Recruiter"}</p>
+              <p className="truncate text-sm font-bold">{session?.roles[0] ?? "Recruiter"}</p>
               <p className="truncate text-xs text-muted" title={session?.subject}>
                 {shortLabel(session?.subject)}
               </p>
@@ -83,30 +83,30 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 border-b border-border/80 bg-surface/85 backdrop-blur-md">
-          <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-8">
+        <header className="px-4 pt-4 sm:px-8">
+          <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-md">
             <nav className="flex items-center gap-3 text-sm lg:hidden">
-              <Link to="/" className="font-display text-lg font-semibold tracking-tight text-brand-9">
+              <Link to="/" className="text-lg font-extrabold tracking-tight text-white">
                 HireLens
               </Link>
               <Link
                 to="/positions"
                 data-tour="tour-nav-positions"
                 className={cn(
-                  "rounded-md px-2.5 py-1.5 font-medium",
-                  pathname.startsWith("/positions") ? "bg-brand-1 text-brand-9" : "text-muted"
+                  "rounded-full px-3 py-1.5 font-semibold",
+                  pathname.startsWith("/positions") ? "bg-brand-6 text-white" : "text-white/70"
                 )}
               >
                 {t("nav.positions")}
               </Link>
             </nav>
-            <p className="hidden max-w-xl text-sm text-muted lg:block">{t("dashboard.subtitle")}</p>
-            <Button variant="ghost" size="sm" className="lg:hidden" onClick={logout}>
+            <p className="hidden max-w-xl text-sm text-white/65 lg:block">{t("dashboard.subtitle")}</p>
+            <Button variant="outline" size="sm" className="border-white/20 bg-white/90 lg:hidden" onClick={logout}>
               {t("dashboard.logout")}
             </Button>
           </div>
         </header>
-        <main className="hl-rise mx-auto flex w-full max-w-[88rem] flex-1 flex-col gap-7 p-4 sm:px-8 sm:py-7 lg:px-10">
+        <main className="hl-rise mx-auto flex w-full max-w-[90rem] flex-1 flex-col gap-7 p-4 sm:px-8 sm:py-6 lg:px-10">
           {children}
         </main>
       </div>
