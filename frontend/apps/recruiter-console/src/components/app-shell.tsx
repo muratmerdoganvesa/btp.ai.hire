@@ -6,6 +6,16 @@ import { isDevAuth, logout as endSession } from "../auth-mode";
 import { useAuthStore } from "../auth-store";
 import { ProductTour } from "../tour/product-tour";
 
+function shortLabel(value: string | undefined): string {
+  if (!value) {
+    return "—";
+  }
+  if (value.length <= 18) {
+    return value;
+  }
+  return `${value.slice(0, 8)}…${value.slice(-4)}`;
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -27,16 +37,16 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen text-foreground">
       <ProductTour />
-      <aside className="hl-fade sticky top-0 hidden h-screen w-[17.5rem] shrink-0 flex-col border-r border-border/70 bg-surface/80 px-5 py-8 backdrop-blur-xl lg:flex">
-        <Link to="/" className="group px-3">
-          <span className="font-display text-[1.35rem] font-semibold tracking-tight text-foreground transition-colors group-hover:text-brand">
+      <aside className="hl-fade sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-border bg-surface px-4 py-7 lg:flex">
+        <Link to="/" className="group px-2">
+          <span className="font-display text-[1.5rem] font-semibold tracking-tight text-brand-9 transition-colors group-hover:text-brand-7">
             HireLens
           </span>
-          <span className="mt-0.5 block text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-muted">
+          <span className="mt-1 block text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-muted">
             {t("nav.workspace")}
           </span>
         </Link>
-        <nav className="mt-12 flex flex-col gap-1">
+        <nav className="mt-10 flex flex-col gap-0.5">
           {items.map((item) => {
             const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
             return (
@@ -45,10 +55,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                 to={item.to}
                 data-tour={item.tour}
                 className={cn(
-                  "rounded-lg px-4 py-2.5 text-sm transition-all duration-200",
+                  "rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
                   active
-                    ? "hl-nav-active bg-brand-1 font-semibold text-brand-8"
-                    : "text-muted hover:bg-brand-1/70 hover:text-foreground"
+                    ? "hl-nav-active bg-brand-1 text-brand-9"
+                    : "text-muted hover:bg-brand-1/60 hover:text-foreground"
                 )}
               >
                 {item.label}
@@ -56,33 +66,35 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-        <div className="mt-auto border-t border-border/80 pt-5">
+        <div className="mt-auto border-t border-border pt-4">
           <div className="flex items-center gap-3 px-1">
-            <InitialsAvatar name={session?.subject ?? "HL"} className="size-9 rounded-lg" />
+            <InitialsAvatar name={session?.roles[0] ?? "HL"} className="size-9 rounded-md" />
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{session?.subject}</p>
-              <p className="truncate text-xs text-muted">{session?.roles[0]}</p>
+              <p className="truncate text-sm font-semibold">{session?.roles[0] ?? "Recruiter"}</p>
+              <p className="truncate text-xs text-muted" title={session?.subject}>
+                {shortLabel(session?.subject)}
+              </p>
             </div>
           </div>
-          <Button variant="outline" size="sm" className="mt-4 w-full" onClick={logout}>
+          <Button variant="outline" size="sm" className="mt-3 w-full" onClick={logout}>
             {t("dashboard.logout")}
           </Button>
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 border-b border-border/50 bg-background/70 backdrop-blur-xl">
-          <div className="flex items-center justify-between gap-4 px-4 py-3.5 sm:px-8">
-            <nav className="flex items-center gap-2 text-sm lg:hidden">
-              <Link to="/" className="font-display text-lg font-semibold tracking-tight">
+        <header className="sticky top-0 z-10 border-b border-border/80 bg-surface/85 backdrop-blur-md">
+          <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-8">
+            <nav className="flex items-center gap-3 text-sm lg:hidden">
+              <Link to="/" className="font-display text-lg font-semibold tracking-tight text-brand-9">
                 HireLens
               </Link>
               <Link
                 to="/positions"
                 data-tour="tour-nav-positions"
                 className={cn(
-                  "rounded-lg px-3 py-1.5",
-                  pathname.startsWith("/positions") ? "bg-brand-1 font-medium text-brand-8" : "text-muted"
+                  "rounded-md px-2.5 py-1.5 font-medium",
+                  pathname.startsWith("/positions") ? "bg-brand-1 text-brand-9" : "text-muted"
                 )}
               >
                 {t("nav.positions")}
@@ -94,7 +106,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Button>
           </div>
         </header>
-        <main className="hl-rise mx-auto flex w-full max-w-[90rem] flex-1 flex-col gap-8 p-4 sm:px-8 sm:py-8 lg:px-10">
+        <main className="hl-rise mx-auto flex w-full max-w-[88rem] flex-1 flex-col gap-7 p-4 sm:px-8 sm:py-7 lg:px-10">
           {children}
         </main>
       </div>

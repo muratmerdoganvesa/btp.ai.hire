@@ -187,24 +187,16 @@ export function PositionsPage() {
   return (
     <AppShell>
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand">{t("nav.positions")}</p>
-        <h1 className="font-display mt-1 text-4xl font-semibold tracking-tight">{t("positions.title")}</h1>
+        <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-brand-7">{t("nav.positions")}</p>
+        <h1 className="font-display mt-1 text-[2.35rem] font-semibold leading-none tracking-tight">
+          {t("positions.title")}
+        </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted">{t("positions.composerHint")}</p>
       </div>
-      <div className="hl-rise-delay grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,22rem)] 2xl:grid-cols-[minmax(0,14rem)_minmax(0,1.5fr)_minmax(0,22rem)]">
-        <aside className="hidden self-start rounded-xl border border-brand-3/40 bg-gradient-to-b from-brand-1 to-brand-1/40 px-5 py-6 text-sm leading-7 text-foreground 2xl:block">
-          <p className="font-display text-lg font-semibold tracking-tight">
-            {isEditing
-              ? t("positions.composerPromptEdit", { title: title.trim() || t("positions.untitled") })
-              : t("positions.composerPrompt", { title: title.trim() || t("positions.untitled") })}
-          </p>
-        </aside>
-
-        <Card data-tour="tour-composer" className="border-border/80 bg-surface/95">
+      <div className="hl-rise-delay grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,24rem)]">
+        <Card data-tour="tour-composer">
           <CardHeader>
-            <CardTitle className="font-display text-2xl">
-              {isEditing ? t("positions.edit") : t("positions.create")}
-            </CardTitle>
+            <CardTitle>{isEditing ? t("positions.edit") : t("positions.create")}</CardTitle>
             <p className="text-sm text-muted">{t("positions.multiSelect")}</p>
           </CardHeader>
           <CardContent className="flex flex-col gap-6">
@@ -227,8 +219,8 @@ export function PositionsPage() {
               />
             </Field>
 
-            <section className="flex flex-col gap-3">
-              <h3 className="text-sm font-medium">{t("positions.level")}</h3>
+            <section className="flex flex-col gap-2.5">
+              <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">{t("positions.level")}</h3>
               <div className="flex flex-wrap gap-2">
                 {levels.map((item) => (
                   <Chip key={item} selected={level === item} onClick={() => setLevel(item)}>
@@ -238,9 +230,9 @@ export function PositionsPage() {
               </div>
             </section>
 
-            <section className="flex flex-col gap-3">
+            <section className="flex flex-col gap-2.5">
               <div className="flex items-center justify-between gap-3">
-                <h3 className="text-sm font-medium">{t("positions.skills")}</h3>
+                <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">{t("positions.skills")}</h3>
                 <p className={`text-xs font-medium ${selected.length >= 3 ? "text-muted" : "text-danger"}`}>
                   {selected.length >= 3 ? t("positions.skillsOk") : t("positions.skillsMin")}
                 </p>
@@ -255,41 +247,37 @@ export function PositionsPage() {
             </section>
 
             <section className="flex flex-col gap-2">
-              <h3 className="text-sm font-medium">{t("positions.selected")}</h3>
-              {selected.map((skill, index) => (
-                <div
-                  key={skill}
-                  draggable
-                  onDragStart={() => setDragIndex(index)}
-                  onDragOver={(event) => event.preventDefault()}
-                  onDrop={() => {
-                    if (dragIndex !== null) {
-                      move(dragIndex, index);
-                      setDragIndex(null);
-                    }
-                  }}
-                  className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-brand-1"
-                >
-                  <span aria-hidden="true" className="cursor-grab text-muted">
-                    ∷
-                  </span>
-                  <span
-                    className="inline-flex size-5 items-center justify-center rounded-sm bg-brand text-[10px] text-brand-fg"
-                    aria-hidden="true"
+              <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">{t("positions.selected")}</h3>
+              <div className="overflow-hidden rounded-md border border-border">
+                {selected.map((skill, index) => (
+                  <div
+                    key={skill}
+                    draggable
+                    onDragStart={() => setDragIndex(index)}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={() => {
+                      if (dragIndex !== null) {
+                        move(dragIndex, index);
+                        setDragIndex(null);
+                      }
+                    }}
+                    className="flex items-center gap-3 border-b border-border/80 bg-surface px-3 py-2.5 last:border-b-0 hover:bg-brand-0"
                   >
-                    ✓
-                  </span>
-                  <span className="flex-1 text-sm">{skill}</span>
-                  <span className="text-xs text-muted">{weights[index]}</span>
-                  <button
-                    type="button"
-                    className="text-xs text-muted hover:text-foreground"
-                    onClick={() => toggleSkill(skill)}
-                  >
-                    {t("positions.remove")}
-                  </button>
-                </div>
-              ))}
+                    <span aria-hidden="true" className="cursor-grab text-muted">
+                      ∷
+                    </span>
+                    <span className="flex-1 text-sm font-medium">{skill}</span>
+                    <span className="tabular-nums text-xs font-semibold text-muted">{weights[index]}%</span>
+                    <button
+                      type="button"
+                      className="text-xs font-medium text-muted hover:text-foreground"
+                      onClick={() => toggleSkill(skill)}
+                    >
+                      {t("positions.remove")}
+                    </button>
+                  </div>
+                ))}
+              </div>
               <TextInput
                 placeholder={t("positions.addPlaceholder")}
                 value={customSkill}
@@ -312,7 +300,7 @@ export function PositionsPage() {
                 {t("positions.saveBlocked")} {blockers.join(" · ")}
               </p>
             ) : null}
-            <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="flex flex-col gap-2 border-t border-border/80 pt-4 sm:flex-row">
               <Button type="button" size="lg" className="w-full flex-1" onClick={trySave} disabled={save.isPending}>
                 {save.isPending
                   ? t("positions.saving")
@@ -340,37 +328,35 @@ export function PositionsPage() {
           data-tour="tour-position-list"
           className="flex min-w-0 flex-col gap-3 xl:sticky xl:top-24 xl:self-start"
         >
-          <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">{t("positions.list")}</h2>
+          <h2 className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-muted">{t("positions.list")}</h2>
           {(positions.data ?? []).length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border/80 bg-surface/80 px-6 py-12 text-center text-sm text-muted">
+            <div className="rounded-md border border-dashed border-border bg-surface px-5 py-10 text-center text-sm text-muted">
               {t("positions.empty")}
             </div>
           ) : (
             (positions.data ?? []).map((position) => (
               <Card
                 key={position.id}
-                className={`border-border/80 bg-surface/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-4 ${
-                  editingId === position.id ? "border-brand-4 ring-1 ring-brand-4/40" : ""
-                }`}
+                className={editingId === position.id ? "border-brand-6 ring-1 ring-brand-6/25" : ""}
               >
-                <CardContent className="flex flex-col gap-3 pt-6">
+                <CardContent className="flex flex-col gap-3 !py-4">
                   <p className="font-display text-lg font-semibold tracking-tight">{position.title}</p>
-                  <p className="line-clamp-2 text-sm text-muted">{position.jobDescription}</p>
-                  <div className="flex flex-wrap gap-2">
+                  <p className="line-clamp-2 text-sm leading-5 text-muted">{position.jobDescription}</p>
+                  <div className="flex flex-wrap gap-1.5">
                     {position.criteria.map((criterion) => (
                       <span
                         key={criterion.id}
-                        className="rounded-md bg-brand-1 px-2.5 py-1 text-xs font-medium text-foreground"
+                        className="rounded-md bg-brand-1 px-2 py-0.5 text-[0.7rem] font-semibold text-brand-9"
                       >
                         {criterion.name}
                       </span>
                     ))}
                   </div>
-                  <div className="mt-1 flex flex-wrap gap-2">
+                  <div className="mt-1 flex flex-wrap gap-2 border-t border-border/70 pt-3">
                     <Button type="button" variant="outline" size="sm" onClick={() => loadForEdit(position)}>
                       {t("positions.editAction")}
                     </Button>
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild size="sm">
                       <Link to="/positions/$positionId" params={{ positionId: position.id }}>
                         {t("positions.open")}
                       </Link>

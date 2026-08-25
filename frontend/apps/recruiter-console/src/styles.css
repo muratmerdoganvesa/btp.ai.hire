@@ -9,15 +9,15 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(ellipse 80% 55% at 12% -10%, oklch(0.92 0.04 calc(var(--hl-brand-hue) * 1deg) / 0.55), transparent 55%),
-    radial-gradient(ellipse 60% 45% at 92% 8%, oklch(0.9 0.03 195 / 0.35), transparent 50%),
-    linear-gradient(180deg, var(--hl-bg) 0%, oklch(0.97 0.01 calc(var(--hl-brand-hue) * 1deg)) 100%);
+    linear-gradient(180deg, oklch(0.985 0.01 calc(var(--hl-brand-hue) * 1deg)) 0%, var(--hl-bg) 42%),
+    radial-gradient(ellipse 70% 40% at 0% 0%, oklch(0.93 0.025 calc(var(--hl-brand-hue) * 1deg) / 0.7), transparent 60%);
   background-attachment: fixed;
   color: var(--hl-fg);
   font-family: var(--hl-font-sans);
   line-height: var(--hl-line);
   font-feature-settings: "ss01" on, "cv02" on;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 #root {
@@ -27,12 +27,13 @@ body {
 .font-display {
   font-family: var(--hl-font-display);
   font-optical-sizing: auto;
+  letter-spacing: -0.02em;
 }
 
 @keyframes hl-rise {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -50,15 +51,15 @@ body {
 }
 
 .hl-rise {
-  animation: hl-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: hl-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .hl-rise-delay {
-  animation: hl-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+  animation: hl-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.06s both;
 }
 
 .hl-fade {
-  animation: hl-fade 0.45s ease both;
+  animation: hl-fade 0.35s ease both;
 }
 
 .hl-nav-active {
@@ -69,11 +70,26 @@ body {
   content: "";
   position: absolute;
   left: 0;
-  top: 20%;
-  bottom: 20%;
+  top: 18%;
+  bottom: 18%;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--hl-brand-7);
+}
+
+.hl-metric {
+  position: relative;
+  overflow: hidden;
+}
+
+.hl-metric::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
   width: 3px;
-  border-radius: 999px;
-  background: var(--hl-brand-6);
+  background: var(--hl-brand-7);
 }
 
 .tour-cursor {
@@ -83,6 +99,6 @@ body {
 
 .tour-spotlight {
   box-shadow:
-    0 0 0 9999px rgb(15 23 32 / 0.55),
-    0 0 0 3px color-mix(in oklch, var(--hl-brand-6) 70%, white);
+    0 0 0 9999px rgb(15 23 32 / 0.5),
+    0 0 0 2px color-mix(in oklch, var(--hl-brand-7) 80%, white);
 }

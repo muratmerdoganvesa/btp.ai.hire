@@ -2,16 +2,19 @@ import { cva, type VariantProps } from "class-variance-authority";
 import type { HTMLAttributes } from "react";
 import { cn } from "./cn";
 
-const badgeVariants = cva("inline-flex items-center rounded-pill px-3 py-1 text-xs font-medium", {
-  variants: {
-    tone: {
-      default: "bg-brand-2 text-foreground",
-      muted: "bg-score-limited text-score-limited-fg",
-      danger: "bg-danger-bg text-danger"
-    }
-  },
-  defaultVariants: { tone: "default" }
-});
+const badgeVariants = cva(
+  "inline-flex items-center rounded-md px-2 py-0.5 text-[0.7rem] font-semibold uppercase tracking-[0.06em]",
+  {
+    variants: {
+      tone: {
+        default: "bg-brand-2 text-brand-9",
+        muted: "bg-brand-1 text-muted",
+        danger: "bg-danger-bg text-danger"
+      }
+    },
+    defaultVariants: { tone: "default" }
+  }
+);
 
 export type BadgeProps = HTMLAttributes<HTMLSpanElement> & VariantProps<typeof badgeVariants>;
 

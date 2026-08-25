@@ -55,15 +55,18 @@ export function DashboardPage() {
   }
 
   const list = positions.data ?? [];
+  const displayName = tenant.data?.name?.trim() || t("dashboard.tenant");
 
   return (
     <AppShell>
-      <header className="flex flex-wrap items-end justify-between gap-6">
+      <header className="flex flex-wrap items-end justify-between gap-5">
         <div className="flex items-center gap-4">
-          <InitialsAvatar name={session.subject} className="size-14 rounded-2xl text-sm shadow-card" />
+          <InitialsAvatar name={displayName} className="size-12 rounded-lg text-sm" />
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand">{t("dashboard.welcome")}</p>
-            <h1 className="font-display mt-1 text-4xl font-semibold tracking-tight text-foreground">
+            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-brand-7">
+              {t("dashboard.welcome")}
+            </p>
+            <h1 className="font-display mt-1 text-[2.35rem] font-semibold leading-none tracking-tight text-foreground">
               {t("dashboard.title")}
             </h1>
             <p className="mt-2 max-w-lg text-sm text-muted">{t("dashboard.subtitle")}</p>
@@ -87,7 +90,7 @@ export function DashboardPage() {
         ) : null}
       </header>
 
-      <section data-tour="tour-funnel" className="hl-rise-delay grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <section data-tour="tour-funnel" className="hl-rise-delay grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <Metric label={t("dashboard.openReqs")} value={String(funnel.data?.positions ?? list.length)} />
         <Metric label={t("dashboard.funnelCandidates")} value={String(funnel.data?.candidates ?? "—")} />
         <Metric label={t("dashboard.funnelEvaluations")} value={String(funnel.data?.evaluations ?? "—")} />
@@ -95,24 +98,19 @@ export function DashboardPage() {
         <Metric label={t("dashboard.funnelDecisions")} value={String(funnel.data?.decisions ?? "—")} />
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
-        <Card data-tour="tour-recent" className="border-border/80 bg-surface/90">
-          <CardHeader className="flex-row items-center justify-between">
-            <CardTitle className="font-display text-2xl">{t("dashboard.recent")}</CardTitle>
-            <Link to="/positions" className="text-sm font-semibold text-brand transition-colors hover:text-brand-7">
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,17rem)]">
+        <Card data-tour="tour-recent">
+          <CardHeader className="flex-row items-center justify-between gap-3 !border-b-border/70">
+            <CardTitle>{t("dashboard.recent")}</CardTitle>
+            <Link to="/positions" className="text-sm font-semibold text-brand-7 transition-colors hover:text-brand-9">
               {t("dashboard.openPositions")}
             </Link>
           </CardHeader>
           <CardContent>
             {list.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-brand-3/70 bg-gradient-to-br from-brand-1/80 to-transparent px-6 py-12 text-center">
+              <div className="rounded-md border border-dashed border-border bg-brand-0 px-5 py-10 text-center">
                 <p className="font-display text-lg text-foreground">{t("dashboard.empty")}</p>
-                {seed.isSuccess ? (
-                  <p className="mt-3 text-sm text-muted">
-                    {seed.data.skipped ? t("dashboard.seedDemoSkip") : t("dashboard.seedDemoDone")}
-                  </p>
-                ) : null}
-                <Button asChild className="mt-5">
+                <Button asChild className="mt-4">
                   <Link to="/positions">{t("dashboard.createFirst")}</Link>
                 </Button>
               </div>
@@ -120,16 +118,16 @@ export function DashboardPage() {
               <ul className="divide-y divide-border/80">
                 {list.slice(0, 5).map((position) => (
                   <li key={position.id} className="flex items-center justify-between gap-4 py-3.5 first:pt-0 last:pb-0">
-                    <div>
-                      <p className="font-medium">{position.title}</p>
-                      <p className="mt-0.5 text-sm text-muted">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold tracking-tight">{position.title}</p>
+                      <p className="mt-0.5 truncate text-sm text-muted">
                         {position.criteria.map((criterion) => `${criterion.name} ${criterion.weight}`).join(" · ")}
                       </p>
                     </div>
                     <Link
                       to="/positions/$positionId"
                       params={{ positionId: position.id }}
-                      className="text-sm font-semibold text-brand transition-colors hover:text-brand-7"
+                      className="shrink-0 text-sm font-semibold text-brand-7 transition-colors hover:text-brand-9"
                     >
                       {t("positions.open")}
                     </Link>
@@ -140,19 +138,23 @@ export function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card data-tour="tour-oversight" className="overflow-hidden border-border/80 bg-surface/90">
-          <CardContent className="pt-5">
-            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted">{t("dashboard.session")}</p>
-            <p className="font-display mt-3 truncate text-2xl font-semibold tracking-tight">
-              {tenant.data?.name ?? t("dashboard.tenant")}
+        <Card data-tour="tour-oversight">
+          <CardContent>
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-muted">
+              {t("dashboard.session")}
             </p>
-            <p className="mt-1 truncate text-sm text-muted">{me.data?.subject ?? session.subject}</p>
-            <div className="mt-4 flex flex-wrap gap-2" aria-label={t("dashboard.roles")}>
+            <p className="font-display mt-3 text-2xl font-semibold tracking-tight">{displayName}</p>
+            <p className="mt-1 text-sm text-muted">{me.data?.roles?.[0] ?? session.roles[0]}</p>
+            <div className="mt-4 flex flex-wrap gap-1.5" aria-label={t("dashboard.roles")}>
               {(me.data?.roles ?? session.roles).map((role) => (
-                <Badge key={role}>{role}</Badge>
+                <Badge key={role} tone="muted">
+                  {role}
+                </Badge>
               ))}
             </div>
-            <p className="mt-6 text-xs leading-5 text-muted">{t("dashboard.humanOversight")}</p>
+            <p className="mt-6 border-t border-border/80 pt-4 text-xs leading-5 text-muted">
+              {t("dashboard.humanOversight")}
+            </p>
           </CardContent>
         </Card>
       </section>
@@ -162,10 +164,10 @@ export function DashboardPage() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <Card className="border-border/80 bg-surface/90 transition-transform duration-300 hover:-translate-y-0.5">
-      <CardContent className="pt-5">
-        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted">{label}</p>
-        <p className="font-display mt-3 text-4xl font-semibold tracking-tight tabular-nums">{value}</p>
+    <Card className="hl-metric">
+      <CardContent className="pl-5">
+        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted">{label}</p>
+        <p className="font-display mt-2 text-3xl font-semibold tracking-tight tabular-nums">{value}</p>
       </CardContent>
     </Card>
   );
