@@ -51,8 +51,11 @@ public sealed class HireLensDbContext(
     {
         // Closure over this instance so the current request's tenant is evaluated
         // at query time, not at model build time.
+        // Do NOT include tenantContext.IsResolved in the expression: Sap.EntityFrameworkCore.Hana
+        // translates bool && … into invalid SQL ("incorrect syntax near AND").
+        // Unresolved tenants keep TenantId = Guid.Empty, so the filter matches nothing.
         Expression<Func<TEntity, bool>> filter = entity =>
-            tenantContext.IsResolved && entity.TenantId == tenantContext.TenantId;
+            entity.TenantId == tenantContext.TenantId;
 
         modelBuilder.Entity<TEntity>().HasQueryFilter(filter);
     }
