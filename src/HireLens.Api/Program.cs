@@ -83,7 +83,10 @@ if (auditBinding is not null)
 
 var app = builder.Build();
 
-if (HanaConnection.UsesInMemory(app.Configuration, app.Environment))
+// Schema bootstrap: InMemory always; HANA when a connection is available (no EF migrations yet).
+if (!app.Environment.IsEnvironment("Testing")
+    && (HanaConnection.UsesInMemory(app.Configuration, app.Environment)
+        || !string.IsNullOrWhiteSpace(HanaConnection.Resolve(app.Configuration))))
 {
     await using var scope = app.Services.CreateAsyncScope();
     var db = scope.ServiceProvider.GetRequiredService<HireLensDbContext>();

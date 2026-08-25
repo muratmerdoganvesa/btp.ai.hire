@@ -1,5 +1,6 @@
 using Hangfire;
 using Hangfire.InMemory;
+using HireLens.Infrastructure.Btp;
 using HireLens.Infrastructure.Hosting;
 using HireLens.Infrastructure.Persistence;
 using HireLens.Modules.Analytics;
@@ -65,7 +66,9 @@ builder.Services.AddHangfireServer();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
+if (!app.Environment.IsEnvironment("Testing")
+    && (app.Environment.IsDevelopment()
+        || !string.IsNullOrWhiteSpace(HanaConnection.Resolve(app.Configuration))))
 {
     await using var scope = app.Services.CreateAsyncScope();
     var db = scope.ServiceProvider.GetRequiredService<HireLensDbContext>();

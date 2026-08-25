@@ -223,8 +223,26 @@ jobs:
     needs: [image]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
+      - name: Make API/worker packages public for CF pull
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          for PKG in hirelens-api hirelens-worker; do
+            CODE=$(curl -sS -o /tmp/pkg-vis.json -w "%{http_code}" -X POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/user/packages/container/${PKG}/visibility" \
+              -d '{"visibility":"public"}' || true)
+            echo "${PKG} visibility API HTTP ${CODE}"
+            cat /tmp/pkg-vis.json || true
+          done
       - name: Deploy API and worker
         env:
           CF_API: ${{ secrets.CF_API }}
@@ -232,7 +250,9 @@ jobs:
           CF_PASSWORD: ${{ secrets.CF_PASSWORD }}
           CF_ORG: ${{ secrets.CF_ORG }}
           CF_SPACE: ${{ secrets.CF_SPACE }}
-          CF_DOCKER_PASSWORD: ${{ secrets.GHCR_PULL_TOKEN || secrets.GITHUB_TOKEN }}
+          # Classic PAT (read:packages) only. Never fall back to GITHUB_TOKEN — CF cells get GHCR 403 with it.
+          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+          GHCR_USER: ${{ secrets.GHCR_PULL_USERNAME || github.repository_owner }}
         run: |
           CF_API="$(printf '%s' "$CF_API" | tr -d '\r\n')"
           CF_USER="$(printf '%s' "$CF_USER" | tr -d '\r\n')"
@@ -248,12 +268,41 @@ jobs:
           ./cf api "$CF_API"
           ./cf auth "$CF_USER" "$CF_PASSWORD"
           ./cf target -o "$CF_ORG" -s "$CF_SPACE"
-          OWNER="${GITHUB_REPOSITORY_OWNER}"
+          OWNER="$(printf '%s' "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
+          DOCKER_USER="$(printf '%s' "${GHCR_USER}" | tr '[:upper:]' '[:lower:]' | tr -d '\r\n')"
           sed "s#ghcr.io/OWNER/#ghcr.io/${OWNER}/#g" deploy/manifest.yml > /tmp/manifest.yml
-          ./cf push hirelens-api --docker-image "ghcr.io/${OWNER}/hirelens-api:${GITHUB_SHA}" --docker-username "${GITHUB_ACTOR}" -f /tmp/manifest.yml --no-start
-          ./cf push hirelens-worker --docker-image "ghcr.io/${OWNER}/hirelens-worker:${GITHUB_SHA}" --docker-username "${GITHUB_ACTOR}" -f /tmp/manifest.yml --no-start
+          # Preserve HANA_CONNECTION across recreate (set via cf set-env; not in repo).
+          HANA_CONN="$(./cf env hirelens-api 2>/dev/null | awk '/^HANA_CONNECTION:/{sub(/^HANA_CONNECTION:[[:space:]]*/,""); print; exit}' || true)"
+          # Drop app-scoped registry creds (expired GITHUB_TOKEN → GHCR 403 even on public packages).
+          ./cf delete hirelens-api -f || true
+          ./cf delete hirelens-worker -f || true
+          push_backend() {
+            local APP="$1"
+            local IMAGE="ghcr.io/${OWNER}/${APP}:${GITHUB_SHA}"
+            if [ -n "${GHCR_PULL_TOKEN}" ]; then
+              echo "Pushing ${IMAGE} with GHCR_PULL_TOKEN"
+              CF_DOCKER_PASSWORD="${GHCR_PULL_TOKEN}" ./cf push "${APP}" \
+                --docker-image "${IMAGE}" \
+                --docker-username "${DOCKER_USER}" \
+                -f /tmp/manifest.yml \
+                --no-start
+            else
+              echo "Pushing ${IMAGE} anonymously (public GHCR package; no docker username)"
+              ./cf push "${APP}" \
+                --docker-image "${IMAGE}" \
+                -f /tmp/manifest.yml \
+                --no-start
+            fi
+          }
+          push_backend hirelens-api
+          push_backend hirelens-worker
           ./cf set-env hirelens-api GIT_SHA "${GITHUB_SHA}"
           ./cf set-env hirelens-api ASPNETCORE_ENVIRONMENT Production
+          ./cf set-env hirelens-worker ASPNETCORE_ENVIRONMENT Production
+          if [ -n "${HANA_CONN}" ]; then
+            ./cf set-env hirelens-api HANA_CONNECTION "${HANA_CONN}"
+            ./cf set-env hirelens-worker HANA_CONNECTION "${HANA_CONN}"
+          fi
           ./cf unset-env hirelens-api HireLens__EnableDevAuth || true
           ./cf unset-env hirelens-api DOTNET_ENVIRONMENT || true
           ./cf start hirelens-api
@@ -264,6 +313,11 @@ jobs:
             ./cf restart hirelens-web || true
           fi
           ./cf app hirelens-api
+          if ./cf app hirelens-api | grep -Eqi 'crashed|instances:[[:space:]]*0/'; then
+            echo "hirelens-api did not start"
+            ./cf logs hirelens-api --recent
+            exit 1
+          fi
 
   integration:
     if: github.event_name == 'push'

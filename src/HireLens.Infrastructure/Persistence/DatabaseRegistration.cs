@@ -44,7 +44,8 @@ public static class DatabaseRegistration
             }
 
             throw new InvalidOperationException(
-                "HANA_CONNECTION or a bound HANA service is required outside Development and Testing.");
+                "HANA_CONNECTION or a bound HANA service with host/user/password is required outside Development and Testing. "
+                + HanaConnection.DescribeMissing(configuration));
         });
 
         return services;

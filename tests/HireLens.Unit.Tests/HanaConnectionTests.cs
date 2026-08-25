@@ -50,4 +50,47 @@ public sealed class HanaConnectionTests
 
         HanaConnection.FromVcap(vcap).Should().Be("ServerNode=local:39013;UID=user;PWD=pass;");
     }
+
+    [Fact]
+    public void FromVcap_returns_null_for_hana_cloud_instance_without_db_user()
+    {
+        const string vcap = """
+            {
+              "hana-cloud": [{
+                "name": "hana_dev",
+                "credentials": {
+                  "driver": "com.sap.db.jdbc.Driver",
+                  "host": "example.hanacloud.ondemand.com",
+                  "port": "443",
+                  "url": "jdbc:sap://example.hanacloud.ondemand.com:443?encrypt=true",
+                  "uaa": { "clientid": "x", "clientsecret": "y", "url": "https://auth.example" }
+                }
+              }]
+            }
+            """;
+
+        HanaConnection.FromVcap(vcap).Should().BeNull();
+    }
+
+    [Fact]
+    public void FromVcap_parses_host_from_jdbc_when_host_missing()
+    {
+        const string vcap = """
+            {
+              "hana": [{
+                "name": "hana_dev",
+                "credentials": {
+                  "user": "DBADMIN",
+                  "password": "secret",
+                  "url": "jdbc:sap://only-from-jdbc.hanacloud.ondemand.com:443?encrypt=true"
+                }
+              }]
+            }
+            """;
+
+        var connection = HanaConnection.FromVcap(vcap);
+
+        connection.Should().Contain("ServerNode=only-from-jdbc.hanacloud.ondemand.com:443");
+        connection.Should().Contain("UID=DBADMIN");
+    }
 }

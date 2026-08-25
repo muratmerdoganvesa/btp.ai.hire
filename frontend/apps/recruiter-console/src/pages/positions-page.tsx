@@ -1,4 +1,5 @@
 import { Button, Card, CardContent, CardHeader, CardTitle, Chip } from "@hirelens/ui";
+import { ApiError } from "@hirelens/api-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
@@ -50,7 +51,24 @@ export function PositionsPage() {
     return [...suggestedSkills, ...extras];
   }, [selected]);
 
+  const blockers = useMemo(() => {
+    const items: string[] = [];
+    if (!title.trim()) {
+      items.push(t("positions.needTitle"));
+    }
+    if (!jobDescription.trim()) {
+      items.push(t("positions.needJd"));
+    }
+    if (selected.length < 3) {
+      items.push(t("positions.needSkills"));
+    }
+    return items;
+  }, [title, jobDescription, selected.length, t]);
+
+  const ready = blockers.length === 0;
+
   const toggleSkill = (skill: string) => {
+    setError(null);
     setSelected((current) =>
       current.includes(skill) ? current.filter((item) => item !== skill) : [...current, skill]
     );
@@ -62,6 +80,7 @@ export function PositionsPage() {
       return;
     }
 
+    setError(null);
     setSelected((current) => (current.includes(name) ? current : [...current, name]));
     setCustomSkill("");
   };
@@ -96,10 +115,27 @@ export function PositionsPage() {
       setError(null);
       await queryClient.invalidateQueries({ queryKey: ["positions"] });
     },
-    onError: () => setError(t("errors.weights"))
+    onError: (err) => {
+      if (err instanceof ApiError) {
+        if (err.message.includes("weights") || err.message.includes("sum to 100")) {
+          setError(t("errors.weights"));
+          return;
+        }
+        setError(`${t("positions.saveFailed")} (${err.message})`);
+        return;
+      }
+      setError(t("positions.saveFailed"));
+    }
   });
 
-  const ready = title.trim().length > 0 && jobDescription.trim().length > 0 && selected.length >= 3;
+  const trySave = () => {
+    if (!ready) {
+      setError(`${t("positions.saveBlocked")} ${blockers.join(" · ")}`);
+      return;
+    }
+    setError(null);
+    create.mutate();
+  };
 
   return (
     <AppShell>
@@ -122,10 +158,22 @@ export function PositionsPage() {
           </CardHeader>
           <CardContent className="flex flex-col gap-6">
             <Field label={t("positions.name")}>
-              <TextInput value={title} onChange={(event) => setTitle(event.target.value)} />
+              <TextInput
+                value={title}
+                onChange={(event) => {
+                  setError(null);
+                  setTitle(event.target.value);
+                }}
+              />
             </Field>
             <Field label={t("positions.jd")}>
-              <TextArea value={jobDescription} onChange={(event) => setJobDescription(event.target.value)} />
+              <TextArea
+                value={jobDescription}
+                onChange={(event) => {
+                  setError(null);
+                  setJobDescription(event.target.value);
+                }}
+              />
             </Field>
 
             <section className="flex flex-col gap-3">
@@ -142,7 +190,7 @@ export function PositionsPage() {
             <section className="flex flex-col gap-3">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="text-sm font-medium">{t("positions.skills")}</h3>
-                <p className="text-xs text-muted">
+                <p className={`text-xs font-medium ${selected.length >= 3 ? "text-muted" : "text-danger"}`}>
                   {selected.length >= 3 ? t("positions.skillsOk") : t("positions.skillsMin")}
                 </p>
               </div>
@@ -208,9 +256,13 @@ export function PositionsPage() {
               <p className="text-sm text-danger" role="alert">
                 {error}
               </p>
+            ) : !ready ? (
+              <p className="text-sm text-muted" role="status">
+                {t("positions.saveBlocked")} {blockers.join(" · ")}
+              </p>
             ) : null}
-            <Button type="button" size="lg" className="w-full" onClick={() => create.mutate()} disabled={create.isPending || !ready}>
-              {t("positions.submit")}
+            <Button type="button" size="lg" className="w-full" onClick={trySave} disabled={create.isPending}>
+              {create.isPending ? t("positions.saving") : t("positions.submit")}
             </Button>
           </CardContent>
         </Card>
@@ -223,7 +275,10 @@ export function PositionsPage() {
             </div>
           ) : (
             (positions.data ?? []).map((position) => (
-              <Card key={position.id} className="border-border/80 bg-surface/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-4">
+              <Card
+                key={position.id}
+                className="border-border/80 bg-surface/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-4"
+              >
                 <CardContent className="flex flex-col gap-3 pt-6">
                   <p className="font-display text-lg font-semibold tracking-tight">{position.title}</p>
                   <p className="line-clamp-2 text-sm text-muted">{position.jobDescription}</p>
