@@ -6,16 +6,19 @@ import { api } from "../api";
 import { AppShell } from "../components/app-shell";
 import { isDevAuth } from "../auth-mode";
 import { useAuthStore } from "../auth-store";
+import { useTourStore } from "../tour/tour-store";
 
 export function DashboardPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const session = useAuthStore((s) => s.session);
+  const startTour = useTourStore((s) => s.start);
   const queryClient = useQueryClient();
   const seed = useMutation({
     mutationFn: () => api.seedDemo(),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["positions"] });
+      await queryClient.invalidateQueries({ queryKey: ["funnel"] });
     }
   });
 
@@ -67,6 +70,9 @@ export function DashboardPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" onClick={() => startTour(true)}>
+            {t("tour.start")}
+          </Button>
           <Button type="button" variant="outline" disabled={seed.isPending} onClick={() => seed.mutate()}>
             {seed.isPending ? t("dashboard.seedDemoBusy") : t("dashboard.seedDemo")}
           </Button>
@@ -81,7 +87,7 @@ export function DashboardPage() {
         ) : null}
       </header>
 
-      <section className="hl-rise-delay grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <section data-tour="tour-funnel" className="hl-rise-delay grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <Metric label={t("dashboard.openReqs")} value={String(funnel.data?.positions ?? list.length)} />
         <Metric label={t("dashboard.funnelCandidates")} value={String(funnel.data?.candidates ?? "—")} />
         <Metric label={t("dashboard.funnelEvaluations")} value={String(funnel.data?.evaluations ?? "—")} />
@@ -90,7 +96,7 @@ export function DashboardPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
-        <Card className="border-border/80 bg-surface/90">
+        <Card data-tour="tour-recent" className="border-border/80 bg-surface/90">
           <CardHeader className="flex-row items-center justify-between">
             <CardTitle className="font-display text-2xl">{t("dashboard.recent")}</CardTitle>
             <Link to="/positions" className="text-sm font-semibold text-brand transition-colors hover:text-brand-7">
@@ -134,7 +140,7 @@ export function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden border-border/80 bg-surface/90">
+        <Card data-tour="tour-oversight" className="overflow-hidden border-border/80 bg-surface/90">
           <CardContent className="pt-5">
             <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted">{t("dashboard.session")}</p>
             <p className="font-display mt-3 truncate text-2xl font-semibold tracking-tight">

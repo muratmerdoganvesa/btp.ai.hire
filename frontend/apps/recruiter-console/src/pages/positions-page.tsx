@@ -200,7 +200,7 @@ export function PositionsPage() {
           </p>
         </aside>
 
-        <Card className="border-border/80 bg-surface/95">
+        <Card data-tour="tour-composer" className="border-border/80 bg-surface/95">
           <CardHeader>
             <CardTitle className="font-display text-2xl">
               {isEditing ? t("positions.edit") : t("positions.create")}
@@ -336,7 +336,10 @@ export function PositionsPage() {
           </CardContent>
         </Card>
 
-        <section className="flex min-w-0 flex-col gap-3 xl:sticky xl:top-24 xl:self-start">
+        <section
+          data-tour="tour-position-list"
+          className="flex min-w-0 flex-col gap-3 xl:sticky xl:top-24 xl:self-start"
+        >
           <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">{t("positions.list")}</h2>
           {(positions.data ?? []).length === 0 ? (
             <div className="rounded-xl border border-dashed border-border/80 bg-surface/80 px-6 py-12 text-center text-sm text-muted">

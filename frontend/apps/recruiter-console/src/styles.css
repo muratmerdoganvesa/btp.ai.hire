@@ -75,3 +75,14 @@ body {
   border-radius: 999px;
   background: var(--hl-brand-6);
 }
+
+.tour-cursor {
+  filter: drop-shadow(0 2px 4px rgb(15 23 32 / 0.35));
+  pointer-events: none;
+}
+
+.tour-spotlight {
+  box-shadow:
+    0 0 0 9999px rgb(15 23 32 / 0.55),
+    0 0 0 3px color-mix(in oklch, var(--hl-brand-6) 70%, white);
+}

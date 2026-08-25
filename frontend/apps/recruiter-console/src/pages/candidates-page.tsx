@@ -69,7 +69,7 @@ export function CandidatesPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-border/80 bg-surface/95">
+        <Card data-tour="tour-candidate-create" className="border-border/80 bg-surface/95">
           <CardHeader>
             <CardTitle className="font-display text-xl">{t("candidates.create")}</CardTitle>
           </CardHeader>
@@ -83,13 +83,18 @@ export function CandidatesPage() {
           </CardContent>
         </Card>
         {selectedCandidateId ? (
-          <CvUploadZone
-            positionId={positionId}
-            candidateId={selectedCandidateId}
-            onCompleted={() => void queryClient.invalidateQueries({ queryKey: ["candidates", positionId] })}
-          />
+          <div data-tour="tour-cv-zone">
+            <CvUploadZone
+              positionId={positionId}
+              candidateId={selectedCandidateId}
+              onCompleted={() => void queryClient.invalidateQueries({ queryKey: ["candidates", positionId] })}
+            />
+          </div>
         ) : (
-          <div className="flex items-center rounded-2xl border border-dashed border-border bg-brand-1/40 px-6 py-10 text-sm text-muted shadow-card">
+          <div
+            data-tour="tour-cv-zone"
+            className="flex items-center rounded-2xl border border-dashed border-border bg-brand-1/40 px-6 py-10 text-sm text-muted shadow-card"
+          >
             {t("candidates.selectHint")}
           </div>
         )}
