@@ -22,14 +22,12 @@ const suggestedSkills = [
 ];
 
 const levels = ["Stajyer", "Junior", "Mid", "Senior", "Lead"] as const;
-
 type Level = (typeof levels)[number];
 
 function splitWeights(count: number): number[] {
   if (count === 0) {
     return [];
   }
-
   const base = Math.floor(100 / count);
   const remainder = 100 - base * count;
   return Array.from({ length: count }, (_, index) => base + (index < remainder ? 1 : 0));
@@ -124,7 +122,6 @@ export function PositionsPage() {
     if (!name) {
       return;
     }
-
     setError(null);
     setSelected((current) => (current.includes(name) ? current : [...current, name]));
     setCustomSkill("");
@@ -134,7 +131,6 @@ export function PositionsPage() {
     if (to < 0 || to >= selected.length) {
       return;
     }
-
     setSelected((current) => {
       const next = [...current];
       const [item] = next.splice(from, 1);
@@ -187,25 +183,17 @@ export function PositionsPage() {
   return (
     <AppShell>
       <div>
-        <p className="text-sm font-semibold text-white/55">{t("nav.positions")}</p>
-        <h1 className="mt-1 text-4xl font-extrabold tracking-tight text-white">{t("positions.title")}</h1>
-        <p className="mt-2 max-w-2xl text-sm text-white/60">{t("positions.composerHint")}</p>
+        <h1 className="text-3xl font-extrabold tracking-tight">{t("positions.title")}</h1>
+        <p className="mt-1 text-sm text-muted">{t("positions.composerHint")}</p>
       </div>
-      <div className="hl-rise-delay grid gap-5 xl:grid-cols-[minmax(0,13rem)_minmax(0,1.45fr)_minmax(0,22rem)]">
-        <aside className="hl-prompt-glow hidden self-start rounded-2xl px-5 py-6 text-sm leading-7 text-foreground shadow-card xl:block">
-          <p className="text-base font-bold tracking-tight">
-            {isEditing
-              ? t("positions.composerPromptEdit", { title: title.trim() || t("positions.untitled") })
-              : t("positions.composerPrompt", { title: title.trim() || t("positions.untitled") })}
-          </p>
-        </aside>
 
+      <div className="hl-rise-delay grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] xl:grid-cols-[minmax(0,1fr)_22rem]">
         <Card data-tour="tour-composer">
           <CardHeader>
             <CardTitle>{isEditing ? t("positions.edit") : t("positions.create")}</CardTitle>
             <p className="text-sm text-muted">{t("positions.multiSelect")}</p>
           </CardHeader>
-          <CardContent className="flex flex-col gap-7">
+          <CardContent className="flex flex-col gap-6">
             <Field label={t("positions.name")}>
               <TextInput
                 value={title}
@@ -226,8 +214,8 @@ export function PositionsPage() {
             </Field>
 
             <section className="flex flex-col gap-3">
-              <h3 className="text-sm font-bold text-foreground">{t("positions.level")}</h3>
-              <div className="flex flex-wrap gap-2.5">
+              <h3 className="text-sm font-bold">{t("positions.level")}</h3>
+              <div className="flex flex-wrap gap-2">
                 {levels.map((item) => (
                   <Chip key={item} selected={level === item} onClick={() => setLevel(item)}>
                     {item}
@@ -237,18 +225,13 @@ export function PositionsPage() {
             </section>
 
             <section className="flex flex-col gap-3">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h3 className="text-sm font-bold text-foreground">{t("positions.skills")}</h3>
-                <p
-                  className={`flex items-center gap-1.5 text-sm font-semibold ${
-                    selected.length >= 3 ? "text-success-fg" : "text-danger"
-                  }`}
-                >
-                  {selected.length >= 3 ? "✓ " : ""}
-                  {selected.length >= 3 ? t("positions.skillsOk") : t("positions.skillsMin")}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-sm font-bold">{t("positions.skills")}</h3>
+                <p className={`text-sm font-semibold ${selected.length >= 3 ? "text-success-fg" : "text-danger"}`}>
+                  {selected.length >= 3 ? `✓ ${t("positions.skillsOk")}` : t("positions.skillsMin")}
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2.5">
+              <div className="flex flex-wrap gap-2">
                 {allSkills.map((skill) => (
                   <Chip key={skill} selected={selected.includes(skill)} onClick={() => toggleSkill(skill)}>
                     {skill}
@@ -257,72 +240,53 @@ export function PositionsPage() {
               </div>
             </section>
 
-            <section className="flex flex-col gap-3">
-              <h3 className="text-sm font-bold text-foreground">{t("positions.selected")}</h3>
-              <div className="flex flex-col gap-1">
-                {selected.map((skill, index) => (
-                  <div
-                    key={skill}
-                    draggable
-                    onDragStart={() => setDragIndex(index)}
-                    onDragOver={(event) => event.preventDefault()}
-                    onDrop={() => {
-                      if (dragIndex !== null) {
-                        move(dragIndex, index);
-                        setDragIndex(null);
-                      }
-                    }}
-                    className="group flex items-center gap-3 rounded-xl px-2 py-2.5 hover:bg-brand-1/80"
-                  >
-                    <span aria-hidden="true" className="cursor-grab text-muted opacity-0 transition-opacity group-hover:opacity-100">
-                      ⋮⋮
-                    </span>
-                    <span
-                      aria-hidden="true"
-                      className="inline-flex size-5 items-center justify-center rounded-md bg-brand-6 text-[0.65rem] font-bold text-white"
-                    >
-                      ✓
-                    </span>
-                    <span className="flex-1 text-sm font-semibold">{skill}</span>
-                    <span className="tabular-nums text-xs font-bold text-muted">{weights[index]}%</span>
-                    <button
-                      type="button"
-                      className="text-xs font-semibold text-muted hover:text-danger"
-                      onClick={() => toggleSkill(skill)}
-                    >
-                      {t("positions.remove")}
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <TextInput
-                  className="flex-1"
-                  placeholder={t("positions.addPlaceholder")}
-                  value={customSkill}
-                  onChange={(event) => setCustomSkill(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      addCustom();
+            <section className="flex flex-col gap-2">
+              <h3 className="text-sm font-bold">{t("positions.selected")}</h3>
+              {selected.map((skill, index) => (
+                <div
+                  key={skill}
+                  draggable
+                  onDragStart={() => setDragIndex(index)}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={() => {
+                    if (dragIndex !== null) {
+                      move(dragIndex, index);
+                      setDragIndex(null);
                     }
                   }}
-                />
-                <Button type="button" variant="outline" onClick={addCustom} disabled={!customSkill.trim()}>
-                  {t("positions.addCriterion")}
-                </Button>
-              </div>
+                  className="flex items-center gap-3 rounded-xl px-1 py-2 hover:bg-brand-0"
+                >
+                  <span aria-hidden="true" className="cursor-grab text-muted">
+                    ⋮⋮
+                  </span>
+                  <span className="inline-flex size-5 items-center justify-center rounded-md bg-brand-6 text-[0.65rem] font-bold text-white">
+                    ✓
+                  </span>
+                  <span className="flex-1 text-sm font-semibold">{skill}</span>
+                  <span className="text-xs font-bold text-muted">{weights[index]}%</span>
+                  <button
+                    type="button"
+                    className="text-xs font-semibold text-muted hover:text-danger"
+                    onClick={() => toggleSkill(skill)}
+                  >
+                    {t("positions.remove")}
+                  </button>
+                </div>
+              ))}
+              <TextInput
+                placeholder={t("positions.addPlaceholder")}
+                value={customSkill}
+                onChange={(event) => setCustomSkill(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    addCustom();
+                  }
+                }}
+              />
             </section>
 
-            {error ? (
-              <p className="text-sm font-medium text-danger" role="alert">
-                {error}
-              </p>
-            ) : !ready ? (
-              <p className="text-sm text-muted" role="status">
-                {t("positions.saveBlocked")} {blockers.join(" · ")}
-              </p>
-            ) : null}
+            {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
             <Button type="button" size="lg" className="w-full" onClick={trySave} disabled={save.isPending}>
               {save.isPending
                 ? t("positions.saving")
@@ -331,31 +295,25 @@ export function PositionsPage() {
                   : t("positions.submit")}
             </Button>
             {isEditing ? (
-              <Button type="button" variant="outline" className="w-full" onClick={resetForm} disabled={save.isPending}>
+              <Button type="button" variant="outline" onClick={resetForm} disabled={save.isPending}>
                 {t("positions.cancelEdit")}
               </Button>
             ) : null}
           </CardContent>
         </Card>
 
-        <section
-          data-tour="tour-position-list"
-          className="flex min-w-0 flex-col gap-3 xl:sticky xl:top-24 xl:self-start"
-        >
-          <h2 className="px-1 text-xs font-bold uppercase tracking-[0.14em] text-white/50">{t("positions.list")}</h2>
+        <section data-tour="tour-position-list" className="flex flex-col gap-3">
+          <h2 className="text-xs font-bold uppercase tracking-[0.12em] text-muted">{t("positions.list")}</h2>
           {(positions.data ?? []).length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-white/20 bg-white/5 px-5 py-10 text-center text-sm text-white/55">
+            <div className="rounded-2xl border border-dashed border-border bg-surface px-4 py-10 text-center text-sm text-muted">
               {t("positions.empty")}
             </div>
           ) : (
             (positions.data ?? []).map((position) => (
-              <Card
-                key={position.id}
-                className={editingId === position.id ? "ring-2 ring-brand-6/40" : ""}
-              >
-                <CardContent className="flex flex-col gap-3 !py-5">
-                  <p className="text-lg font-bold tracking-tight">{position.title}</p>
-                  <p className="line-clamp-2 text-sm leading-5 text-muted">{position.jobDescription}</p>
+              <Card key={position.id} className={editingId === position.id ? "ring-2 ring-brand-6/30" : ""}>
+                <CardContent className="flex flex-col gap-3 !py-4">
+                  <p className="font-bold tracking-tight">{position.title}</p>
+                  <p className="line-clamp-2 text-sm text-muted">{position.jobDescription}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {position.criteria.map((criterion) => (
                       <span
@@ -366,7 +324,7 @@ export function PositionsPage() {
                       </span>
                     ))}
                   </div>
-                  <div className="mt-1 flex flex-wrap gap-2 pt-1">
+                  <div className="flex gap-2 pt-1">
                     <Button type="button" variant="outline" size="sm" onClick={() => loadForEdit(position)}>
                       {t("positions.editAction")}
                     </Button>

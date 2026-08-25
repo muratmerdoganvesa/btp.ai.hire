@@ -8,17 +8,11 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    radial-gradient(ellipse 55% 45% at 18% 20%, oklch(0.42 0.18 255 / 0.35), transparent 55%),
-    radial-gradient(ellipse 50% 40% at 82% 70%, oklch(0.35 0.12 280 / 0.28), transparent 50%),
-    linear-gradient(160deg, oklch(0.17 0.03 255) 0%, oklch(0.12 0.02 260) 100%);
-  background-attachment: fixed;
+  background: var(--hl-bg);
   color: var(--hl-fg);
   font-family: var(--hl-font-sans);
   line-height: var(--hl-line);
-  font-feature-settings: "ss01" on, "cv02" on;
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
 }
 
 #root {
@@ -27,13 +21,13 @@ body {
 
 .font-display {
   font-family: var(--hl-font-display);
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
 }
 
 @keyframes hl-rise {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -41,37 +35,29 @@ body {
   }
 }
 
-@keyframes hl-fade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 .hl-rise {
-  animation: hl-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: hl-rise 0.4s ease both;
 }
 
 .hl-rise-delay {
-  animation: hl-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+  animation: hl-rise 0.45s ease 0.05s both;
 }
 
 .hl-fade {
-  animation: hl-fade 0.4s ease both;
+  animation: hl-rise 0.35s ease both;
 }
 
 .hl-nav-active {
-  position: relative;
+  background: var(--hl-brand-1);
+  color: var(--hl-brand-7);
 }
 
-.hl-nav-active::before {
+.hl-metric::before {
   content: "";
   position: absolute;
   left: 0;
-  top: 22%;
-  bottom: 22%;
+  top: 12px;
+  bottom: 12px;
   width: 3px;
   border-radius: 999px;
   background: var(--hl-brand-6);
@@ -79,32 +65,15 @@ body {
 
 .hl-metric {
   position: relative;
-  overflow: hidden;
-}
-
-.hl-metric::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: linear-gradient(180deg, var(--hl-brand-5), var(--hl-brand-7));
-}
-
-.hl-prompt-glow {
-  background:
-    radial-gradient(ellipse 80% 70% at 30% 40%, oklch(0.7 0.14 255 / 0.35), transparent 65%),
-    linear-gradient(160deg, oklch(0.94 0.04 255), oklch(0.98 0.02 255));
 }
 
 .tour-cursor {
-  filter: drop-shadow(0 2px 4px rgb(15 23 32 / 0.35));
+  filter: drop-shadow(0 2px 4px rgb(15 23 32 / 0.3));
   pointer-events: none;
 }
 
 .tour-spotlight {
   box-shadow:
-    0 0 0 9999px rgb(8 10 20 / 0.62),
-    0 0 0 3px color-mix(in oklch, var(--hl-brand-6) 80%, white);
+    0 0 0 9999px rgb(18 19 26 / 0.45),
+    0 0 0 3px var(--hl-brand-6);
 }
