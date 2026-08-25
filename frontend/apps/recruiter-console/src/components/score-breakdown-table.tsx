@@ -18,17 +18,17 @@ export function ScoreBreakdownTable({
         <thead className="border-b border-border text-muted">
           <tr>
             <th className="px-4 py-2">{t("positions.criterionName")}</th>
-            <th className="px-4 py-2">{t("positions.weight")}</th>
-            <th className="px-4 py-2">{t("evaluation.overall")}</th>
+            <th className="px-4 py-2">{t("evaluation.weightPct")}</th>
+            <th className="px-4 py-2">{t("evaluation.score")}</th>
             <th className="px-4 py-2">{t("evaluation.confidence")}</th>
-            <th className="px-4 py-2">{t("evaluation.source")}</th>
+            <th className="px-4 py-2">{t("evaluation.evidence")}</th>
           </tr>
         </thead>
         <tbody>
           {scores.map((row) => (
             <tr key={row.criterionId} className="border-b border-border last:border-0">
               <td className="px-4 py-3 font-medium">{row.criterionName}</td>
-              <td className="px-4 py-3">{row.weight}</td>
+              <td className="px-4 py-3">{row.weight}%</td>
               <td className="px-4 py-3">
                 <ScoreBadge
                   score={row.score}

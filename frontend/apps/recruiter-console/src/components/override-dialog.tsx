@@ -5,10 +5,14 @@ import { useTranslation } from "react-i18next";
 export function OverrideDialog({
   open,
   onClose,
+  onConfirm,
+  busy = false,
   children
 }: {
   open: boolean;
   onClose: () => void;
+  onConfirm: () => void;
+  busy?: boolean;
   children: ReactNode;
 }) {
   const { t } = useTranslation();
@@ -17,14 +21,24 @@ export function OverrideDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-10 flex items-center justify-center bg-foreground/40 p-4">
-      <div className="w-full max-w-lg rounded-lg border border-border bg-surface p-4">
-        <h2 className="mb-2 text-base font-semibold">{t("decision.override")}</h2>
+    <div className="fixed inset-0 z-20 flex items-center justify-center bg-foreground/40 p-4">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="override-title"
+        className="w-full max-w-lg rounded-xl border border-border bg-surface p-5 shadow-card"
+      >
+        <h2 id="override-title" className="mb-1 text-base font-semibold">
+          {t("decision.override")}
+        </h2>
         <p className="mb-4 text-sm text-muted">{t("decision.overrideHint")}</p>
         {children}
-        <div className="mt-4 flex justify-end">
-          <Button variant="outline" type="button" onClick={onClose}>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="outline" type="button" onClick={onClose} disabled={busy}>
             {t("decision.close")}
+          </Button>
+          <Button type="button" onClick={onConfirm} disabled={busy}>
+            {t("decision.submit")}
           </Button>
         </div>
       </div>

@@ -37,6 +37,13 @@ export function DashboardPage() {
     enabled: Boolean(session)
   });
 
+  const funnel = useQuery({
+    queryKey: ["funnel"],
+    queryFn: () => api.getFunnel(),
+    enabled: Boolean(session),
+    retry: false
+  });
+
   if (!session) {
     if (isDevAuth) {
       void navigate({ to: "/login" });
@@ -45,7 +52,6 @@ export function DashboardPage() {
   }
 
   const list = positions.data ?? [];
-  const criteriaCount = list.reduce((sum, position) => sum + position.criteria.length, 0);
 
   return (
     <AppShell>
@@ -75,9 +81,59 @@ export function DashboardPage() {
         ) : null}
       </header>
 
-      <section className="hl-rise-delay grid gap-4 sm:grid-cols-3">
-        <Metric label={t("dashboard.openReqs")} value={String(list.length)} />
-        <Metric label={t("dashboard.criteria")} value={String(criteriaCount)} />
+      <section className="hl-rise-delay grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <Metric label={t("dashboard.openReqs")} value={String(funnel.data?.positions ?? list.length)} />
+        <Metric label={t("dashboard.funnelCandidates")} value={String(funnel.data?.candidates ?? "—")} />
+        <Metric label={t("dashboard.funnelEvaluations")} value={String(funnel.data?.evaluations ?? "—")} />
+        <Metric label={t("dashboard.funnelInterviews")} value={String(funnel.data?.interviews ?? "—")} />
+        <Metric label={t("dashboard.funnelDecisions")} value={String(funnel.data?.decisions ?? "—")} />
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
+        <Card className="border-border/80 bg-surface/90">
+          <CardHeader className="flex-row items-center justify-between">
+            <CardTitle className="font-display text-2xl">{t("dashboard.recent")}</CardTitle>
+            <Link to="/positions" className="text-sm font-semibold text-brand transition-colors hover:text-brand-7">
+              {t("dashboard.openPositions")}
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {list.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-brand-3/70 bg-gradient-to-br from-brand-1/80 to-transparent px-6 py-12 text-center">
+                <p className="font-display text-lg text-foreground">{t("dashboard.empty")}</p>
+                {seed.isSuccess ? (
+                  <p className="mt-3 text-sm text-muted">
+                    {seed.data.skipped ? t("dashboard.seedDemoSkip") : t("dashboard.seedDemoDone")}
+                  </p>
+                ) : null}
+                <Button asChild className="mt-5">
+                  <Link to="/positions">{t("dashboard.createFirst")}</Link>
+                </Button>
+              </div>
+            ) : (
+              <ul className="divide-y divide-border/80">
+                {list.slice(0, 5).map((position) => (
+                  <li key={position.id} className="flex items-center justify-between gap-4 py-3.5 first:pt-0 last:pb-0">
+                    <div>
+                      <p className="font-medium">{position.title}</p>
+                      <p className="mt-0.5 text-sm text-muted">
+                        {position.criteria.map((criterion) => `${criterion.name} ${criterion.weight}`).join(" · ")}
+                      </p>
+                    </div>
+                    <Link
+                      to="/positions/$positionId"
+                      params={{ positionId: position.id }}
+                      className="text-sm font-semibold text-brand transition-colors hover:text-brand-7"
+                    >
+                      {t("positions.open")}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
         <Card className="overflow-hidden border-border/80 bg-surface/90">
           <CardContent className="pt-5">
             <p className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted">{t("dashboard.session")}</p>
@@ -90,53 +146,10 @@ export function DashboardPage() {
                 <Badge key={role}>{role}</Badge>
               ))}
             </div>
+            <p className="mt-6 text-xs leading-5 text-muted">{t("dashboard.humanOversight")}</p>
           </CardContent>
         </Card>
       </section>
-
-      <Card className="border-border/80 bg-surface/90">
-        <CardHeader className="flex-row items-center justify-between">
-          <CardTitle className="font-display text-2xl">{t("dashboard.recent")}</CardTitle>
-          <Link to="/positions" className="text-sm font-semibold text-brand transition-colors hover:text-brand-7">
-            {t("dashboard.openPositions")}
-          </Link>
-        </CardHeader>
-        <CardContent>
-          {list.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-brand-3/70 bg-gradient-to-br from-brand-1/80 to-transparent px-6 py-12 text-center">
-              <p className="font-display text-lg text-foreground">{t("dashboard.empty")}</p>
-              {seed.isSuccess ? (
-                <p className="mt-3 text-sm text-muted">
-                  {seed.data.skipped ? t("dashboard.seedDemoSkip") : t("dashboard.seedDemoDone")}
-                </p>
-              ) : null}
-              <Button asChild className="mt-5">
-                <Link to="/positions">{t("dashboard.createFirst")}</Link>
-              </Button>
-            </div>
-          ) : (
-            <ul className="divide-y divide-border/80">
-              {list.slice(0, 5).map((position) => (
-                <li key={position.id} className="flex items-center justify-between gap-4 py-3.5 first:pt-0 last:pb-0">
-                  <div>
-                    <p className="font-medium">{position.title}</p>
-                    <p className="mt-0.5 text-sm text-muted">
-                      {position.criteria.map((criterion) => `${criterion.name} ${criterion.weight}`).join(" · ")}
-                    </p>
-                  </div>
-                  <Link
-                    to="/positions/$positionId"
-                    params={{ positionId: position.id }}
-                    className="text-sm font-semibold text-brand transition-colors hover:text-brand-7"
-                  >
-                    {t("positions.open")}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
     </AppShell>
   );
 }

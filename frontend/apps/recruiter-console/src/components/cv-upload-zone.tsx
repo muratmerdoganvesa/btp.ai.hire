@@ -3,6 +3,23 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
 
+async function waitForJob(jobId: string, onTick: (status: string) => void): Promise<void> {
+  const started = Date.now();
+  while (Date.now() - started < 90_000) {
+    const job = await api.getJob(jobId);
+    onTick(job.status);
+    const status = job.status.toLowerCase();
+    if (status === "succeeded" || status === "completed" || status === "done") {
+      return;
+    }
+    if (status === "failed" || status === "error") {
+      throw new Error(job.error ?? "job_failed");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  }
+  throw new Error("job_timeout");
+}
+
 export function CvUploadZone({
   positionId,
   candidateId,
@@ -15,6 +32,7 @@ export function CvUploadZone({
   const { t } = useTranslation();
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+  const [phase, setPhase] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const upload = async () => {
@@ -24,22 +42,29 @@ export function CvUploadZone({
 
     setBusy(true);
     setError(null);
+    setPhase(t("upload.phaseUpload"));
     try {
       const session = await api.startUpload(positionId, candidateId, file);
       await api.putObject(session.uploadUrl, file);
-      await api.completeUpload(session.documentId);
+      setPhase(t("upload.phaseParse"));
+      const job = await api.completeUpload(session.documentId);
+      setPhase(t("upload.phaseMatch"));
+      await waitForJob(job.jobId, (status) => setPhase(`${t("upload.phaseMatch")} (${status})`));
+      setPhase(null);
+      setFile(null);
       onCompleted();
     } catch {
       setError(t("errors.generic"));
+      setPhase(null);
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <Card>
+    <Card className="border-border/80 bg-surface/95">
       <CardHeader>
-        <CardTitle>{t("upload.title")}</CardTitle>
+        <CardTitle className="font-display text-xl">{t("upload.title")}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <p className="text-sm text-muted">{t("upload.hint")}</p>
@@ -53,6 +78,11 @@ export function CvUploadZone({
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
           />
         </label>
+        {phase ? (
+          <p className="text-sm text-muted" role="status">
+            {phase}
+          </p>
+        ) : null}
         {error ? (
           <p className="text-sm text-danger" role="alert">
             {error}

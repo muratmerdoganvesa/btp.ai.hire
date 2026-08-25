@@ -24,15 +24,15 @@ export function DecisionPanel({
     }
 
     setError(null);
-    await onSubmit({ outcome, rationale });
+    await onSubmit({ outcome, rationale: rationale.trim() });
     setOpen(false);
     setRationale("");
   };
 
   return (
-    <Card>
+    <Card className="border-border/80 bg-surface/95">
       <CardHeader>
-        <CardTitle>{t("decision.title")}</CardTitle>
+        <CardTitle className="font-display text-xl">{t("decision.title")}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <p className="text-sm text-muted">{t("decision.rationaleHint")}</p>
@@ -61,7 +61,7 @@ export function DecisionPanel({
             {error}
           </p>
         ) : null}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button type="button" disabled={busy} onClick={() => void submit()}>
             {t("decision.submit")}
           </Button>
@@ -69,8 +69,38 @@ export function DecisionPanel({
             {t("decision.override")}
           </Button>
         </div>
-        <OverrideDialog open={open} onClose={() => setOpen(false)}>
-          <p className="text-sm text-muted">{t("decision.rationaleHint")}</p>
+        <OverrideDialog
+          open={open}
+          onClose={() => setOpen(false)}
+          busy={busy}
+          onConfirm={() => void submit()}
+        >
+          <label className="flex flex-col gap-1 text-sm text-muted">
+            {t("decision.outcome")}
+            <select
+              className="rounded-md border border-border bg-background px-3 py-2 text-foreground"
+              value={outcome}
+              onChange={(event) => setOutcome(event.target.value as RecordDecision["outcome"])}
+            >
+              <option value="advance">{t("decision.advance")}</option>
+              <option value="hold">{t("decision.hold")}</option>
+              <option value="reject">{t("decision.reject")}</option>
+            </select>
+          </label>
+          <label className="mt-3 flex flex-col gap-1 text-sm text-muted">
+            {t("decision.rationale")}
+            <textarea
+              className="min-h-24 rounded-md border border-border bg-background px-3 py-2 text-foreground"
+              value={rationale}
+              onChange={(event) => setRationale(event.target.value)}
+              placeholder={t("decision.overrideHint")}
+            />
+          </label>
+          {error ? (
+            <p className="mt-2 text-sm text-danger" role="alert">
+              {error}
+            </p>
+          ) : null}
         </OverrideDialog>
       </CardContent>
     </Card>
