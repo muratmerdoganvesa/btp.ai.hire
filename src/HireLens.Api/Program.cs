@@ -84,7 +84,7 @@ if (auditBinding is not null)
 
 var app = builder.Build();
 
-// Schema bootstrap: InMemory EnsureCreated; HANA CreateTables when Positions is missing
+// Schema bootstrap: InMemory EnsureCreated; HANA CreateTables when Positions/PositionCriteria missing
 // (EnsureCreated is a no-op on DBADMIN schemas that already contain system tables).
 if (!app.Environment.IsEnvironment("Testing")
     && (HanaConnection.UsesInMemory(app.Configuration, app.Environment)
