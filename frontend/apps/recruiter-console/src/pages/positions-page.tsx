@@ -1,5 +1,5 @@
 import { Button, Card, CardContent, CardHeader, CardTitle, Chip } from "@hirelens/ui";
-import { ApiError } from "@hirelens/api-client";
+import { ApiError, type Position } from "@hirelens/api-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
@@ -23,6 +23,8 @@ const suggestedSkills = [
 
 const levels = ["Stajyer", "Junior", "Mid", "Senior", "Lead"] as const;
 
+type Level = (typeof levels)[number];
+
 function splitWeights(count: number): number[] {
   if (count === 0) {
     return [];
@@ -33,14 +35,34 @@ function splitWeights(count: number): number[] {
   return Array.from({ length: count }, (_, index) => base + (index < remainder ? 1 : 0));
 }
 
+function parseStoredTitle(full: string): { level: Level; title: string } {
+  for (const item of levels) {
+    if (full === item) {
+      return { level: item, title: "" };
+    }
+    if (full.startsWith(`${item} `)) {
+      return { level: item, title: full.slice(item.length).trim() };
+    }
+  }
+  return { level: "Senior", title: full };
+}
+
+const emptyForm = {
+  title: "",
+  jobDescription: "",
+  level: "Senior" as Level,
+  selected: ["C#", "SQL", "SAP BTP"] as string[]
+};
+
 export function PositionsPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const positions = useQuery({ queryKey: ["positions"], queryFn: () => api.listPositions() });
-  const [title, setTitle] = useState("");
-  const [jobDescription, setJobDescription] = useState("");
-  const [level, setLevel] = useState<(typeof levels)[number]>("Senior");
-  const [selected, setSelected] = useState<string[]>(["C#", "SQL", "SAP BTP"]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [title, setTitle] = useState(emptyForm.title);
+  const [jobDescription, setJobDescription] = useState(emptyForm.jobDescription);
+  const [level, setLevel] = useState<Level>(emptyForm.level);
+  const [selected, setSelected] = useState<string[]>(emptyForm.selected);
   const [customSkill, setCustomSkill] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -66,6 +88,29 @@ export function PositionsPage() {
   }, [title, jobDescription, selected.length, t]);
 
   const ready = blockers.length === 0;
+  const isEditing = editingId !== null;
+
+  const resetForm = () => {
+    setEditingId(null);
+    setTitle(emptyForm.title);
+    setJobDescription(emptyForm.jobDescription);
+    setLevel(emptyForm.level);
+    setSelected([...emptyForm.selected]);
+    setCustomSkill("");
+    setError(null);
+  };
+
+  const loadForEdit = (position: Position) => {
+    const parsed = parseStoredTitle(position.title);
+    setEditingId(position.id);
+    setTitle(parsed.title);
+    setLevel(parsed.level);
+    setJobDescription(position.jobDescription);
+    setSelected(position.criteria.map((criterion) => criterion.name));
+    setCustomSkill("");
+    setError(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const toggleSkill = (skill: string) => {
     setError(null);
@@ -98,21 +143,23 @@ export function PositionsPage() {
     });
   };
 
-  const create = useMutation({
+  const payload = () => ({
+    title: `${level} ${title}`.trim(),
+    jobDescription,
+    criteria: selected.map((name, index) => ({
+      name,
+      description: name,
+      weight: weights[index] ?? 0
+    }))
+  });
+
+  const save = useMutation({
     mutationFn: () =>
-      api.createPosition({
-        title: `${level} ${title}`.trim(),
-        jobDescription,
-        criteria: selected.map((name, index) => ({
-          name,
-          description: name,
-          weight: weights[index] ?? 0
-        }))
-      }),
+      isEditing && editingId
+        ? api.updatePosition(editingId, payload())
+        : api.createPosition(payload()),
     onSuccess: async () => {
-      setTitle("");
-      setJobDescription("");
-      setError(null);
+      resetForm();
       await queryClient.invalidateQueries({ queryKey: ["positions"] });
     },
     onError: (err) => {
@@ -134,7 +181,7 @@ export function PositionsPage() {
       return;
     }
     setError(null);
-    create.mutate();
+    save.mutate();
   };
 
   return (
@@ -147,13 +194,17 @@ export function PositionsPage() {
       <div className="hl-rise-delay grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,22rem)] 2xl:grid-cols-[minmax(0,14rem)_minmax(0,1.5fr)_minmax(0,22rem)]">
         <aside className="hidden self-start rounded-xl border border-brand-3/40 bg-gradient-to-b from-brand-1 to-brand-1/40 px-5 py-6 text-sm leading-7 text-foreground 2xl:block">
           <p className="font-display text-lg font-semibold tracking-tight">
-            {t("positions.composerPrompt", { title: title.trim() || t("positions.untitled") })}
+            {isEditing
+              ? t("positions.composerPromptEdit", { title: title.trim() || t("positions.untitled") })
+              : t("positions.composerPrompt", { title: title.trim() || t("positions.untitled") })}
           </p>
         </aside>
 
         <Card className="border-border/80 bg-surface/95">
           <CardHeader>
-            <CardTitle className="font-display text-2xl">{t("positions.create")}</CardTitle>
+            <CardTitle className="font-display text-2xl">
+              {isEditing ? t("positions.edit") : t("positions.create")}
+            </CardTitle>
             <p className="text-sm text-muted">{t("positions.multiSelect")}</p>
           </CardHeader>
           <CardContent className="flex flex-col gap-6">
@@ -261,9 +312,27 @@ export function PositionsPage() {
                 {t("positions.saveBlocked")} {blockers.join(" · ")}
               </p>
             ) : null}
-            <Button type="button" size="lg" className="w-full" onClick={trySave} disabled={create.isPending}>
-              {create.isPending ? t("positions.saving") : t("positions.submit")}
-            </Button>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button type="button" size="lg" className="w-full flex-1" onClick={trySave} disabled={save.isPending}>
+                {save.isPending
+                  ? t("positions.saving")
+                  : isEditing
+                    ? t("positions.update")
+                    : t("positions.submit")}
+              </Button>
+              {isEditing ? (
+                <Button
+                  type="button"
+                  size="lg"
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  onClick={resetForm}
+                  disabled={save.isPending}
+                >
+                  {t("positions.cancelEdit")}
+                </Button>
+              ) : null}
+            </div>
           </CardContent>
         </Card>
 
@@ -277,7 +346,9 @@ export function PositionsPage() {
             (positions.data ?? []).map((position) => (
               <Card
                 key={position.id}
-                className="border-border/80 bg-surface/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-4"
+                className={`border-border/80 bg-surface/95 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-4 ${
+                  editingId === position.id ? "border-brand-4 ring-1 ring-brand-4/40" : ""
+                }`}
               >
                 <CardContent className="flex flex-col gap-3 pt-6">
                   <p className="font-display text-lg font-semibold tracking-tight">{position.title}</p>
@@ -292,11 +363,16 @@ export function PositionsPage() {
                       </span>
                     ))}
                   </div>
-                  <Button asChild variant="outline" size="sm" className="mt-1 self-start">
-                    <Link to="/positions/$positionId" params={{ positionId: position.id }}>
-                      {t("positions.open")}
-                    </Link>
-                  </Button>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => loadForEdit(position)}>
+                      {t("positions.editAction")}
+                    </Button>
+                    <Button asChild variant="outline" size="sm">
+                      <Link to="/positions/$positionId" params={{ positionId: position.id }}>
+                        {t("positions.open")}
+                      </Link>
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))

@@ -57,6 +57,10 @@ export class ApiClient {
     return this.send<Position>("/api/positions", "POST", input);
   }
 
+  public async updatePosition(id: string, input: UpsertPosition): Promise<Position> {
+    return this.send<Position>(`/api/positions/${id}`, "PUT", input);
+  }
+
   public async listCandidates(positionId: string): Promise<Candidate[]> {
     return this.get<Candidate[]>(`/api/positions/${positionId}/candidates`);
   }
