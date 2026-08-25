@@ -80,6 +80,7 @@ public sealed class DocumentService(
         db.Set<AnalysisJob>().Add(job);
         await db.SaveChangesAsync(cancellationToken);
         jobs.EnqueueDocumentParse(tenant.TenantId, document.Id, job.Id);
+        await db.Entry(job).ReloadAsync(cancellationToken);
         return Result.Success(ToDto(job));
     }
 

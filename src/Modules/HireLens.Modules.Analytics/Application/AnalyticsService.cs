@@ -143,7 +143,9 @@ public sealed class AnalyticsService(
     public async Task<string?> TryGetAsync(string contentHash, CancellationToken cancellationToken)
     {
         RepositoryGuard.RequireTenant(tenant);
-        var row = await db.Set<ParseCache>().SingleOrDefaultAsync(c => c.ContentHash == contentHash, cancellationToken);
+        var row = await db.Set<ParseCache>()
+            .Where(c => c.ContentHash == contentHash)
+            .FirstOrDefaultAsync(cancellationToken);
         return row?.MaskedText;
     }
 
