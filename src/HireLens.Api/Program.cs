@@ -29,6 +29,7 @@ using HireLens.Modules.Review;
 using HireLens.Modules.Taxonomy;
 using HireLens.Modules.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Serilog;
 
 ModuleLoad.Ensure();
@@ -83,14 +84,16 @@ if (auditBinding is not null)
 
 var app = builder.Build();
 
-// Schema bootstrap: InMemory always; HANA when a connection is available (no EF migrations yet).
+// Schema bootstrap: InMemory EnsureCreated; HANA CreateTables when Positions is missing
+// (EnsureCreated is a no-op on DBADMIN schemas that already contain system tables).
 if (!app.Environment.IsEnvironment("Testing")
     && (HanaConnection.UsesInMemory(app.Configuration, app.Environment)
         || !string.IsNullOrWhiteSpace(HanaConnection.Resolve(app.Configuration))))
 {
     await using var scope = app.Services.CreateAsyncScope();
     var db = scope.ServiceProvider.GetRequiredService<HireLensDbContext>();
-    await db.Database.EnsureCreatedAsync();
+    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("SchemaBootstrap");
+    await SchemaBootstrap.EnsureApplicationTablesAsync(db, logger);
 }
 
 app.UseSerilogRequestLogging();

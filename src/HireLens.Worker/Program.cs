@@ -3,6 +3,7 @@ using Hangfire.InMemory;
 using HireLens.Infrastructure.Btp;
 using HireLens.Infrastructure.Hosting;
 using HireLens.Infrastructure.Persistence;
+using Microsoft.Extensions.Logging;
 using HireLens.Modules.Analytics;
 using HireLens.Modules.Candidate;
 using HireLens.Modules.Compliance;
@@ -72,7 +73,8 @@ if (!app.Environment.IsEnvironment("Testing")
 {
     await using var scope = app.Services.CreateAsyncScope();
     var db = scope.ServiceProvider.GetRequiredService<HireLensDbContext>();
-    await db.Database.EnsureCreatedAsync();
+    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("SchemaBootstrap");
+    await SchemaBootstrap.EnsureApplicationTablesAsync(db, logger);
 }
 
 app.UseSerilogRequestLogging();
