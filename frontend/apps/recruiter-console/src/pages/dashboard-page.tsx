@@ -53,31 +53,40 @@ export function DashboardPage() {
 
   return (
     <AppShell>
-      <header className="flex flex-wrap items-end justify-between gap-5">
-        <div className="flex items-center gap-4">
-          <InitialsAvatar name={displayName} className="size-12 rounded-full text-sm" />
-          <div>
+      <header className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex min-w-0 items-start gap-4">
+          <InitialsAvatar name={displayName} className="size-12 shrink-0 rounded-full text-sm" />
+          <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-6">{t("dashboard.welcome")}</p>
             <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-foreground">{t("dashboard.title")}</h1>
-            <p className="mt-2 max-w-lg text-sm text-muted">{t("dashboard.subtitle")}</p>
+            <p className="mt-2 max-w-xl text-sm text-muted">{t("dashboard.subtitle")}</p>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+              <button
+                type="button"
+                className="font-semibold text-brand-6 underline-offset-2 hover:underline"
+                onClick={() => startTour(true)}
+              >
+                {t("tour.start")}
+              </button>
+              <button
+                type="button"
+                className="font-semibold text-muted underline-offset-2 hover:text-foreground hover:underline disabled:opacity-50"
+                disabled={seed.isPending}
+                onClick={() => seed.mutate()}
+              >
+                {seed.isPending ? t("dashboard.seedDemoBusy") : t("dashboard.seedDemo")}
+              </button>
+            </div>
+            {seed.isSuccess ? (
+              <p className="mt-2 text-sm text-muted">
+                {seed.data.skipped ? t("dashboard.seedDemoSkip") : t("dashboard.seedDemoDone")}
+              </p>
+            ) : null}
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="outline" onClick={() => startTour(true)}>
-            {t("tour.start")}
-          </Button>
-          <Button type="button" variant="outline" disabled={seed.isPending} onClick={() => seed.mutate()}>
-            {seed.isPending ? t("dashboard.seedDemoBusy") : t("dashboard.seedDemo")}
-          </Button>
-          <Button asChild>
-            <Link to="/positions">{list.length === 0 ? t("dashboard.createFirst") : t("dashboard.openPositions")}</Link>
-          </Button>
-        </div>
-        {seed.isSuccess ? (
-          <p className="basis-full text-sm text-muted">
-            {seed.data.skipped ? t("dashboard.seedDemoSkip") : t("dashboard.seedDemoDone")}
-          </p>
-        ) : null}
+        <Button asChild size="lg" className="w-full shrink-0 sm:w-auto sm:min-w-[14rem]">
+          <Link to="/positions">{list.length === 0 ? t("dashboard.createFirst") : t("dashboard.openPositions")}</Link>
+        </Button>
       </header>
 
       <section data-tour="tour-funnel" className="hl-rise-delay grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-5">
