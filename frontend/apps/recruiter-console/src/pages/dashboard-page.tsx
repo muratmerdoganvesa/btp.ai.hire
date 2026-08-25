@@ -86,7 +86,7 @@ export function DashboardPage() {
         ) : null}
       </header>
 
-      <section data-tour="tour-funnel" className="hl-rise-delay grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <section data-tour="tour-funnel" className="hl-rise-delay grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <Metric label={t("dashboard.openReqs")} value={String(funnel.data?.positions ?? list.length)} />
         <Metric label={t("dashboard.funnelCandidates")} value={String(funnel.data?.candidates ?? "—")} />
         <Metric label={t("dashboard.funnelEvaluations")} value={String(funnel.data?.evaluations ?? "—")} />
@@ -160,11 +160,14 @@ export function DashboardPage() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <Card className="hl-metric">
-      <CardContent className="pl-5">
-        <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted">{label}</p>
-        <p className="font-display mt-2 text-3xl font-semibold tracking-tight tabular-nums">{value}</p>
-      </CardContent>
-    </Card>
+    <div className="rounded-2xl border border-border bg-surface px-4 py-4 shadow-card">
+      <div className="flex gap-3">
+        <span aria-hidden="true" className="mt-0.5 w-1 shrink-0 self-stretch rounded-full bg-brand-6" />
+        <div className="min-w-0">
+          <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-muted">{label}</p>
+          <p className="mt-1 text-3xl font-extrabold tabular-nums tracking-tight text-foreground">{value}</p>
+        </div>
+      </div>
+    </div>
   );
 }

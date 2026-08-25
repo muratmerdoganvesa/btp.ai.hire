@@ -52,21 +52,6 @@ body {
   color: var(--hl-brand-7);
 }
 
-.hl-metric::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 12px;
-  bottom: 12px;
-  width: 3px;
-  border-radius: 999px;
-  background: var(--hl-brand-6);
-}
-
-.hl-metric {
-  position: relative;
-}
-
 .tour-cursor {
   filter: drop-shadow(0 2px 4px rgb(15 23 32 / 0.3));
   pointer-events: none;
