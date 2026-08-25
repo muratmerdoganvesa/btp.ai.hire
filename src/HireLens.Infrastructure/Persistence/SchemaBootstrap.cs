@@ -1,24 +1,15 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 
 namespace HireLens.Infrastructure.Persistence;
 
 /// <summary>
-/// Ensures EF application tables exist. <see cref="DatabaseFacade.EnsureCreatedAsync"/> is unreliable
-/// on SAP HANA Cloud when connecting as DBADMIN: the schema already has system tables, so EF skips
-/// CreateTables. A partial CreateTables run can also leave Positions without PositionCriteria.
+/// Ensures demo-critical recruiting tables exist on SAP HANA Cloud.
+/// Full <c>CreateTables</c> / <c>GenerateCreateScript</c> is unsafe here: DBADMIN schemas
+/// are often partial, and HANA rejects NVARCHAR lengths above 5000 (e.g. InterviewTurns.Text).
 /// </summary>
 public static class SchemaBootstrap
 {
-    // Uppercase HANA catalog names for the core recruiting path (demo-critical).
-    private static readonly string[] RequiredTables =
-    [
-        "POSITIONS",
-        "POSITIONCRITERIA"
-    ];
-
     public static async Task EnsureApplicationTablesAsync(
         HireLensDbContext db,
         ILogger logger,
@@ -31,82 +22,95 @@ public static class SchemaBootstrap
             return;
         }
 
-        var missing = new List<string>();
-        foreach (var table in RequiredTables)
-        {
-            if (!await TableExistsAsync(db, table, cancellationToken))
-            {
-                missing.Add(table);
-            }
-        }
+        var positionsExists = await TableExistsAsync(db, "POSITIONS", cancellationToken);
+        var criteriaExists = await TableExistsAsync(db, "POSITIONCRITERIA", cancellationToken);
 
-        if (missing.Count == 0)
+        if (positionsExists && criteriaExists)
         {
-            logger.LogInformation("HireLens schema already present ({Tables}).", string.Join(", ", RequiredTables));
+            logger.LogInformation("HireLens recruiting tables present (Positions, PositionCriteria).");
             return;
         }
 
-        logger.LogWarning("Missing HANA tables: {Missing}. Rebuilding application schema.", string.Join(", ", missing));
+        logger.LogWarning(
+            "Missing recruiting tables (Positions={Positions}, PositionCriteria={Criteria}). Creating.",
+            positionsExists,
+            criteriaExists);
 
-        // Partial schema: drop known app tables then create the full model set.
-        foreach (var table in RequiredTables.Reverse())
+        if (!positionsExists)
         {
-            await DropTableIfExistsAsync(db, table, logger, cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """
+                CREATE TABLE "Positions" (
+                    "Id" NVARCHAR(36) NOT NULL CONSTRAINT "PK_Positions" PRIMARY KEY,
+                    "TenantId" NVARCHAR(36) NOT NULL,
+                    "Title" NVARCHAR(200) NOT NULL,
+                    "JobDescription" NCLOB NOT NULL,
+                    "CreatedAt" NVARCHAR(48) NOT NULL
+                )
+                """,
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE UNIQUE INDEX "IX_Positions_TenantId_Id" ON "Positions" ("TenantId", "Id")""",
+                cancellationToken);
         }
 
-        try
+        if (!criteriaExists)
         {
-            var creator = db.Database.GetService<IRelationalDatabaseCreator>();
-            await creator.CreateTablesAsync(cancellationToken);
-            logger.LogInformation("HireLens schema CreateTables completed.");
-        }
-        catch (Exception ex)
-        {
-            // CreateTables is all-or-nothing in theory; on HANA a prior partial run can leave
-            // "table already exists" mid-script. Apply generate-script statement-by-statement.
-            logger.LogWarning(ex, "CreateTables failed; applying GenerateCreateScript statements.");
-            await ApplyCreateScriptIgnoringExistsAsync(db, logger, cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """
+                CREATE TABLE "PositionCriteria" (
+                    "Id" NVARCHAR(36) NOT NULL CONSTRAINT "PK_PositionCriteria" PRIMARY KEY,
+                    "TenantId" NVARCHAR(36) NOT NULL,
+                    "PositionId" NVARCHAR(36) NOT NULL,
+                    "Name" NVARCHAR(200) NOT NULL,
+                    "Description" NVARCHAR(2000) NULL,
+                    "Weight" INT NOT NULL,
+                    CONSTRAINT "FK_PositionCriteria_Positions_PositionId"
+                        FOREIGN KEY ("PositionId") REFERENCES "Positions" ("Id") ON DELETE CASCADE
+                )
+                """,
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE UNIQUE INDEX "IX_PositionCriteria_TenantId_Id" ON "PositionCriteria" ("TenantId", "Id")""",
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE INDEX "IX_PositionCriteria_PositionId" ON "PositionCriteria" ("PositionId")""",
+                cancellationToken);
         }
 
-        foreach (var table in RequiredTables)
+        if (!await TableExistsAsync(db, "POSITIONS", cancellationToken)
+            || !await TableExistsAsync(db, "POSITIONCRITERIA", cancellationToken))
         {
-            if (!await TableExistsAsync(db, table, cancellationToken))
-            {
-                throw new InvalidOperationException(
-                    $"Schema bootstrap failed: table '{table}' still missing in CURRENT_SCHEMA after CreateTables.");
-            }
+            throw new InvalidOperationException(
+                "Schema bootstrap failed: Positions and/or PositionCriteria still missing after CREATE.");
         }
+
+        logger.LogInformation("HireLens recruiting tables ready.");
     }
 
-    private static async Task ApplyCreateScriptIgnoringExistsAsync(
+    private static async Task ExecuteIgnoreDuplicateAsync(
         HireLensDbContext db,
         ILogger logger,
+        string sql,
         CancellationToken cancellationToken)
     {
-        var script = db.Database.GenerateCreateScript();
-        foreach (var statement in SplitSqlStatements(script))
+        try
         {
-            try
-            {
-                await db.Database.ExecuteSqlRawAsync(statement, cancellationToken);
-            }
-            catch (Exception ex) when (LooksLikeAlreadyExists(ex))
-            {
-                logger.LogInformation("Skip existing object: {Message}", Truncate(ex.Message, 200));
-            }
+            await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
         }
-    }
-
-    private static IEnumerable<string> SplitSqlStatements(string script)
-    {
-        foreach (var part in script.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        catch (Exception ex) when (LooksLikeAlreadyExists(ex))
         {
-            if (part.Length == 0 || part.StartsWith("--", StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            yield return part;
+            logger.LogInformation("Skip existing object: {Message}", Truncate(ex.Message, 200));
         }
     }
 
@@ -114,7 +118,6 @@ public static class SchemaBootstrap
     {
         var message = ex.Message ?? string.Empty;
         return message.Contains("already exists", StringComparison.OrdinalIgnoreCase)
-               || message.Contains("unique constraint", StringComparison.OrdinalIgnoreCase)
                || message.Contains("duplicate", StringComparison.OrdinalIgnoreCase);
     }
 
@@ -137,39 +140,20 @@ public static class SchemaBootstrap
         {
             await using var command = connection.CreateCommand();
             command.CommandText =
-                """
+                $"""
                 SELECT COUNT(*)
                 FROM TABLES
                 WHERE SCHEMA_NAME = CURRENT_SCHEMA
-                  AND UPPER(TABLE_NAME) = :name
+                  AND UPPER(TABLE_NAME) = '{upperTableName.Replace("'", "''", StringComparison.Ordinal)}'
                 """;
-            var parameter = command.CreateParameter();
-            parameter.ParameterName = "name";
-            parameter.Value = upperTableName;
-            command.Parameters.Add(parameter);
             var result = await command.ExecuteScalarAsync(cancellationToken);
             return Convert.ToInt64(result) > 0;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Fallback without bind parameter (some HANA ADO builds are picky).
-            try
-            {
-                await using var command = connection.CreateCommand();
-                command.CommandText =
-                    $"""
-                    SELECT COUNT(*)
-                    FROM TABLES
-                    WHERE SCHEMA_NAME = CURRENT_SCHEMA
-                      AND UPPER(TABLE_NAME) = '{upperTableName.Replace("'", "''", StringComparison.Ordinal)}'
-                    """;
-                var result = await command.ExecuteScalarAsync(cancellationToken);
-                return Convert.ToInt64(result) > 0;
-            }
-            catch
-            {
-                return false;
-            }
+            // Catalog query failed — treat as missing so CREATE is attempted.
+            System.Diagnostics.Debug.WriteLine(ex);
+            return false;
         }
         finally
         {
@@ -179,46 +163,4 @@ public static class SchemaBootstrap
             }
         }
     }
-
-    private static async Task DropTableIfExistsAsync(
-        HireLensDbContext db,
-        string upperTableName,
-        ILogger logger,
-        CancellationToken cancellationToken)
-    {
-        if (!await TableExistsAsync(db, upperTableName, cancellationToken))
-        {
-            return;
-        }
-
-        // Prefer quoted PascalCase names used by EF; also try uppercase / with CASCADE.
-        foreach (var name in new[] { ToPascal(upperTableName), upperTableName })
-        {
-            foreach (var sql in new[]
-                     {
-                         $"""DROP TABLE "{name}" CASCADE""",
-                         $"""DROP TABLE "{name}" """
-                     })
-            {
-                try
-                {
-                    await db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
-                    logger.LogInformation("Dropped leftover table {Table}.", name);
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    logger.LogDebug(ex, "DROP TABLE {Table} skipped ({Sql}).", name, sql);
-                }
-            }
-        }
-    }
-
-    private static string ToPascal(string upper) =>
-        upper switch
-        {
-            "POSITIONS" => "Positions",
-            "POSITIONCRITERIA" => "PositionCriteria",
-            _ => upper
-        };
 }

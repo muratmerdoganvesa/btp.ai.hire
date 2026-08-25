@@ -36,6 +36,7 @@ public sealed class InterviewTurnConfiguration : IEntityTypeConfiguration<Interv
         builder.ToTable("InterviewTurns");
         builder.HasKey(t => t.Id);
         builder.Property(t => t.Role).HasMaxLength(16).IsRequired();
-        builder.Property(t => t.Text).HasMaxLength(8000).IsRequired();
+        // HANA NVARCHAR max identifier length is 5000; longer values need NCLOB.
+        builder.Property(t => t.Text).HasMaxLength(5000).IsRequired();
     }
 }
