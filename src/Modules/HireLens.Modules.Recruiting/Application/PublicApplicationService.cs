@@ -4,6 +4,7 @@ using HireLens.Contracts.Privacy;
 using HireLens.Contracts.Recruiting;
 using HireLens.Infrastructure.Persistence;
 using HireLens.Modules.Documents.Domain;
+using HireLens.Modules.Documents.Application;
 using HireLens.Modules.Recruiting.Domain;
 using HireLens.SharedKernel;
 using Microsoft.AspNetCore.Http;
@@ -34,8 +35,7 @@ public sealed class PublicApplicationService(
     SystemTenantScope systemScope,
     ICandidateWritePort candidates,
     IDocumentService documents,
-    IPrivacyConsentPort privacy,
-    IClock clock) : IPublicApplicationService
+    IPrivacyConsentPort privacy) : IPublicApplicationService
 {
     public const string ApplicationConsentPurpose = "candidate_application_v1";
     public const string ConsentTextVersion = "2026-08-01";
