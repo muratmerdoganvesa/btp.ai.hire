@@ -56,7 +56,28 @@
     "reviewPending": "Awaiting review",
     "pending": "Pending",
     "jobList": "Job list",
+    "jobListHint": "Candidate counts, evaluation status, and quick access.",
+    "search": "Search jobs",
+    "searchPlaceholder": "Search title or description…",
+    "sort": "Sort",
+    "sortNewest": "Newest",
+    "sortTitle": "Title (A–Z)",
+    "sortCandidates": "Most candidates",
+    "sortPending": "Most pending",
+    "sortReview": "Needs review",
+    "noResults": "No jobs match your search.",
+    "reviewBadge": "{{count}} to review",
+    "failed": "Failed",
+    "publicApply": "Apply link",
+    "metricOpenHint": "All open requisitions",
     "humanOversight": "AI scores; the final call always stays with the recruiter (human oversight)."
+  },
+  "pagination": {
+    "label": "Pagination",
+    "prev": "Previous",
+    "next": "Next",
+    "page": "Page {{page}}",
+    "range": "{{from}}–{{to}} of {{total}} jobs"
   },
   "tour": {
     "start": "Show me around",

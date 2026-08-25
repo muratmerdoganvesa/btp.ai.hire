@@ -56,7 +56,28 @@
     "reviewPending": "İnceleme bekleyen",
     "pending": "Bekleyen",
     "jobList": "İlan listesi",
+    "jobListHint": "Aday sayıları, değerlendirme durumu ve hızlı erişim.",
+    "search": "İlan ara",
+    "searchPlaceholder": "Başlık veya açıklamada ara…",
+    "sort": "Sırala",
+    "sortNewest": "En yeni",
+    "sortTitle": "Başlık (A–Z)",
+    "sortCandidates": "En çok aday",
+    "sortPending": "En çok bekleyen",
+    "sortReview": "İnceleme bekleyen",
+    "noResults": "Aramanızla eşleşen ilan yok.",
+    "reviewBadge": "{{count}} inceleme",
+    "failed": "Hata",
+    "publicApply": "Başvuru linki",
+    "metricOpenHint": "Yayında olan tüm requisition’lar",
     "humanOversight": "AI skor üretir; nihai karar her zaman recruiter’dadır (human oversight)."
+  },
+  "pagination": {
+    "label": "Sayfalama",
+    "prev": "Önceki",
+    "next": "Sonraki",
+    "page": "Sayfa {{page}}",
+    "range": "{{from}}–{{to}} / {{total}} ilan"
   },
   "tour": {
     "start": "Uygulamayı tanıt",
