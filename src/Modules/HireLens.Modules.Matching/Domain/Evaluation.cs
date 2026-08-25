@@ -6,7 +6,7 @@ public sealed class Evaluation : ITenantEntity
 {
     private Evaluation()
     {
-        Status = "Pending";
+        Status = "pending";
         PromptVersion = string.Empty;
         RubricVersion = string.Empty;
         ModelName = string.Empty;
@@ -69,7 +69,7 @@ public sealed class Evaluation : ITenantEntity
             PositionId = positionId,
             CandidateId = candidateId,
             DocumentId = documentId,
-            Status = "Pending",
+            Status = "pending",
             PromptVersion = "pending",
             CreatedAt = createdAt
         };
@@ -101,7 +101,7 @@ public sealed class Evaluation : ITenantEntity
         ExecutedAt = executedAt;
         FailureStage = null;
         FailureMessage = null;
-        Status = "Completed";
+        Status = "completed";
     }
 
     /// <summary>Backward-compatible overload used by older callers.</summary>
@@ -127,7 +127,7 @@ public sealed class Evaluation : ITenantEntity
 
     public void Fail(string stage, string message, DateTimeOffset executedAt)
     {
-        Status = "Failed";
+        Status = "failed";
         FailureStage = stage;
         FailureMessage = message;
         ExecutedAt = executedAt;

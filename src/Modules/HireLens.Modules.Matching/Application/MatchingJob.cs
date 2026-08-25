@@ -50,7 +50,7 @@ public sealed class MatchingJob(
             .SingleOrDefaultAsync(e => e.DocumentId == documentId, cancellationToken)
             ?? Evaluation.Start(tenant.TenantId, text.PositionId, text.CandidateId, documentId, clock.UtcNow);
 
-        if (evaluation.Status is "Pending" or "queued")
+        if (evaluation.Status is "pending" or "Pending" or "queued")
         {
             if (db.Entry(evaluation).State == EntityState.Detached)
             {
@@ -93,19 +93,24 @@ public sealed class MatchingJob(
     {
         try
         {
-            evaluation.SetStage("Matching");
+            evaluation.SetStage("matching");
             await db.SaveChangesAsync(cancellationToken);
 
             var proposals = DeterministicMatcher.Score(maskedText, position);
 
-            // LLM matching is advisory / future path; deterministic evidence remains authoritative
-            // until CriteriaMatchingService is wired with schema-validated output.
-            _ = await gateway.ExecuteAsync<MatchStub>(
-                AiTaskType.JdCvMatching,
-                new PromptContext($"{position.JobDescription}\n---\n{maskedText}", "v1.0.0"),
-                ct: cancellationToken);
+            try
+            {
+                _ = await gateway.ExecuteAsync<MatchStub>(
+                    AiTaskType.JdCvMatching,
+                    new PromptContext($"{position.JobDescription}\n---\n{maskedText}", "v1.0.0"),
+                    ct: cancellationToken);
+            }
+            catch
+            {
+                // Deterministic scores remain authoritative when Orchestration is unavailable.
+            }
 
-            evaluation.SetStage("Scoring");
+            evaluation.SetStage("scoring");
             await db.SaveChangesAsync(cancellationToken);
 
             await evidence.ApplyAsync(evaluation.Id, proposals, cancellationToken);
@@ -113,18 +118,27 @@ public sealed class MatchingJob(
             var overall = score.Total is null ? (int?)null : (int)Math.Round(score.Total.Value);
             var gaps = score.SkippedCriteria.ToList();
 
-            var summaryResult = await gateway.ExecuteAsync<SummaryStub>(
-                AiTaskType.RecruiterSummary,
-                new PromptContext(
-                    $"score={overall};coverage={score.CoverageRatio};gaps={gaps.Count}",
-                    "v1.0.0"),
-                ct: cancellationToken);
-
-            var summary = string.IsNullOrWhiteSpace(summaryResult.Value.Summary)
-                ? (overall is null
+            string summary;
+            try
+            {
+                var summaryResult = await gateway.ExecuteAsync<SummaryStub>(
+                    AiTaskType.RecruiterSummary,
+                    new PromptContext(
+                        $"score={overall};coverage={score.CoverageRatio};gaps={gaps.Count}",
+                        "v1.0.0"),
+                    ct: cancellationToken);
+                summary = string.IsNullOrWhiteSpace(summaryResult.Value.Summary)
+                    ? (overall is null
+                        ? "Insufficient evidence for an overall score."
+                        : "Evidence-bound scores are ready for human review.")
+                    : summaryResult.Value.Summary!;
+            }
+            catch
+            {
+                summary = overall is null
                     ? "Insufficient evidence for an overall score."
-                    : "Evidence-bound scores are ready for human review.")
-                : summaryResult.Value.Summary!;
+                    : "Evidence-bound scores are ready for human review.";
+            }
 
             var followUps = gaps.Count == 0
                 ? Array.Empty<string>()

@@ -93,7 +93,13 @@ public sealed class RecruitingFlowTests : IClassFixture<HireLensApiFactory>
     public async Task Missing_evidence_is_persisted_as_null_score()
     {
         using var client = await AuthenticatedClientAsync();
-        var seeded = await SeedAnalyzedCandidateAsync(client, "No Match", "This resume talks about gardening and pottery.");
+        var seeded = await SeedAnalyzedCandidateAsync(
+            client,
+            "No Match",
+            "This resume talks about gardening and pottery for many seasons. " +
+            "It covers soil preparation, greenhouse work, ceramic glazing, kiln firing, " +
+            "and community workshop facilitation. There is no mention of software engineering, " +
+            "programming languages, databases, cloud platforms, or enterprise applications.");
         var evaluation = await client.GetFromJsonAsync<EvaluationDto>(
             $"/api/candidates/{seeded.CandidateId}/evaluation",
             Json);
@@ -170,5 +176,8 @@ public sealed class RecruitingFlowTests : IClassFixture<HireLensApiFactory>
         return (position.Id, candidate.Id);
     }
 
-    private const string SampleCv = "Senior engineer with five years of C# and daily SQL reviews on SAP BTP.";
+    private const string SampleCv =
+        "Senior engineer with five years of C# and daily SQL reviews on SAP BTP. " +
+        "Delivered backend APIs, EF Core data access, HANA Cloud integrations, and recruiter-facing " +
+        "services for multi-tenant SaaS. Comfortable with observability, CI pipelines, and code reviews.";
 }

@@ -75,6 +75,12 @@ public static class AiGatewayRegistration
         services.AddScoped<StubAiProvider>();
         services.AddScoped<IAiProvider>(sp =>
         {
+            var env = sp.GetRequiredService<Microsoft.Extensions.Hosting.IHostEnvironment>();
+            if (string.Equals(env.EnvironmentName, "Testing", StringComparison.OrdinalIgnoreCase))
+            {
+                return sp.GetRequiredService<StubAiProvider>();
+            }
+
             var opts = sp.GetRequiredService<IOptions<SapAiCoreOptions>>().Value;
             var key = opts.ServiceKeyJson
                 ?? configuration["AICORE_SERVICE_KEY"]

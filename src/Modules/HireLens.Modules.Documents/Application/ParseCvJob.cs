@@ -67,15 +67,22 @@ public sealed class ParseCvJob(
                 await parseCache.PutAsync(hash, masked, cancellationToken);
             }
 
-            // Structured extraction is logged via gateway; profile persistence lands in a later slice.
-            _ = await gateway.ExecuteAsync<CvExtractionResult>(
-                AiTaskType.CvExtraction,
-                new PromptContext(masked, "v1.1.0"),
-                ct: cancellationToken);
-
             job.Succeed(clock.UtcNow);
             await db.SaveChangesAsync(cancellationToken);
             jobs.EnqueueMatching(document.TenantId, document.Id);
+
+            // Structured LLM extraction is advisory; never block matching on it.
+            try
+            {
+                _ = await gateway.ExecuteAsync<CvExtractionResult>(
+                    AiTaskType.CvExtraction,
+                    new PromptContext(masked, "v1.1.0"),
+                    ct: cancellationToken);
+            }
+            catch
+            {
+                // Logged via gateway / host; deterministic matching already enqueued.
+            }
         }
         catch (Exception ex)
         {
