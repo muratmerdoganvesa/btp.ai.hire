@@ -1,4 +1,5 @@
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@hirelens/ui";
+import { ApiError } from "@hirelens/api-client";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
@@ -55,11 +56,13 @@ export function CvUploadZone({
       onCompleted();
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
-      setError(
-        /scanned|could not be extracted|text could not/i.test(message)
-          ? t("upload.scanned")
-          : t("errors.generic")
-      );
+      if (/scanned|could not be extracted|text could not/i.test(message)) {
+        setError(t("upload.scanned"));
+      } else if (err instanceof ApiError && message) {
+        setError(`${t("errors.generic")} (${message})`);
+      } else {
+        setError(t("errors.generic"));
+      }
       setPhase(null);
     } finally {
       setBusy(false);
