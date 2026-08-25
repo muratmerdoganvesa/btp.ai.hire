@@ -97,6 +97,7 @@ if (!app.Environment.IsEnvironment("Testing")
         var db = scope.ServiceProvider.GetRequiredService<HireLensDbContext>();
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("SchemaBootstrap");
         await SchemaBootstrap.EnsureApplicationTablesAsync(db, logger);
+        await SchemaBootstrap.EnsureAuditTablesAsync(db, logger);
         await SchemaBootstrap.EnsureEvaluationAuditColumnsAsync(db, logger);
     }
     catch (Exception ex)
@@ -106,6 +107,7 @@ if (!app.Environment.IsEnvironment("Testing")
 }
 
 app.UseSerilogRequestLogging();
+app.UseMiddleware<UnhandledExceptionMiddleware>();
 app.UseAuthentication();
 app.UseMiddleware<TenantResolutionMiddleware>();
 app.UseAuthorization();

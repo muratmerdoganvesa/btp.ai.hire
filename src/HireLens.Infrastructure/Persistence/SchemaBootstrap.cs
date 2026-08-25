@@ -99,6 +99,109 @@ public static class SchemaBootstrap
     }
 
     /// <summary>
+    /// Every write path appends rows via <see cref="AuditSaveChangesInterceptor"/>.
+    /// Without these tables, POST /api/positions (and any other write) fails at SaveChanges.
+    /// </summary>
+    public static async Task EnsureAuditTablesAsync(
+        HireLensDbContext db,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        if (db.Database.IsInMemory())
+        {
+            return;
+        }
+
+        var auditExists = await TableExistsAsync(db, "AUDITEVENTS", cancellationToken);
+        var aiExists = await TableExistsAsync(db, "AIINVOCATIONS", cancellationToken);
+
+        if (auditExists && aiExists)
+        {
+            logger.LogInformation("HireLens audit tables present (AuditEvents, AiInvocations).");
+            return;
+        }
+
+        logger.LogWarning(
+            "Missing audit tables (AuditEvents={Audit}, AiInvocations={Ai}). Creating.",
+            auditExists,
+            aiExists);
+
+        if (!auditExists)
+        {
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """
+                CREATE TABLE "AuditEvents" (
+                    "Id" NVARCHAR(36) NOT NULL CONSTRAINT "PK_AuditEvents" PRIMARY KEY,
+                    "TenantId" NVARCHAR(36) NOT NULL,
+                    "Action" NVARCHAR(32) NOT NULL,
+                    "EntityType" NVARCHAR(128) NOT NULL,
+                    "EntityId" NVARCHAR(64) NOT NULL,
+                    "ActorSubject" NVARCHAR(256) NULL,
+                    "OccurredAt" NVARCHAR(48) NOT NULL,
+                    "CorrelationId" NVARCHAR(64) NULL
+                )
+                """,
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE UNIQUE INDEX "IX_AuditEvents_TenantId_Id" ON "AuditEvents" ("TenantId", "Id")""",
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE INDEX "IX_AuditEvents_TenantId_OccurredAt" ON "AuditEvents" ("TenantId", "OccurredAt")""",
+                cancellationToken);
+        }
+
+        if (!aiExists)
+        {
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """
+                CREATE TABLE "AiInvocations" (
+                    "Id" NVARCHAR(36) NOT NULL CONSTRAINT "PK_AiInvocations" PRIMARY KEY,
+                    "TenantId" NVARCHAR(36) NOT NULL,
+                    "TaskType" NVARCHAR(64) NOT NULL,
+                    "ModelId" NVARCHAR(128) NOT NULL,
+                    "PromptVersion" NVARCHAR(32) NOT NULL,
+                    "PromptHash" NVARCHAR(64) NOT NULL,
+                    "InputTokens" INT NOT NULL,
+                    "OutputTokens" INT NOT NULL,
+                    "EstimatedCost" DECIMAL(18, 6) NOT NULL,
+                    "LatencyMs" BIGINT NOT NULL,
+                    "Confidence" DOUBLE NULL,
+                    "CorrelationId" NVARCHAR(64) NULL,
+                    "OccurredAt" NVARCHAR(48) NOT NULL
+                )
+                """,
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE UNIQUE INDEX "IX_AiInvocations_TenantId_Id" ON "AiInvocations" ("TenantId", "Id")""",
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE INDEX "IX_AiInvocations_TenantId_OccurredAt" ON "AiInvocations" ("TenantId", "OccurredAt")""",
+                cancellationToken);
+        }
+
+        if (!await TableExistsAsync(db, "AUDITEVENTS", cancellationToken)
+            || !await TableExistsAsync(db, "AIINVOCATIONS", cancellationToken))
+        {
+            throw new InvalidOperationException(
+                "Schema bootstrap failed: AuditEvents and/or AiInvocations still missing after CREATE.");
+        }
+
+        logger.LogInformation("HireLens audit tables ready.");
+    }
+
+    /// <summary>
     /// Adds CV-evaluation audit columns introduced by the AI Core scoring path.
     /// Safe to re-run; ignores "already exists" / duplicate column errors.
     /// </summary>
