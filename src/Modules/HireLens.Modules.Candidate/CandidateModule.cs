@@ -1,5 +1,4 @@
 using HireLens.Contracts.Candidates;
-using HireLens.Contracts.Recruiting;
 using HireLens.Modules.Candidate.Application;
 using HireLens.Modules.Candidate.Endpoints;
 using Microsoft.AspNetCore.Routing;
@@ -15,8 +14,6 @@ public static class CandidateModule
         services.AddScoped<ICandidateService>(sp => sp.GetRequiredService<CandidateService>());
         services.AddScoped<ICandidateReadPort>(sp => sp.GetRequiredService<CandidateService>());
         services.AddScoped<ICandidateWritePort>(sp => sp.GetRequiredService<CandidateService>());
-        services.AddScoped<PositionStatsService>();
-        services.AddScoped<IPositionStatsPort>(sp => sp.GetRequiredService<PositionStatsService>());
         return services;
     }
 

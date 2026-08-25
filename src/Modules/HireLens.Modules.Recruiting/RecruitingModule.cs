@@ -1,4 +1,5 @@
 using HireLens.Contracts.Recruiting;
+using HireLens.Modules.Recruiting.Application;
 using HireLens.Modules.Recruiting.Endpoints;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;

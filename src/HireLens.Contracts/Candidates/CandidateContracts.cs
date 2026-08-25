@@ -17,6 +17,20 @@ public sealed record CreateCandidateRequest(string DisplayName);
 
 public sealed record CandidateSnapshot(Guid Id, Guid PositionId, string DisplayName);
 
+public sealed record CandidateEvaluationSummary(
+    int? OverallScore,
+    decimal? CoverageRatio,
+    string? EvaluationStatus,
+    int RiskFlagCount,
+    string? RecommendedAction);
+
+public interface ICandidateEvaluationSummaryPort
+{
+    Task<IReadOnlyDictionary<Guid, CandidateEvaluationSummary>> GetForCandidatesAsync(
+        IReadOnlyList<Guid> candidateIds,
+        CancellationToken cancellationToken);
+}
+
 public interface ICandidateReadPort
 {
     Task<CandidateSnapshot?> GetAsync(Guid candidateId, CancellationToken cancellationToken);

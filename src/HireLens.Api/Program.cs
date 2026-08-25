@@ -3,6 +3,8 @@ using HireLens.AiGateway;
 using HireLens.Api.Application;
 using HireLens.Api.Auth;
 using HireLens.Api.Endpoints;
+using HireLens.Contracts.Candidates;
+using HireLens.Contracts.Recruiting;
 using HireLens.Api.Hosting;
 using HireLens.Api.Jobs;
 using HireLens.Api.Seed;
@@ -68,6 +70,8 @@ builder.Services.AddSingleton<IFileGuard, FileGuard>();
 builder.Services.AddSingleton<IAnalysisJobs, ImmediateAnalysisJobs>();
 builder.Services.AddScoped<IDemoSeedService, DemoSeedService>();
 builder.Services.AddScoped<IPublicApplicationService, PublicApplicationService>();
+builder.Services.AddScoped<IPositionStatsPort, PositionStatsService>();
+builder.Services.AddScoped<ICandidateEvaluationSummaryPort, CandidateEvaluationSummaryService>();
 builder.Services.AddAiGateway(builder.Configuration);
 builder.Services.AddHireLensAuth(builder.Configuration, builder.Environment);
 builder.Services.ConfigureHttpJsonOptions(options =>

@@ -108,7 +108,7 @@ public sealed class Position : ITenantEntity
         return Result.Success();
     }
 
-    internal static string BuildSlug(string title, Guid id)
+    public static string BuildSlug(string title, Guid id)
     {
         var normalized = title.Trim().ToLowerInvariant();
         normalized = Regex.Replace(normalized, @"[^a-z0-9\s-]", string.Empty);
