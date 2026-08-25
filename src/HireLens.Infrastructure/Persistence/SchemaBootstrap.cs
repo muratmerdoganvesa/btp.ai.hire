@@ -98,6 +98,65 @@ public static class SchemaBootstrap
         logger.LogInformation("HireLens recruiting tables ready.");
     }
 
+    /// <summary>
+    /// Adds CV-evaluation audit columns introduced by the AI Core scoring path.
+    /// Safe to re-run; ignores "already exists" / duplicate column errors.
+    /// </summary>
+    public static async Task EnsureEvaluationAuditColumnsAsync(
+        HireLensDbContext db,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        if (db.Database.IsInMemory())
+        {
+            return;
+        }
+
+        if (!await TableExistsAsync(db, "EVALUATIONS", cancellationToken))
+        {
+            logger.LogInformation("Evaluations table not present yet; skipping column bootstrap.");
+            return;
+        }
+
+        await ExecuteIgnoreDuplicateAsync(
+            db,
+            logger,
+            """ALTER TABLE "Evaluations" ADD ("CoverageRatio" DECIMAL(9,4) DEFAULT 0 NOT NULL)""",
+            cancellationToken);
+        await ExecuteIgnoreDuplicateAsync(
+            db,
+            logger,
+            """ALTER TABLE "Evaluations" ADD ("RubricVersion" NVARCHAR(64) DEFAULT '' NOT NULL)""",
+            cancellationToken);
+        await ExecuteIgnoreDuplicateAsync(
+            db,
+            logger,
+            """ALTER TABLE "Evaluations" ADD ("ModelName" NVARCHAR(128) DEFAULT '' NOT NULL)""",
+            cancellationToken);
+        await ExecuteIgnoreDuplicateAsync(
+            db,
+            logger,
+            """ALTER TABLE "Evaluations" ADD ("ModelVersion" NVARCHAR(32) DEFAULT '' NOT NULL)""",
+            cancellationToken);
+        await ExecuteIgnoreDuplicateAsync(
+            db,
+            logger,
+            """ALTER TABLE "Evaluations" ADD ("FailureStage" NVARCHAR(64) NULL)""",
+            cancellationToken);
+        await ExecuteIgnoreDuplicateAsync(
+            db,
+            logger,
+            """ALTER TABLE "Evaluations" ADD ("FailureMessage" NVARCHAR(1024) NULL)""",
+            cancellationToken);
+        await ExecuteIgnoreDuplicateAsync(
+            db,
+            logger,
+            """ALTER TABLE "Evaluations" ADD ("ExecutedAt" NVARCHAR(48) NULL)""",
+            cancellationToken);
+
+        logger.LogInformation("Evaluation audit columns ensured.");
+    }
+
     private static async Task ExecuteIgnoreDuplicateAsync(
         HireLensDbContext db,
         ILogger logger,
@@ -118,7 +177,10 @@ public static class SchemaBootstrap
     {
         var message = ex.Message ?? string.Empty;
         return message.Contains("already exists", StringComparison.OrdinalIgnoreCase)
-               || message.Contains("duplicate", StringComparison.OrdinalIgnoreCase);
+               || message.Contains("duplicate", StringComparison.OrdinalIgnoreCase)
+               || message.Contains("cannot add duplicate", StringComparison.OrdinalIgnoreCase)
+               || message.Contains("column name", StringComparison.OrdinalIgnoreCase)
+                  && message.Contains("already used", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string Truncate(string value, int max) =>

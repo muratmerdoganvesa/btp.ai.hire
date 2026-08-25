@@ -86,14 +86,23 @@ var app = builder.Build();
 
 // Schema bootstrap: InMemory EnsureCreated; HANA CreateTables when Positions/PositionCriteria missing
 // (EnsureCreated is a no-op on DBADMIN schemas that already contain system tables).
+// Never crash the process on bootstrap failure — /health/ready will still reflect DB state.
 if (!app.Environment.IsEnvironment("Testing")
     && (HanaConnection.UsesInMemory(app.Configuration, app.Environment)
         || !string.IsNullOrWhiteSpace(HanaConnection.Resolve(app.Configuration))))
 {
-    await using var scope = app.Services.CreateAsyncScope();
-    var db = scope.ServiceProvider.GetRequiredService<HireLensDbContext>();
-    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("SchemaBootstrap");
-    await SchemaBootstrap.EnsureApplicationTablesAsync(db, logger);
+    try
+    {
+        await using var scope = app.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<HireLensDbContext>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("SchemaBootstrap");
+        await SchemaBootstrap.EnsureApplicationTablesAsync(db, logger);
+        await SchemaBootstrap.EnsureEvaluationAuditColumnsAsync(db, logger);
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "Schema bootstrap failed; API will start and report DB via /health/ready.");
+    }
 }
 
 app.UseSerilogRequestLogging();
