@@ -7,6 +7,10 @@ import { EvaluationPage } from "./pages/evaluation-page";
 import { LoginPage } from "./pages/login-page";
 import { SessionErrorPage } from "./pages/session-error-page";
 import { PositionsPage } from "./pages/positions-page";
+import { ApplyJobPage } from "./pages/apply/apply-job-page";
+import { ApplyConsentPage } from "./pages/apply/apply-consent-page";
+import { ApplyFormPage } from "./pages/apply/apply-form-page";
+import { ApplyDonePage, ApplyUnreadablePage } from "./pages/apply/apply-done-page";
 
 const rootRoute = createRootRoute({
   component: Outlet
@@ -64,13 +68,54 @@ const evaluationRoute = createRoute({
   component: EvaluationPage
 });
 
+const applyJobRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/apply/$slug",
+  component: ApplyJobPage
+});
+
+const applyConsentRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/apply/$slug/consent",
+  component: ApplyConsentPage
+});
+
+const applyFormRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/apply/$slug/form",
+  component: ApplyFormPage
+});
+
+const applyDoneRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/apply/$slug/done",
+  validateSearch: (search: Record<string, unknown>) => ({
+    ref: typeof search.ref === "string" ? search.ref : ""
+  }),
+  component: ApplyDonePage
+});
+
+const applyUnreadableRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/apply/$slug/unreadable",
+  validateSearch: (search: Record<string, unknown>) => ({
+    ref: typeof search.ref === "string" ? search.ref : ""
+  }),
+  component: ApplyUnreadablePage
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
   sessionErrorRoute,
   positionsRoute,
   positionDetailRoute,
-  evaluationRoute
+  evaluationRoute,
+  applyJobRoute,
+  applyConsentRoute,
+  applyFormRoute,
+  applyDoneRoute,
+  applyUnreadableRoute
 ]);
 
 export const router = createRouter({ routeTree });

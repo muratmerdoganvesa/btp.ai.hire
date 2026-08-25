@@ -6,7 +6,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
 import { AppShell } from "../components/app-shell";
-import { AuditTimeline } from "../components/audit-timeline";
+import { EvaluationAuditPanel } from "../components/evaluation-audit-panel";
+import { ScoreFormulaPanel } from "../components/score-formula-panel";
 import { DecisionPanel } from "../components/decision-panel";
 import { EvidencePanel } from "../components/evidence-panel";
 import { RiskFlagList } from "../components/risk-flag-list";
@@ -37,6 +38,11 @@ export function EvaluationPage() {
       }
       return count < 2;
     }
+  });
+  const audit = useQuery({
+    queryKey: ["evaluation-audit", evaluation.data?.id],
+    queryFn: () => api.getEvaluationAudit(evaluation.data!.id),
+    enabled: Boolean(evaluation.data?.id)
   });
   const position = useQuery({
     queryKey: ["position", evaluation.data?.positionId],
@@ -185,33 +191,7 @@ export function EvaluationPage() {
           </div>
 
           <aside className="flex flex-col gap-4 xl:sticky xl:top-24 xl:self-start">
-            <Card className="border-border/80 bg-surface/95">
-              <CardHeader>
-                <CardTitle className="font-display text-xl">{t("evaluation.howCalculated")}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm leading-6 text-muted">
-                <p>
-                  {t("evaluation.coverage")}:{" "}
-                  <span className="font-medium text-foreground">
-                    {Math.round((evaluation.data!.coverageRatio ?? 0) * 100)}%
-                  </span>
-                </p>
-                <p>
-                  {t("evaluation.rubricVersion")}:{" "}
-                  <span className="font-medium text-foreground">{evaluation.data!.rubricVersion}</span>
-                </p>
-                <p>
-                  {t("evaluation.model")}:{" "}
-                  <span className="font-medium text-foreground">
-                    {evaluation.data!.modelName}@{evaluation.data!.modelVersion}
-                  </span>
-                </p>
-                <p>
-                  {t("evaluation.promptVersion")}:{" "}
-                  <span className="font-medium text-foreground">{evaluation.data!.promptVersion}</span>
-                </p>
-              </CardContent>
-            </Card>
+            <ScoreFormulaPanel evaluation={evaluation.data!} />
 
             <Card className="border-border/80 bg-surface/95">
               <CardHeader>
@@ -334,7 +314,9 @@ export function EvaluationPage() {
           }}
           busy={decide.isPending}
         />
-        <AuditTimeline decisions={decisions.data ?? []} />
+        {audit.data ? (
+          <EvaluationAuditPanel audit={audit.data} decisions={decisions.data ?? []} />
+        ) : null}
       </div>
     </AppShell>
   );

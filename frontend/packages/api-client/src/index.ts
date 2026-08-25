@@ -14,6 +14,11 @@ export type Decision = components["schemas"]["Decision"];
 export type RecordDecision = components["schemas"]["RecordDecision"];
 export type JobStatus = components["schemas"]["JobStatus"];
 export type UploadSession = components["schemas"]["UploadSession"];
+export type EvaluationAudit = components["schemas"]["EvaluationAudit"];
+export type PublicJob = components["schemas"]["PublicJob"];
+export type PublicApplicationResponse = components["schemas"]["PublicApplicationResponse"];
+export type PublicApplicationStatus = components["schemas"]["PublicApplicationStatus"];
+export type PositionStats = components["schemas"]["PositionStats"];
 export type CandidateExport = components["schemas"]["CandidateExport"];
 export type { paths, components } from "./schema";
 
@@ -45,8 +50,9 @@ export class ApiClient {
     return this.get<User[]>("/api/identity/users");
   }
 
-  public async listPositions(): Promise<Position[]> {
-    return this.get<Position[]>("/api/positions");
+  public async listPositions(includeStats = false): Promise<Position[]> {
+    const query = includeStats ? "?includeStats=true" : "";
+    return this.get<Position[]>(`/api/positions${query}`);
   }
 
   public async getPosition(id: string): Promise<Position> {
@@ -104,6 +110,32 @@ export class ApiClient {
 
   public async getEvaluation(candidateId: string): Promise<Evaluation> {
     return this.get<Evaluation>(`/api/candidates/${candidateId}/evaluation`);
+  }
+
+  public async getEvaluationAudit(evaluationId: string): Promise<EvaluationAudit> {
+    return this.get<EvaluationAudit>(`/api/evaluations/${evaluationId}/audit`);
+  }
+
+  public async getPublicJob(slug: string): Promise<PublicJob> {
+    return this.getPublic<PublicJob>(`/api/public/jobs/${encodeURIComponent(slug)}`);
+  }
+
+  public async submitPublicApplication(form: FormData): Promise<PublicApplicationResponse> {
+    return this.sendPublic<PublicApplicationResponse>("/api/public/applications", "POST", form);
+  }
+
+  public async getPublicApplicationStatus(reference: string): Promise<PublicApplicationStatus> {
+    return this.getPublic<PublicApplicationStatus>(`/api/public/applications/${encodeURIComponent(reference)}`);
+  }
+
+  public async reuploadPublicCv(reference: string, file: File): Promise<PublicApplicationResponse> {
+    const form = new FormData();
+    form.append("cv", file);
+    return this.sendPublic<PublicApplicationResponse>(
+      `/api/public/applications/${encodeURIComponent(reference)}/cv`,
+      "POST",
+      form
+    );
   }
 
   public async listDecisions(candidateId: string): Promise<Decision[]> {
@@ -193,6 +225,24 @@ export class ApiClient {
     });
     const payload = await this.readJson<{ accessToken: string }>(response);
     return payload.accessToken;
+  }
+
+  private async getPublic<T>(path: string): Promise<T> {
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      credentials: "same-origin",
+      headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }
+    });
+    return this.readJson<T>(response);
+  }
+
+  private async sendPublic<T>(path: string, method: string, body: FormData): Promise<T> {
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      method,
+      credentials: "same-origin",
+      headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" },
+      body
+    });
+    return this.readJson<T>(response);
   }
 
   private async get<T>(path: string): Promise<T> {
@@ -288,5 +338,12 @@ export class ApiClient {
   private async throwHttpError(response: Response): Promise<never> {
     const text = await response.text();
     throw new ApiError(response.status, this.errorDetail(response.status, text));
+  }
+}
+
+/** Anonymous API client for candidate-facing public endpoints. */
+export class PublicApi extends ApiClient {
+  public constructor(baseUrl = "") {
+    super(baseUrl, () => null);
   }
 }

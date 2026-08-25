@@ -157,6 +157,7 @@ export function PositionsPage() {
     onSuccess: async () => {
       resetForm();
       await queryClient.invalidateQueries({ queryKey: ["positions"] });
+      await queryClient.invalidateQueries({ queryKey: ["positions", "stats"] });
     },
     onError: (err) => {
       if (err instanceof ApiError) {

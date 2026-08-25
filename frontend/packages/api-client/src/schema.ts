@@ -80,6 +80,36 @@ export interface components {
       jobDescription: string;
       criteria: components["schemas"]["PositionCriterion"][];
       createdAt: string;
+      slug?: string | null;
+      stats?: components["schemas"]["PositionStats"] | null;
+    };
+    PositionStats: {
+      totalCandidates: number;
+      evaluatedCount: number;
+      pendingCount: number;
+      failedCount: number;
+      reviewPendingCount: number;
+    };
+    PublicJob: {
+      id: string;
+      slug: string;
+      title: string;
+      jobDescription: string;
+      criteria: components["schemas"]["PositionCriterion"][];
+      isOpen: boolean;
+    };
+    PublicApplicationResponse: {
+      applicationId: string;
+      referenceNumber: string;
+      documentId: string;
+      uploadUrl: string;
+      uploadMethod: string;
+    };
+    PublicApplicationStatus: {
+      referenceNumber: string;
+      applicationId: string;
+      stage: string;
+      requiresReupload: boolean;
     };
     UpsertPosition: {
       title: string;
@@ -94,6 +124,10 @@ export interface components {
       overallScore: number | null;
       status: string;
       createdAt: string;
+      coverageRatio?: number | null;
+      recommendedAction?: string | null;
+      evaluationStatus?: string | null;
+      riskFlagCount?: number;
     };
     CreateCandidate: {
       displayName: string;

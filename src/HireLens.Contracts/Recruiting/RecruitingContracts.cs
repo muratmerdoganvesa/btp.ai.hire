@@ -11,6 +11,13 @@ public sealed record PositionDto(
     string? Slug = null,
     PositionStatsDto? Stats = null);
 
+public interface IPositionStatsPort
+{
+    Task<IReadOnlyDictionary<Guid, PositionStatsDto>> GetForPositionsAsync(
+        IReadOnlyList<Guid> positionIds,
+        CancellationToken cancellationToken);
+}
+
 public sealed record PositionStatsDto(
     int TotalCandidates,
     int EvaluatedCount,

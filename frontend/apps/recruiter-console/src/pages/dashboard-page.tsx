@@ -18,6 +18,7 @@ export function DashboardPage() {
     mutationFn: () => api.seedDemo(),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["positions"] });
+      await queryClient.invalidateQueries({ queryKey: ["positions", "stats"] });
       await queryClient.invalidateQueries({ queryKey: ["funnel"] });
     }
   });
@@ -29,16 +30,9 @@ export function DashboardPage() {
   });
 
   const positions = useQuery({
-    queryKey: ["positions"],
-    queryFn: () => api.listPositions(),
+    queryKey: ["positions", "stats"],
+    queryFn: () => api.listPositions(true),
     enabled: Boolean(session)
-  });
-
-  const funnel = useQuery({
-    queryKey: ["funnel"],
-    queryFn: () => api.getFunnel(),
-    enabled: Boolean(session),
-    retry: false
   });
 
   if (!session) {
@@ -89,17 +83,25 @@ export function DashboardPage() {
         </Button>
       </header>
 
-      <section data-tour="tour-funnel" className="hl-rise-delay grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <Metric label={t("dashboard.openReqs")} value={String(funnel.data?.positions ?? list.length)} />
-        <Metric label={t("dashboard.funnelCandidates")} value={String(funnel.data?.candidates ?? "—")} />
-        <Metric label={t("dashboard.funnelEvaluations")} value={String(funnel.data?.evaluations ?? "—")} />
-        <Metric label={t("dashboard.funnelInterviews")} value={String(funnel.data?.interviews ?? "—")} />
-        <Metric label={t("dashboard.funnelDecisions")} value={String(funnel.data?.decisions ?? "—")} />
+      <section className="hl-rise-delay grid items-start gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Metric label={t("dashboard.openReqs")} value={String(list.length)} />
+        <Metric
+          label={t("dashboard.funnelCandidates")}
+          value={String(list.reduce((sum, p) => sum + (p.stats?.totalCandidates ?? 0), 0))}
+        />
+        <Metric
+          label={t("dashboard.funnelEvaluations")}
+          value={String(list.reduce((sum, p) => sum + (p.stats?.evaluatedCount ?? 0), 0))}
+        />
+        <Metric
+          label={t("dashboard.reviewPending")}
+          value={String(list.reduce((sum, p) => sum + (p.stats?.reviewPendingCount ?? 0), 0))}
+        />
       </section>
 
-      <Card data-tour="tour-recent">
+      <Card>
         <CardHeader className="flex-row items-center justify-between gap-3">
-          <CardTitle>{t("dashboard.recent")}</CardTitle>
+          <CardTitle>{t("dashboard.jobList")}</CardTitle>
           <Link to="/positions" className="text-sm font-semibold text-brand-6 hover:text-brand-7">
             {t("dashboard.openPositions")}
           </Link>
@@ -114,12 +116,14 @@ export function DashboardPage() {
             </div>
           ) : (
             <ul className="divide-y divide-border">
-              {list.slice(0, 5).map((position) => (
-                <li key={position.id} className="flex items-center justify-between gap-4 py-3.5 first:pt-0 last:pb-0">
+              {list.map((position) => (
+                <li key={position.id} className="flex flex-wrap items-center justify-between gap-4 py-3.5">
                   <div className="min-w-0">
                     <p className="truncate font-semibold tracking-tight">{position.title}</p>
-                    <p className="mt-0.5 truncate text-sm text-muted">
-                      {position.criteria.map((criterion) => `${criterion.name} ${criterion.weight}`).join(" · ")}
+                    <p className="mt-0.5 text-sm text-muted">
+                      {position.stats?.totalCandidates ?? 0} {t("dashboard.funnelCandidates")} ·{" "}
+                      {position.stats?.evaluatedCount ?? 0} {t("dashboard.funnelEvaluations")} ·{" "}
+                      {position.stats?.pendingCount ?? 0} {t("dashboard.pending")}
                     </p>
                   </div>
                   <Link
