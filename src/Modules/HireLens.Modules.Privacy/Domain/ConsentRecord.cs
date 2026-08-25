@@ -14,7 +14,7 @@ public sealed class ConsentRecord : ITenantEntity
 
     public string? TextVersion { get; private set; }
 
-    public string? ClientIp { get; private set; }
+    public string? RemoteIp { get; private set; }
 
     public DateTimeOffset AcceptedAt { get; private set; }
 
@@ -24,7 +24,7 @@ public sealed class ConsentRecord : ITenantEntity
         string purpose,
         DateTimeOffset now,
         string? textVersion = null,
-        string? clientIp = null) =>
+        string? remoteIp = null) =>
         new()
         {
             Id = Guid.NewGuid(),
@@ -32,7 +32,7 @@ public sealed class ConsentRecord : ITenantEntity
             CandidateId = candidateId,
             Purpose = purpose,
             TextVersion = textVersion,
-            ClientIp = clientIp,
+            RemoteIp = remoteIp,
             AcceptedAt = now
         };
 }

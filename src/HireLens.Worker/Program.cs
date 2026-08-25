@@ -80,6 +80,7 @@ if (!app.Environment.IsEnvironment("Testing")
         await SchemaBootstrap.EnsureApplicationTablesAsync(db, logger);
         await SchemaBootstrap.EnsureAuditTablesAsync(db, logger);
         await SchemaBootstrap.EnsureDocumentPipelineTablesAsync(db, logger);
+        await SchemaBootstrap.EnsurePrivacyTablesAsync(db, logger);
         await SchemaBootstrap.EnsureEvaluationAuditColumnsAsync(db, logger);
     }
     catch (Exception ex)

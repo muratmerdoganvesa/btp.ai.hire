@@ -40,12 +40,12 @@ public sealed class PrivacyService(HireLensDbContext db, ITenantContext tenant, 
                 existing.Purpose,
                 existing.AcceptedAt,
                 existing.TextVersion,
-                existing.ClientIp);
+                existing.RemoteIp);
         }
 
         var row = ConsentRecord.Grant(tenant.TenantId, candidateId, purpose, clock.UtcNow, textVersion, clientIp);
         db.Set<ConsentRecord>().Add(row);
         await db.SaveChangesAsync(cancellationToken);
-        return new ConsentRecordDto(row.Id, row.CandidateId, row.Purpose, row.AcceptedAt, row.TextVersion, row.ClientIp);
+        return new ConsentRecordDto(row.Id, row.CandidateId, row.Purpose, row.AcceptedAt, row.TextVersion, row.RemoteIp);
     }
 }

@@ -6,7 +6,7 @@ public sealed record ConsentRecordDto(
     string Purpose,
     DateTimeOffset AcceptedAt,
     string? TextVersion = null,
-    string? ClientIp = null);
+    string? RemoteIp = null);
 
 public interface IPrivacyConsentPort
 {

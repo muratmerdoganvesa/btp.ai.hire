@@ -437,6 +437,62 @@ public static class SchemaBootstrap
         logger.LogInformation("HireLens document pipeline tables ready.");
     }
 
+    public static async Task EnsurePrivacyTablesAsync(
+        HireLensDbContext db,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        if (db.Database.IsInMemory())
+        {
+            return;
+        }
+
+        if (!await TableExistsAsync(db, "CONSENTRECORDS", cancellationToken))
+        {
+            logger.LogWarning("Missing privacy table (ConsentRecords). Creating.");
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """
+                CREATE TABLE "ConsentRecords" (
+                    "Id" NVARCHAR(36) NOT NULL CONSTRAINT "PK_ConsentRecords" PRIMARY KEY,
+                    "TenantId" NVARCHAR(36) NOT NULL,
+                    "CandidateId" NVARCHAR(36) NOT NULL,
+                    "Purpose" NVARCHAR(64) NOT NULL,
+                    "TextVersion" NVARCHAR(32) NULL,
+                    "RemoteIp" NVARCHAR(64) NULL,
+                    "AcceptedAt" NVARCHAR(48) NOT NULL
+                )
+                """,
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE UNIQUE INDEX "IX_ConsentRecords_TenantId_Id" ON "ConsentRecords" ("TenantId", "Id")""",
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE INDEX "IX_ConsentRecords_CandidateId_Purpose" ON "ConsentRecords" ("CandidateId", "Purpose")""",
+                cancellationToken);
+        }
+        else
+        {
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """ALTER TABLE "ConsentRecords" ADD ("TextVersion" NVARCHAR(32) NULL)""",
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """ALTER TABLE "ConsentRecords" ADD ("RemoteIp" NVARCHAR(64) NULL)""",
+                cancellationToken);
+        }
+
+        logger.LogInformation("HireLens privacy tables ready.");
+    }
+
     /// <summary>
     /// Adds CV-evaluation audit columns introduced by the AI Core scoring path.
     /// Safe to re-run; ignores "already exists" / duplicate column errors.
