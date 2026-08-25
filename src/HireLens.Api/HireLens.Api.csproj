@@ -1,7 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <RootNamespace>HireLens.Api</RootNamespace>
     <AssemblyName>HireLens.Api</AssemblyName>
+    <UserSecretsId>39427e65-6c71-4bcf-b8a0-9dbff2dc4c8e</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />

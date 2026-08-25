@@ -21,6 +21,8 @@ artifacts/
 !.env.example
 **/appsettings.*.local.json
 secrets.json
+aicore-service-key.json
+**/aicore-service-key.json
 **/nupkg/
 
 # Frontend

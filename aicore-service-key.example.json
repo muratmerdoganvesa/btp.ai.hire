@@ -1,0 +1,8 @@
+{
+  "clientid": "REPLACE_ME",
+  "clientsecret": "REPLACE_ME",
+  "url": "https://dev-2z4ga5d8.authentication.eu20.hana.ondemand.com",
+  "serviceurls": {
+    "AI_API_URL": "https://api.ai.prod-eu20.westeurope.azure.ml.hana.ondemand.com"
+  }
+}

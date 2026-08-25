@@ -12,6 +12,9 @@ public sealed class SapAiCoreOptions
     /// <summary>Full AI Core service-key JSON. Preferred over discrete ClientId/Secret fields.</summary>
     public string? ServiceKeyJson { get; set; }
 
+    /// <summary>Optional path to a gitignored aicore-service-key.json (local dev).</summary>
+    public string? ServiceKeyPath { get; set; }
+
     public string? AiApiUrl { get; set; }
 
     public string? XsuaaUrl { get; set; }
