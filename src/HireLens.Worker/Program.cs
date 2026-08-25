@@ -67,14 +67,23 @@ builder.Services.AddHangfireServer();
 
 var app = builder.Build();
 
+// Shared HANA schema — same bootstrap as hirelens-api; never crash the worker process.
 if (!app.Environment.IsEnvironment("Testing")
-    && (app.Environment.IsDevelopment()
+    && (HanaConnection.UsesInMemory(app.Configuration, app.Environment)
         || !string.IsNullOrWhiteSpace(HanaConnection.Resolve(app.Configuration))))
 {
-    await using var scope = app.Services.CreateAsyncScope();
-    var db = scope.ServiceProvider.GetRequiredService<HireLensDbContext>();
-    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("SchemaBootstrap");
-    await SchemaBootstrap.EnsureApplicationTablesAsync(db, logger);
+    try
+    {
+        await using var scope = app.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<HireLensDbContext>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("SchemaBootstrap");
+        await SchemaBootstrap.EnsureApplicationTablesAsync(db, logger);
+        await SchemaBootstrap.EnsureEvaluationAuditColumnsAsync(db, logger);
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "Schema bootstrap failed; worker will start and report DB via /health/ready.");
+    }
 }
 
 app.UseSerilogRequestLogging();
