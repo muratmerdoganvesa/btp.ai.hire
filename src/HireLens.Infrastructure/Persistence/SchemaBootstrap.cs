@@ -202,6 +202,207 @@ public static class SchemaBootstrap
     }
 
     /// <summary>
+    /// CV upload, parse jobs, matching scores, and parse cache tables required after Positions exist.
+    /// </summary>
+    public static async Task EnsureDocumentPipelineTablesAsync(
+        HireLensDbContext db,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        if (db.Database.IsInMemory())
+        {
+            return;
+        }
+
+        if (await TableExistsAsync(db, "CVDOCUMENTS", cancellationToken)
+            && await TableExistsAsync(db, "ANALYSISJOBS", cancellationToken)
+            && await TableExistsAsync(db, "EVALUATIONS", cancellationToken)
+            && await TableExistsAsync(db, "CRITERIONSCORES", cancellationToken)
+            && await TableExistsAsync(db, "EVIDENCEITEMS", cancellationToken)
+            && await TableExistsAsync(db, "PARSECACHES", cancellationToken))
+        {
+            logger.LogInformation("HireLens document pipeline tables present.");
+            return;
+        }
+
+        logger.LogWarning("Missing document/matching tables; creating minimal pipeline schema.");
+
+        if (!await TableExistsAsync(db, "CVDOCUMENTS", cancellationToken))
+        {
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """
+                CREATE TABLE "CvDocuments" (
+                    "Id" NVARCHAR(36) NOT NULL CONSTRAINT "PK_CvDocuments" PRIMARY KEY,
+                    "TenantId" NVARCHAR(36) NOT NULL,
+                    "CandidateId" NVARCHAR(36) NOT NULL,
+                    "PositionId" NVARCHAR(36) NOT NULL,
+                    "ObjectKey" NVARCHAR(512) NOT NULL,
+                    "ContentType" NVARCHAR(128) NOT NULL,
+                    "FileName" NVARCHAR(256) NOT NULL,
+                    "SizeBytes" BIGINT NOT NULL,
+                    "Status" NVARCHAR(32) NOT NULL,
+                    "MaskedText" NCLOB NULL,
+                    "PromptVersion" NVARCHAR(32) NULL,
+                    "CreatedAt" NVARCHAR(48) NOT NULL
+                )
+                """,
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE UNIQUE INDEX "IX_CvDocuments_TenantId_Id" ON "CvDocuments" ("TenantId", "Id")""",
+                cancellationToken);
+        }
+
+        if (!await TableExistsAsync(db, "ANALYSISJOBS", cancellationToken))
+        {
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """
+                CREATE TABLE "AnalysisJobs" (
+                    "Id" NVARCHAR(36) NOT NULL CONSTRAINT "PK_AnalysisJobs" PRIMARY KEY,
+                    "TenantId" NVARCHAR(36) NOT NULL,
+                    "Kind" NVARCHAR(32) NOT NULL,
+                    "Status" NVARCHAR(32) NOT NULL,
+                    "Error" NVARCHAR(1000) NULL,
+                    "DocumentId" NVARCHAR(36) NULL,
+                    "UpdatedAt" NVARCHAR(48) NOT NULL
+                )
+                """,
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE UNIQUE INDEX "IX_AnalysisJobs_TenantId_Id" ON "AnalysisJobs" ("TenantId", "Id")""",
+                cancellationToken);
+        }
+
+        if (!await TableExistsAsync(db, "EVALUATIONS", cancellationToken))
+        {
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """
+                CREATE TABLE "Evaluations" (
+                    "Id" NVARCHAR(36) NOT NULL CONSTRAINT "PK_Evaluations" PRIMARY KEY,
+                    "TenantId" NVARCHAR(36) NOT NULL,
+                    "PositionId" NVARCHAR(36) NOT NULL,
+                    "CandidateId" NVARCHAR(36) NOT NULL,
+                    "DocumentId" NVARCHAR(36) NOT NULL,
+                    "OverallScore" INT NULL,
+                    "CvScore" INT NULL,
+                    "InterviewScore" INT NULL,
+                    "CoverageRatio" DECIMAL(9,4) DEFAULT 0 NOT NULL,
+                    "Status" NVARCHAR(32) NOT NULL,
+                    "PromptVersion" NVARCHAR(32) NOT NULL,
+                    "RubricVersion" NVARCHAR(64) DEFAULT '' NOT NULL,
+                    "ModelName" NVARCHAR(128) DEFAULT '' NOT NULL,
+                    "ModelVersion" NVARCHAR(32) DEFAULT '' NOT NULL,
+                    "FailureStage" NVARCHAR(64) NULL,
+                    "FailureMessage" NVARCHAR(1024) NULL,
+                    "Summary" NCLOB NULL,
+                    "FollowUpsJson" NCLOB NULL,
+                    "NeedsVerificationJson" NCLOB NULL,
+                    "CreatedAt" NVARCHAR(48) NOT NULL,
+                    "ExecutedAt" NVARCHAR(48) NULL
+                )
+                """,
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE UNIQUE INDEX "IX_Evaluations_TenantId_Id" ON "Evaluations" ("TenantId", "Id")""",
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE INDEX "IX_Evaluations_TenantId_CandidateId" ON "Evaluations" ("TenantId", "CandidateId")""",
+                cancellationToken);
+        }
+
+        if (!await TableExistsAsync(db, "CRITERIONSCORES", cancellationToken))
+        {
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """
+                CREATE TABLE "CriterionScores" (
+                    "Id" NVARCHAR(36) NOT NULL CONSTRAINT "PK_CriterionScores" PRIMARY KEY,
+                    "TenantId" NVARCHAR(36) NOT NULL,
+                    "EvaluationId" NVARCHAR(36) NOT NULL,
+                    "CriterionId" NVARCHAR(36) NOT NULL,
+                    "Score" INT NULL,
+                    "Weight" INT NOT NULL,
+                    "Confidence" DOUBLE NOT NULL,
+                    "EvidenceStatus" NVARCHAR(24) NOT NULL
+                )
+                """,
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE UNIQUE INDEX "IX_CriterionScores_TenantId_Id" ON "CriterionScores" ("TenantId", "Id")""",
+                cancellationToken);
+        }
+
+        if (!await TableExistsAsync(db, "EVIDENCEITEMS", cancellationToken))
+        {
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """
+                CREATE TABLE "EvidenceItems" (
+                    "Id" NVARCHAR(36) NOT NULL CONSTRAINT "PK_EvidenceItems" PRIMARY KEY,
+                    "TenantId" NVARCHAR(36) NOT NULL,
+                    "CriterionScoreId" NVARCHAR(36) NOT NULL,
+                    "Source" NVARCHAR(64) NOT NULL,
+                    "Quote" NVARCHAR(2000) NOT NULL,
+                    "StartOffset" INT NOT NULL,
+                    "EndOffset" INT NOT NULL
+                )
+                """,
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE UNIQUE INDEX "IX_EvidenceItems_TenantId_Id" ON "EvidenceItems" ("TenantId", "Id")""",
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE INDEX "IX_EvidenceItems_CriterionScoreId" ON "EvidenceItems" ("CriterionScoreId")""",
+                cancellationToken);
+        }
+
+        if (!await TableExistsAsync(db, "PARSECACHES", cancellationToken))
+        {
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """
+                CREATE TABLE "ParseCaches" (
+                    "Id" NVARCHAR(36) NOT NULL CONSTRAINT "PK_ParseCaches" PRIMARY KEY,
+                    "TenantId" NVARCHAR(36) NOT NULL,
+                    "ContentHash" NVARCHAR(64) NOT NULL,
+                    "MaskedText" NCLOB NOT NULL,
+                    "CachedAt" NVARCHAR(48) NOT NULL
+                )
+                """,
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE UNIQUE INDEX "IX_ParseCaches_TenantId_Id" ON "ParseCaches" ("TenantId", "Id")""",
+                cancellationToken);
+        }
+
+        logger.LogInformation("HireLens document pipeline tables ready.");
+    }
+
+    /// <summary>
     /// Adds CV-evaluation audit columns introduced by the AI Core scoring path.
     /// Safe to re-run; ignores "already exists" / duplicate column errors.
     /// </summary>

@@ -53,7 +53,7 @@ public interface IEvaluationBlendPort
 
 public interface IAnalysisJobs
 {
-    string EnqueueDocumentParse(Guid tenantId, Guid documentId);
+    string EnqueueDocumentParse(Guid tenantId, Guid documentId, Guid jobId);
 
     string EnqueueMatching(Guid tenantId, Guid documentId);
 

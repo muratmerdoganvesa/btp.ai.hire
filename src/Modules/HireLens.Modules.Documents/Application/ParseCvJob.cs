@@ -9,6 +9,7 @@ using HireLens.Infrastructure.Storage;
 using HireLens.Modules.Documents.Domain;
 using HireLens.SharedKernel;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace HireLens.Modules.Documents.Application;
 
@@ -20,12 +21,13 @@ public sealed class ParseCvJob(
     IAiGateway gateway,
     IAnalysisJobs jobs,
     IParseCache parseCache,
-    IClock clock)
+    IClock clock,
+    ILogger<ParseCvJob> logger)
 {
-    public async Task RunAsync(Guid documentId, CancellationToken cancellationToken)
+    public async Task RunAsync(Guid documentId, Guid jobId, CancellationToken cancellationToken)
     {
         var document = await db.Set<CvDocument>().SingleOrDefaultAsync(d => d.Id == documentId, cancellationToken);
-        var job = await db.Set<AnalysisJob>().SingleOrDefaultAsync(j => j.DocumentId == documentId && j.Kind == "parse", cancellationToken);
+        var job = await db.Set<AnalysisJob>().SingleOrDefaultAsync(j => j.Id == jobId, cancellationToken);
         if (document is null || job is null)
         {
             return;
@@ -69,7 +71,16 @@ public sealed class ParseCvJob(
 
             job.Succeed(clock.UtcNow);
             await db.SaveChangesAsync(cancellationToken);
-            jobs.EnqueueMatching(document.TenantId, document.Id);
+
+            try
+            {
+                jobs.EnqueueMatching(document.TenantId, document.Id);
+            }
+            catch (Exception matchEx)
+            {
+                // Parse succeeded; matching runs in a separate job path and must not fail parse.
+                logger.LogWarning(matchEx, "Matching enqueue failed for document {DocumentId}", documentId);
+            }
 
             // Structured LLM extraction is advisory; never block matching on it.
             try

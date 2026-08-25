@@ -79,7 +79,7 @@ public sealed class DocumentService(
         var job = AnalysisJob.Queue(tenant.TenantId, "parse", document.Id, clock.UtcNow);
         db.Set<AnalysisJob>().Add(job);
         await db.SaveChangesAsync(cancellationToken);
-        jobs.EnqueueDocumentParse(tenant.TenantId, document.Id);
+        jobs.EnqueueDocumentParse(tenant.TenantId, document.Id, job.Id);
         return Result.Success(ToDto(job));
     }
 

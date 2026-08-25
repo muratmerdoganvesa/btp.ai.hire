@@ -34,33 +34,46 @@ public sealed class MatchingJob(
     public async Task RunAsync(Guid documentId, CancellationToken cancellationToken)
     {
         RepositoryGuard.RequireTenant(tenant);
-        var text = await documents.GetMaskedTextAsync(documentId, cancellationToken);
-        if (text is null)
+        try
         {
-            return;
-        }
-
-        var position = await positions.GetAsync(text.PositionId, cancellationToken);
-        if (position is null)
-        {
-            return;
-        }
-
-        var evaluation = await db.Set<Evaluation>()
-            .SingleOrDefaultAsync(e => e.DocumentId == documentId, cancellationToken)
-            ?? Evaluation.Start(tenant.TenantId, text.PositionId, text.CandidateId, documentId, clock.UtcNow);
-
-        if (evaluation.Status is "pending" or "Pending" or "queued")
-        {
-            if (db.Entry(evaluation).State == EntityState.Detached)
+            var text = await documents.GetMaskedTextAsync(documentId, cancellationToken);
+            if (text is null)
             {
-                db.Set<Evaluation>().Add(evaluation);
+                return;
             }
 
-            await db.SaveChangesAsync(cancellationToken);
-        }
+            var position = await positions.GetAsync(text.PositionId, cancellationToken);
+            if (position is null)
+            {
+                return;
+            }
 
-        await RunEvaluationCoreAsync(evaluation, text.MaskedText, position, cancellationToken);
+            var evaluation = await db.Set<Evaluation>()
+                .SingleOrDefaultAsync(e => e.DocumentId == documentId, cancellationToken)
+                ?? Evaluation.Start(tenant.TenantId, text.PositionId, text.CandidateId, documentId, clock.UtcNow);
+
+            if (evaluation.Status is "pending" or "Pending" or "queued")
+            {
+                if (db.Entry(evaluation).State == EntityState.Detached)
+                {
+                    db.Set<Evaluation>().Add(evaluation);
+                }
+
+                await db.SaveChangesAsync(cancellationToken);
+            }
+
+            await RunEvaluationCoreAsync(evaluation, text.MaskedText, position, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            var evaluation = await db.Set<Evaluation>()
+                .SingleOrDefaultAsync(e => e.DocumentId == documentId, cancellationToken);
+            if (evaluation is not null)
+            {
+                evaluation.Fail("matching", ex.Message, clock.UtcNow);
+                await db.SaveChangesAsync(cancellationToken);
+            }
+        }
     }
 
     public async Task RunEvaluationAsync(Guid evaluationId, CancellationToken cancellationToken)

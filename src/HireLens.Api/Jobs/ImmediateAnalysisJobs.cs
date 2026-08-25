@@ -11,10 +11,10 @@ namespace HireLens.Api.Jobs;
 /// </summary>
 public sealed class ImmediateAnalysisJobs(IServiceScopeFactory scopes) : IAnalysisJobs
 {
-    public string EnqueueDocumentParse(Guid tenantId, Guid documentId)
+    public string EnqueueDocumentParse(Guid tenantId, Guid documentId, Guid jobId)
     {
-        Run(tenantId, (sp, ct) => sp.GetRequiredService<ParseCvJob>().RunAsync(documentId, ct));
-        return documentId.ToString("N");
+        Run(tenantId, (sp, ct) => sp.GetRequiredService<ParseCvJob>().RunAsync(documentId, jobId, ct));
+        return jobId.ToString("N");
     }
 
     public string EnqueueMatching(Guid tenantId, Guid documentId)

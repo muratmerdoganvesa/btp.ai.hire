@@ -14,7 +14,7 @@ async function waitForJob(jobId: string, onTick: (status: string) => void): Prom
       return;
     }
     if (status === "failed" || status === "error") {
-      throw new Error(job.error ?? "job_failed");
+      throw new ApiError(500, job.error ?? "job_failed");
     }
     await new Promise((resolve) => setTimeout(resolve, 1500));
   }
@@ -58,7 +58,9 @@ export function CvUploadZone({
       const message = err instanceof Error ? err.message : "";
       if (/scanned|could not be extracted|text could not/i.test(message)) {
         setError(t("upload.scanned"));
-      } else if (err instanceof ApiError && message) {
+      } else       if (err instanceof ApiError && message) {
+        setError(`${t("errors.generic")} (${message.replace(/^http_\d+:/, "")})`);
+      } else if (message) {
         setError(`${t("errors.generic")} (${message})`);
       } else {
         setError(t("errors.generic"));
