@@ -8,7 +8,7 @@ namespace HireLens.Modules.Recruiting.Application;
 
 public interface IPositionService
 {
-    Task<Result<IReadOnlyList<PositionDto>>> ListAsync(CancellationToken cancellationToken);
+    Task<Result<IReadOnlyList<PositionDto>>> ListAsync(bool includeStats, CancellationToken cancellationToken);
 
     Task<Result<PositionDto>> GetAsync(Guid id, CancellationToken cancellationToken);
 
@@ -22,11 +22,37 @@ public sealed class PositionService(
     ITenantContext tenant,
     IClock clock) : IPositionService, IPositionReadPort, IPositionWritePort
 {
-    public async Task<Result<IReadOnlyList<PositionDto>>> ListAsync(CancellationToken cancellationToken)
+    public async Task<Result<IReadOnlyList<PositionDto>>> ListAsync(bool includeStats, CancellationToken cancellationToken)
     {
         RepositoryGuard.RequireTenant(tenant);
         var rows = await db.Set<Position>().ToListAsync(cancellationToken);
-        return Result.Success<IReadOnlyList<PositionDto>>(rows.Select(ToDto).ToList());
+        if (!includeStats)
+        {
+            return Result.Success<IReadOnlyList<PositionDto>>(rows.Select(p => ToDto(p)).ToList());
+        }
+
+        var positionIds = rows.Select(p => p.Id).ToList();
+        var candidates = await db.Set<HireLens.Modules.Candidate.Domain.Candidate>()
+            .Where(c => positionIds.Contains(c.PositionId))
+            .ToListAsync(cancellationToken);
+        var evaluations = await db.Set<HireLens.Modules.Matching.Domain.Evaluation>()
+            .Where(e => positionIds.Contains(e.PositionId))
+            .ToListAsync(cancellationToken);
+
+        var dtos = rows.Select(p =>
+        {
+            var posCandidates = candidates.Where(c => c.PositionId == p.Id).ToList();
+            var posEvals = evaluations.Where(e => e.PositionId == p.Id).ToList();
+            var stats = new PositionStatsDto(
+                posCandidates.Count,
+                posEvals.Count(e => e.Status is "completed"),
+                posCandidates.Count(c => c.Status is "received" or "analyzing"),
+                posEvals.Count(e => e.Status is "failed"),
+                posEvals.Count(e => e.Status is "completed" && e.CoverageRatio < 0.5m));
+            return ToDto(p, stats);
+        }).ToList();
+
+        return Result.Success<IReadOnlyList<PositionDto>>(dtos);
     }
 
     public async Task<Result<PositionDto>> GetAsync(Guid id, CancellationToken cancellationToken)
@@ -90,11 +116,15 @@ public sealed class PositionService(
             : new PositionSnapshot(result.Value.Id, result.Value.Title, result.Value.JobDescription, result.Value.Criteria);
     }
 
-    private static PositionDto ToDto(Position position) =>
+    private static PositionDto ToDto(Position position, PositionStatsDto? stats = null) =>
         new(
             position.Id,
             position.Title,
             position.JobDescription,
             position.Criteria.Select(c => new PositionCriterionDto(c.Id, c.Name, c.Description, c.Weight)).ToList(),
-            position.CreatedAt);
+            position.CreatedAt,
+            string.IsNullOrWhiteSpace(position.Slug)
+                ? Position.BuildSlug(position.Title, position.Id)
+                : position.Slug,
+            stats);
 }

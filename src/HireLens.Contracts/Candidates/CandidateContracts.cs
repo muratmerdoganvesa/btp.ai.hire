@@ -7,7 +7,11 @@ public sealed record CandidateDto(
     string? OverallScoreLabel,
     int? OverallScore,
     string Status,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    decimal? CoverageRatio = null,
+    string? RecommendedAction = null,
+    string? EvaluationStatus = null,
+    int RiskFlagCount = 0);
 
 public sealed record CreateCandidateRequest(string DisplayName);
 

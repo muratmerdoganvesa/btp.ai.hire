@@ -12,7 +12,8 @@ public static class RecruitingEndpoints
     public static IEndpointRouteBuilder MapRecruitingEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/positions").WithTags("Recruiting").RequireAuthorization();
-        group.MapGet("/", async (IPositionService svc, CancellationToken ct) => HttpResults.From(await svc.ListAsync(ct)));
+        group.MapGet("/", async (bool? includeStats, IPositionService svc, CancellationToken ct) =>
+            HttpResults.From(await svc.ListAsync(includeStats ?? false, ct)));
         group.MapGet("/{id:guid}", async (Guid id, IPositionService svc, CancellationToken ct) => HttpResults.From(await svc.GetAsync(id, ct)));
         group.MapPost("/", async (UpsertPositionRequest request, IPositionService svc, CancellationToken ct) =>
         {
@@ -23,6 +24,10 @@ public static class RecruitingEndpoints
         });
         group.MapPut("/{id:guid}", async (Guid id, UpsertPositionRequest request, IPositionService svc, CancellationToken ct) =>
             HttpResults.From(await svc.UpdateAsync(id, request, ct)));
+
+        var jobs = endpoints.MapGroup("/api/jobs").WithTags("Recruiting").RequireAuthorization();
+        jobs.MapGet("/", async (bool? includeStats, IPositionService svc, CancellationToken ct) =>
+            HttpResults.From(await svc.ListAsync(includeStats ?? false, ct)));
         return endpoints;
     }
 }

@@ -12,15 +12,27 @@ public sealed class ConsentRecord : ITenantEntity
 
     public string Purpose { get; private set; } = string.Empty;
 
+    public string? TextVersion { get; private set; }
+
+    public string? ClientIp { get; private set; }
+
     public DateTimeOffset AcceptedAt { get; private set; }
 
-    public static ConsentRecord Grant(Guid tenantId, Guid candidateId, string purpose, DateTimeOffset now) =>
+    public static ConsentRecord Grant(
+        Guid tenantId,
+        Guid candidateId,
+        string purpose,
+        DateTimeOffset now,
+        string? textVersion = null,
+        string? clientIp = null) =>
         new()
         {
             Id = Guid.NewGuid(),
             TenantId = tenantId,
             CandidateId = candidateId,
             Purpose = purpose,
+            TextVersion = textVersion,
+            ClientIp = clientIp,
             AcceptedAt = now
         };
 }

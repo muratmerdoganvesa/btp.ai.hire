@@ -27,6 +27,7 @@ public static class SchemaBootstrap
 
         if (positionsExists && criteriaExists)
         {
+            await EnsurePositionSlugColumnAsync(db, logger, cancellationToken);
             logger.LogInformation("HireLens recruiting tables present (Positions, PositionCriteria).");
             return;
         }
@@ -47,6 +48,7 @@ public static class SchemaBootstrap
                     "TenantId" NVARCHAR(36) NOT NULL,
                     "Title" NVARCHAR(200) NOT NULL,
                     "JobDescription" NCLOB NOT NULL,
+                    "Slug" NVARCHAR(220) DEFAULT '' NOT NULL,
                     "CreatedAt" NVARCHAR(48) NOT NULL
                 )
                 """,
@@ -96,6 +98,39 @@ public static class SchemaBootstrap
         }
 
         logger.LogInformation("HireLens recruiting tables ready.");
+        await EnsurePositionSlugColumnAsync(db, logger, cancellationToken);
+    }
+
+    private static async Task EnsurePositionSlugColumnAsync(
+        HireLensDbContext db,
+        ILogger logger,
+        CancellationToken cancellationToken)
+    {
+        if (db.Database.IsInMemory() || !await TableExistsAsync(db, "POSITIONS", cancellationToken))
+        {
+            return;
+        }
+
+        await ExecuteIgnoreDuplicateAsync(
+            db,
+            logger,
+            """ALTER TABLE "Positions" ADD ("Slug" NVARCHAR(220) DEFAULT '' NOT NULL)""",
+            cancellationToken);
+        await ExecuteIgnoreDuplicateAsync(
+            db,
+            logger,
+            """CREATE UNIQUE INDEX "IX_Positions_TenantId_Slug" ON "Positions" ("TenantId", "Slug")""",
+            cancellationToken);
+
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            UPDATE "Positions"
+            SET "Slug" = LOWER(REPLACE("Title", ' ', '-')) || '-' || SUBSTRING("Id", 1, 8)
+            WHERE "Slug" IS NULL OR "Slug" = ''
+            """,
+            cancellationToken);
+
+        logger.LogInformation("Position slug column ensured.");
     }
 
     /// <summary>

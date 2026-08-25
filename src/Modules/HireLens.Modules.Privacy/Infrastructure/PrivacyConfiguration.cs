@@ -11,5 +11,7 @@ public sealed class ConsentRecordConfiguration : IEntityTypeConfiguration<Consen
         builder.ToTable("ConsentRecords");
         builder.HasKey(c => c.Id);
         builder.Property(c => c.Purpose).HasMaxLength(64).IsRequired();
+        builder.Property(c => c.TextVersion).HasMaxLength(32);
+        builder.Property(c => c.ClientIp).HasMaxLength(64);
     }
 }

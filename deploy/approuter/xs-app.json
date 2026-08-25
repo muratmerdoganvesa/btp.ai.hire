@@ -7,6 +7,13 @@
   },
   "routes": [
     {
+      "source": "^/api/public/(.*)$",
+      "target": "/api/public/$1",
+      "destination": "hirelens-api",
+      "authenticationType": "none",
+      "csrfProtection": false
+    },
+    {
       "source": "^/api/(.*)$",
       "target": "/api/$1",
       "destination": "hirelens-api",

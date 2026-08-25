@@ -19,19 +19,33 @@ public sealed class PrivacyService(HireLensDbContext db, ITenantContext tenant, 
             .AnyAsync(c => c.CandidateId == candidateId && c.Purpose == purpose, cancellationToken);
     }
 
-    public async Task<ConsentRecordDto> GrantAsync(Guid candidateId, string purpose, CancellationToken cancellationToken)
+    public async Task<ConsentRecordDto> GrantAsync(Guid candidateId, string purpose, CancellationToken cancellationToken) =>
+        await GrantAsync(candidateId, purpose, textVersion: null, clientIp: null, cancellationToken);
+
+    public async Task<ConsentRecordDto> GrantAsync(
+        Guid candidateId,
+        string purpose,
+        string? textVersion,
+        string? clientIp,
+        CancellationToken cancellationToken)
     {
         RepositoryGuard.RequireTenant(tenant);
         var existing = await db.Set<ConsentRecord>()
             .SingleOrDefaultAsync(c => c.CandidateId == candidateId && c.Purpose == purpose, cancellationToken);
         if (existing is not null)
         {
-            return new ConsentRecordDto(existing.Id, existing.CandidateId, existing.Purpose, existing.AcceptedAt);
+            return new ConsentRecordDto(
+                existing.Id,
+                existing.CandidateId,
+                existing.Purpose,
+                existing.AcceptedAt,
+                existing.TextVersion,
+                existing.ClientIp);
         }
 
-        var row = ConsentRecord.Grant(tenant.TenantId, candidateId, purpose, clock.UtcNow);
+        var row = ConsentRecord.Grant(tenant.TenantId, candidateId, purpose, clock.UtcNow, textVersion, clientIp);
         db.Set<ConsentRecord>().Add(row);
         await db.SaveChangesAsync(cancellationToken);
-        return new ConsentRecordDto(row.Id, row.CandidateId, row.Purpose, row.AcceptedAt);
+        return new ConsentRecordDto(row.Id, row.CandidateId, row.Purpose, row.AcceptedAt, row.TextVersion, row.ClientIp);
     }
 }

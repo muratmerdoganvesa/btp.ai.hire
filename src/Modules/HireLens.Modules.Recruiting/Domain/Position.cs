@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using HireLens.SharedKernel;
 
 namespace HireLens.Modules.Recruiting.Domain;
@@ -19,6 +20,8 @@ public sealed class Position : ITenantEntity
     public string Title { get; private set; }
 
     public string JobDescription { get; private set; }
+
+    public string Slug { get; private set; } = string.Empty;
 
     public DateTimeOffset CreatedAt { get; private set; }
 
@@ -47,12 +50,14 @@ public sealed class Position : ITenantEntity
             return Result.Failure<Position>(weights.Error);
         }
 
+        var id = Guid.NewGuid();
         var position = new Position
         {
-            Id = Guid.NewGuid(),
+            Id = id,
             TenantId = tenantId,
             Title = title.Trim(),
             JobDescription = jobDescription.Trim(),
+            Slug = BuildSlug(title, id),
             CreatedAt = createdAt
         };
 
@@ -101,6 +106,20 @@ public sealed class Position : ITenantEntity
         Title = title.Trim();
         JobDescription = jobDescription.Trim();
         return Result.Success();
+    }
+
+    internal static string BuildSlug(string title, Guid id)
+    {
+        var normalized = title.Trim().ToLowerInvariant();
+        normalized = Regex.Replace(normalized, @"[^a-z0-9\s-]", string.Empty);
+        normalized = Regex.Replace(normalized, @"\s+", "-");
+        normalized = normalized.Trim('-');
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            normalized = "job";
+        }
+
+        return $"{normalized}-{id.ToString("N")[..8]}";
     }
 
     internal static Result ValidateWeights(IReadOnlyList<int> weights)
