@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using HireLens.AiGateway;
+using HireLens.Api.Application;
 using HireLens.Api.Auth;
 using HireLens.Api.Endpoints;
 using HireLens.Api.Hosting;
@@ -66,6 +67,7 @@ builder.Services.AddSingleton<IObjectStore, LocalObjectStore>();
 builder.Services.AddSingleton<IFileGuard, FileGuard>();
 builder.Services.AddSingleton<IAnalysisJobs, ImmediateAnalysisJobs>();
 builder.Services.AddScoped<IDemoSeedService, DemoSeedService>();
+builder.Services.AddScoped<IPublicApplicationService, PublicApplicationService>();
 builder.Services.AddAiGateway(builder.Configuration);
 builder.Services.AddHireLensAuth(builder.Configuration, builder.Environment);
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -125,6 +127,7 @@ app.MapSeedEndpoints();
 app.MapTenancyModule();
 app.MapIdentityModule();
 app.MapRecruitingModule();
+app.MapPublicRecruitingEndpoints();
 app.MapCandidateModule();
 app.MapDocumentsModule();
 app.MapMatchingModule();

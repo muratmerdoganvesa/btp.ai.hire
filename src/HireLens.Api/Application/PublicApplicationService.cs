@@ -3,14 +3,14 @@ using HireLens.Contracts.Documents;
 using HireLens.Contracts.Privacy;
 using HireLens.Contracts.Recruiting;
 using HireLens.Infrastructure.Persistence;
-using HireLens.Modules.Documents.Domain;
 using HireLens.Modules.Documents.Application;
+using HireLens.Modules.Documents.Domain;
 using HireLens.Modules.Recruiting.Domain;
 using HireLens.SharedKernel;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
-namespace HireLens.Modules.Recruiting.Application;
+namespace HireLens.Api.Application;
 
 public interface IPublicApplicationService
 {

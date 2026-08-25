@@ -1,11 +1,11 @@
+using HireLens.Api.Application;
 using HireLens.Contracts.Recruiting;
 using HireLens.Infrastructure.Hosting;
-using HireLens.Modules.Recruiting.Application;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 
-namespace HireLens.Modules.Recruiting.Endpoints;
+namespace HireLens.Api.Endpoints;
 
 public static class PublicRecruitingEndpoints
 {

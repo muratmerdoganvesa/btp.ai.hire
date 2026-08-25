@@ -11,9 +11,6 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\HireLens.Modules.Candidate\HireLens.Modules.Candidate.csproj" />
-    <ProjectReference Include="..\HireLens.Modules.Documents\HireLens.Modules.Documents.csproj" />
-    <ProjectReference Include="..\HireLens.Modules.Matching\HireLens.Modules.Matching.csproj" />
     <ProjectReference Include="..\..\HireLens.SharedKernel\HireLens.SharedKernel.csproj" />
     <ProjectReference Include="..\..\HireLens.Contracts\HireLens.Contracts.csproj" />
     <ProjectReference Include="..\..\HireLens.Infrastructure\HireLens.Infrastructure.csproj" />

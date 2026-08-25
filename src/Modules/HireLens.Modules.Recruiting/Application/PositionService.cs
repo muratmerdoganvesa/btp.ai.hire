@@ -20,6 +20,7 @@ public interface IPositionService
 public sealed class PositionService(
     HireLensDbContext db,
     ITenantContext tenant,
+    IPositionStatsPort statsPort,
     IClock clock) : IPositionService, IPositionReadPort, IPositionWritePort
 {
     public async Task<Result<IReadOnlyList<PositionDto>>> ListAsync(bool includeStats, CancellationToken cancellationToken)
@@ -32,26 +33,9 @@ public sealed class PositionService(
         }
 
         var positionIds = rows.Select(p => p.Id).ToList();
-        var candidates = await db.Set<HireLens.Modules.Candidate.Domain.Candidate>()
-            .Where(c => positionIds.Contains(c.PositionId))
-            .ToListAsync(cancellationToken);
-        var evaluations = await db.Set<HireLens.Modules.Matching.Domain.Evaluation>()
-            .Where(e => positionIds.Contains(e.PositionId))
-            .ToListAsync(cancellationToken);
+        var stats = await statsPort.GetForPositionsAsync(positionIds, cancellationToken);
 
-        var dtos = rows.Select(p =>
-        {
-            var posCandidates = candidates.Where(c => c.PositionId == p.Id).ToList();
-            var posEvals = evaluations.Where(e => e.PositionId == p.Id).ToList();
-            var stats = new PositionStatsDto(
-                posCandidates.Count,
-                posEvals.Count(e => e.Status is "completed"),
-                posCandidates.Count(c => c.Status is "received" or "analyzing"),
-                posEvals.Count(e => e.Status is "failed"),
-                posEvals.Count(e => e.Status is "completed" && e.CoverageRatio < 0.5m));
-            return ToDto(p, stats);
-        }).ToList();
-
+        var dtos = rows.Select(p => ToDto(p, stats.GetValueOrDefault(p.Id))).ToList();
         return Result.Success<IReadOnlyList<PositionDto>>(dtos);
     }
 

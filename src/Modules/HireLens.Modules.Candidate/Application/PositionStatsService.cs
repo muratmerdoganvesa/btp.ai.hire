@@ -1,4 +1,5 @@
 using HireLens.Contracts.Recruiting;
+using HireLens.Contracts.Recruiting;
 using HireLens.Infrastructure.Persistence;
 using HireLens.Modules.Matching.Domain;
 using HireLens.SharedKernel;
