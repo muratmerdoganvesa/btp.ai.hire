@@ -9,6 +9,8 @@
   <ItemGroup>
     <PackageReference Include="FluentValidation" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="UglyToad.PdfPig" />
+    <PackageReference Include="DocumentFormat.OpenXml" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\HireLens.SharedKernel\HireLens.SharedKernel.csproj" />

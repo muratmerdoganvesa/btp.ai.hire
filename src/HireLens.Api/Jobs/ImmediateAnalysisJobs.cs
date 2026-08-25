@@ -23,6 +23,12 @@ public sealed class ImmediateAnalysisJobs(IServiceScopeFactory scopes) : IAnalys
         return documentId.ToString("N");
     }
 
+    public string EnqueueEvaluation(Guid tenantId, Guid evaluationId)
+    {
+        Run(tenantId, (sp, ct) => sp.GetRequiredService<MatchingJob>().RunEvaluationAsync(evaluationId, ct));
+        return evaluationId.ToString("N");
+    }
+
     private void Run(Guid tenantId, Func<IServiceProvider, CancellationToken, Task> work)
     {
         using var scope = scopes.CreateScope();

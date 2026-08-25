@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hirelens.local/schemas/criteria-match.schema.json",
+  "title": "criteria_match",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["criteria", "recommendedAction"],
+  "properties": {
+    "criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["criterionId", "score", "confidence", "evidence"],
+        "properties": {
+          "criterionId": { "type": "string" },
+          "score": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
+          "confidence": { "type": "string", "enum": ["high", "medium", "low", "none"] },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["quote", "source"],
+              "properties": {
+                "quote": { "type": "string" },
+                "source": { "type": "string", "enum": ["cv"] },
+                "startOffset": { "type": ["integer", "null"] },
+                "endOffset": { "type": ["integer", "null"] }
+              }
+            }
+          }
+        }
+      }
+    },
+    "recommendedAction": {
+      "type": "string",
+      "enum": ["shortlist", "request_info", "human_review"],
+      "description": "reject is intentionally absent — the system never auto-rejects."
+    },
+    "riskFlags": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

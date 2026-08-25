@@ -47,7 +47,7 @@ public sealed class CvDocument : ITenantEntity
     {
         if (!IsAllowed(contentType, fileName))
         {
-            return Result.Failure<CvDocument>(Error.Validation("Only PDF and plain-text CVs are accepted."));
+            return Result.Failure<CvDocument>(Error.Validation("Only PDF, DOCX, and plain-text CVs are accepted."));
         }
 
         if (sizeBytes <= 0 || sizeBytes > 10 * 1024 * 1024)
@@ -86,7 +86,8 @@ public sealed class CvDocument : ITenantEntity
     {
         var ext = Path.GetExtension(fileName).ToLowerInvariant();
         return contentType is "application/pdf" or "text/plain"
-            || ext is ".pdf" or ".txt";
+                   or "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+               || ext is ".pdf" or ".txt" or ".docx";
     }
 }
 

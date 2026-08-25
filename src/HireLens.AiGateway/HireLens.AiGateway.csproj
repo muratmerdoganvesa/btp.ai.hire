@@ -10,6 +10,7 @@
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Polly" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="JsonSchema.Net" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\HireLens.SharedKernel\HireLens.SharedKernel.csproj" />

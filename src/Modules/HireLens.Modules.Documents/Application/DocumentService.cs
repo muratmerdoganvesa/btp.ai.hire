@@ -104,6 +104,27 @@ public sealed class DocumentService(
         return new DocumentTextSnapshot(document.Id, document.CandidateId, document.PositionId, document.MaskedText);
     }
 
+    public async Task<DocumentTextSnapshot?> GetLatestParsedAsync(
+        Guid candidateId,
+        Guid positionId,
+        CancellationToken cancellationToken)
+    {
+        RepositoryGuard.RequireTenant(tenant);
+        var document = await db.Set<CvDocument>()
+            .Where(d => d.CandidateId == candidateId
+                        && d.PositionId == positionId
+                        && d.MaskedText != null
+                        && d.Status == "parsed")
+            .OrderByDescending(d => d.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (document?.MaskedText is null)
+        {
+            return null;
+        }
+
+        return new DocumentTextSnapshot(document.Id, document.CandidateId, document.PositionId, document.MaskedText);
+    }
+
     private static JobStatusDto ToDto(AnalysisJob job) =>
         new(job.Id, job.Kind, job.Status, job.Error, job.UpdatedAt);
 }

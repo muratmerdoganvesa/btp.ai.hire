@@ -133,14 +133,21 @@ export function EvaluationPage() {
           </p>
         </div>
         <div className="flex w-full shrink-0 flex-col gap-3 sm:w-auto sm:items-end">
-          <ScoreBadge
-            score={evaluation.data?.overallScore ?? candidate.data?.overallScore ?? null}
-            label={
-              evaluation.data?.overallScore == null && candidate.data?.overallScore == null
-                ? t("score.unknown")
-                : t("evaluation.overallOf100")
-            }
-          />
+          <div className="flex flex-col items-end gap-1">
+            <ScoreBadge
+              score={evaluation.data?.overallScore ?? candidate.data?.overallScore ?? null}
+              label={
+                evaluation.data?.overallScore == null && candidate.data?.overallScore == null
+                  ? t("score.unknown")
+                  : t("evaluation.overallOf100")
+              }
+            />
+            {evaluation.data && evaluation.data.coverageRatio < 0.8 ? (
+              <p className="max-w-xs text-right text-xs text-muted" title={t("evaluation.coverageWarning")}>
+                ⚠ {t("evaluation.coverageWarning")}
+              </p>
+            ) : null}
+          </div>
           <Button
             type="button"
             variant="outline"
@@ -178,6 +185,34 @@ export function EvaluationPage() {
           </div>
 
           <aside className="flex flex-col gap-4 xl:sticky xl:top-24 xl:self-start">
+            <Card className="border-border/80 bg-surface/95">
+              <CardHeader>
+                <CardTitle className="font-display text-xl">{t("evaluation.howCalculated")}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm leading-6 text-muted">
+                <p>
+                  {t("evaluation.coverage")}:{" "}
+                  <span className="font-medium text-foreground">
+                    {Math.round((evaluation.data!.coverageRatio ?? 0) * 100)}%
+                  </span>
+                </p>
+                <p>
+                  {t("evaluation.rubricVersion")}:{" "}
+                  <span className="font-medium text-foreground">{evaluation.data!.rubricVersion}</span>
+                </p>
+                <p>
+                  {t("evaluation.model")}:{" "}
+                  <span className="font-medium text-foreground">
+                    {evaluation.data!.modelName}@{evaluation.data!.modelVersion}
+                  </span>
+                </p>
+                <p>
+                  {t("evaluation.promptVersion")}:{" "}
+                  <span className="font-medium text-foreground">{evaluation.data!.promptVersion}</span>
+                </p>
+              </CardContent>
+            </Card>
+
             <Card className="border-border/80 bg-surface/95">
               <CardHeader>
                 <CardTitle className="font-display text-xl">{t("evaluation.aiSummary")}</CardTitle>

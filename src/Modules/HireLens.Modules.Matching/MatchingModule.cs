@@ -13,6 +13,7 @@ public static class MatchingModule
         services.AddScoped<MatchingJob>();
         services.AddScoped<IEvaluationService>(sp => sp.GetRequiredService<MatchingJob>());
         services.AddScoped<IEvaluationReadPort>(sp => sp.GetRequiredService<MatchingJob>());
+        services.AddScoped<IEvaluationWritePort>(sp => sp.GetRequiredService<MatchingJob>());
         services.AddScoped<IEvaluationBlendPort>(sp => sp.GetRequiredService<MatchingJob>());
         return services;
     }

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hirelens.local/schemas/candidate-profile.schema.json",
+  "title": "candidate_profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["parseQuality", "skills", "experience", "education", "unknownFields", "riskFlags"],
+  "properties": {
+    "parseQuality": {
+      "type": "string",
+      "enum": ["good", "partial", "poor", "unusable"]
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "evidenceQuote"],
+        "properties": {
+          "name": { "type": "string" },
+          "evidenceQuote": { "type": "string" },
+          "yearsApprox": { "type": ["number", "null"] }
+        }
+      }
+    },
+    "experience": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "organization", "startDate", "endDate", "precision", "evidenceQuote"],
+        "properties": {
+          "title": { "type": "string" },
+          "organization": { "type": "string" },
+          "startDate": { "type": ["string", "null"] },
+          "endDate": { "type": ["string", "null"] },
+          "precision": { "type": "string", "enum": ["month", "year", "unknown"] },
+          "evidenceQuote": { "type": "string" }
+        }
+      }
+    },
+    "education": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["degree", "field", "institution", "evidenceQuote"],
+        "properties": {
+          "degree": { "type": "string" },
+          "field": { "type": "string" },
+          "institution": { "type": "string" },
+          "evidenceQuote": { "type": "string" }
+        }
+      }
+    },
+    "unknownFields": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "riskFlags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["suspected_injection", "insufficient_text", "conflicting_dates", "none"]
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "id": "sap-sf-consultant",
+  "version": "v1",
+  "title": "SAP SuccessFactors Consultant",
+  "scoring": {
+    "confidencePenalty": {
+      "high": 1.0,
+      "medium": 0.9,
+      "low": 0.75
+    }
+  },
+  "criteria": [
+    { "id": "sf-ec", "name": "Employee Central", "weight": 0.25, "required": true },
+    { "id": "sf-rmk", "name": "Recruiting / Onboarding", "weight": 0.20, "required": true },
+    { "id": "integration", "name": "Integration (CPI/IS)", "weight": 0.20, "required": false },
+    { "id": "implementation", "name": "End-to-end implementation", "weight": 0.20, "required": true },
+    { "id": "stakeholder", "name": "Stakeholder communication", "weight": 0.15, "required": false }
+  ]
+}

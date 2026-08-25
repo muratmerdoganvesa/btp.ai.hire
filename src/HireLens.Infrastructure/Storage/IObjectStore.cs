@@ -36,6 +36,18 @@ public sealed class FileGuard : IFileGuard
             return Result.Success();
         }
 
+        if (ext == ".docx"
+            || contentType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+        {
+            // DOCX is a ZIP package (PK..)
+            if (header.Length >= 2 && header[0] == (byte)'P' && header[1] == (byte)'K')
+            {
+                return Result.Success();
+            }
+
+            return Result.Failure(Error.Validation("File is not a DOCX document."));
+        }
+
         return Result.Failure(Error.Validation("Unsupported file type."));
     }
 }

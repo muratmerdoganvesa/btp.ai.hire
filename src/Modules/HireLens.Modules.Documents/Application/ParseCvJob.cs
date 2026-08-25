@@ -1,7 +1,7 @@
 using System.Text;
+using System.Security.Cryptography;
 using HireLens.AiGateway;
 using HireLens.AiGateway.Masking;
-using System.Security.Cryptography;
 using HireLens.Contracts.Documents;
 using HireLens.Contracts.Matching;
 using HireLens.Infrastructure.Persistence;
@@ -49,19 +49,28 @@ public sealed class ParseCvJob(
                 return;
             }
 
-            var hash = Convert.ToHexString(SHA256.HashData(bytes));
+            var extraction = CvTextExtractor.Extract(document.FileName, document.ContentType, bytes);
+            if (extraction.Status == ExtractionStatus.Unusable)
+            {
+                document.MarkFailed();
+                job.Fail(extraction.Reason ?? "Document text could not be extracted.", clock.UtcNow);
+                await db.SaveChangesAsync(cancellationToken);
+                return;
+            }
+
+            var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(extraction.Text)));
             var cached = await parseCache.TryGetAsync(hash, cancellationToken);
-            var raw = ExtractText(document.ContentType, document.FileName, bytes);
-            var masked = cached ?? masker.Mask(raw).Text;
-            document.MarkParsed(masked, cached is null ? "v1" : "cache");
+            var masked = cached ?? masker.Mask(extraction.Text).Text;
+            document.MarkParsed(masked, cached is null ? "01-cv-extraction@v1.1.0" : "cache");
             if (cached is null)
             {
                 await parseCache.PutAsync(hash, masked, cancellationToken);
             }
 
+            // Structured extraction is logged via gateway; profile persistence lands in a later slice.
             _ = await gateway.ExecuteAsync<CvExtractionResult>(
                 AiTaskType.CvExtraction,
-                new PromptContext(masked, "v1"),
+                new PromptContext(masked, "v1.1.0"),
                 ct: cancellationToken);
 
             job.Succeed(clock.UtcNow);
@@ -74,16 +83,6 @@ public sealed class ParseCvJob(
             job.Fail(ex.Message, clock.UtcNow);
             await db.SaveChangesAsync(cancellationToken);
         }
-    }
-
-    private static string ExtractText(string contentType, string fileName, byte[] bytes)
-    {
-        if (contentType == "text/plain" || Path.GetExtension(fileName).Equals(".txt", StringComparison.OrdinalIgnoreCase))
-        {
-            return Encoding.UTF8.GetString(bytes);
-        }
-
-        return Encoding.UTF8.GetString(bytes);
     }
 
     private sealed record CvExtractionResult(string? Status, string? Note);

@@ -48,20 +48,26 @@ public static class DeterministicMatcher
         return proposals;
     }
 
-    public static int? Overall(IReadOnlyList<ProposedCriterionScore> scores)
+    public static int? Overall(IReadOnlyList<ProposedCriterionScore> scores) =>
+        ToScoreResult(scores, "deterministic-v1").Total is { } total
+            ? (int)Math.Round(total)
+            : null;
+
+    public static ScoreResult ToScoreResult(
+        IReadOnlyList<ProposedCriterionScore> scores,
+        string rubricVersion)
     {
-        var numbered = scores.Where(s => s.Score is not null).ToList();
-        if (numbered.Count == 0)
-        {
-            return null;
-        }
+        var rubric = Rubric.FromWeights(
+            rubricVersion,
+            scores.Select(s => (s.CriterionId.ToString(), (decimal)s.Weight)));
 
-        var totalWeight = numbered.Sum(s => s.Weight);
-        if (totalWeight == 0)
-        {
-            return null;
-        }
+        var match = new CriteriaMatch(
+            scores.Select(s => new CriterionMatchResult(
+                s.CriterionId.ToString(),
+                s.Score.HasValue ? s.Score.Value : null,
+                s.Score is null ? MatchConfidence.None : ScoreCalculator.MapConfidence(s.Confidence)))
+            .ToList());
 
-        return (int)Math.Round(numbered.Sum(s => s.Score!.Value * s.Weight) / (double)totalWeight);
+        return ScoreCalculator.Calculate(match, rubric);
     }
 }

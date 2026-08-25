@@ -53,8 +53,13 @@ export function CvUploadZone({
       setPhase(null);
       setFile(null);
       onCompleted();
-    } catch {
-      setError(t("errors.generic"));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      setError(
+        /scanned|could not be extracted|text could not/i.test(message)
+          ? t("upload.scanned")
+          : t("errors.generic")
+      );
       setPhase(null);
     } finally {
       setBusy(false);
@@ -74,7 +79,7 @@ export function CvUploadZone({
           <input
             type="file"
             className="sr-only"
-            accept=".pdf,.txt,application/pdf,text/plain"
+            accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
           />
         </label>

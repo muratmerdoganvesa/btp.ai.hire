@@ -21,6 +21,7 @@
     <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Recruiting\HireLens.Modules.Recruiting.csproj" />
     <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Review\HireLens.Modules.Review.csproj" />
     <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Matching\HireLens.Modules.Matching.csproj" />
+    <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Documents\HireLens.Modules.Documents.csproj" />
     <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Interview\HireLens.Modules.Interview.csproj" />
     <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Configuration\HireLens.Modules.Configuration.csproj" />
     <ProjectReference Include="..\..\src\Modules\HireLens.Modules.Analytics\HireLens.Modules.Analytics.csproj" />

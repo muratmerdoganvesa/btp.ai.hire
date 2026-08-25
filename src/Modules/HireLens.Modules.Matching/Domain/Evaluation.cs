@@ -6,8 +6,11 @@ public sealed class Evaluation : ITenantEntity
 {
     private Evaluation()
     {
-        Status = "queued";
+        Status = "Pending";
         PromptVersion = string.Empty;
+        RubricVersion = string.Empty;
+        ModelName = string.Empty;
+        ModelVersion = string.Empty;
     }
 
     public Guid Id { get; private set; }
@@ -26,9 +29,22 @@ public sealed class Evaluation : ITenantEntity
 
     public int? InterviewScore { get; private set; }
 
+    /// <summary>Fraction of rubric weight that had evidence (0–1).</summary>
+    public decimal CoverageRatio { get; private set; }
+
     public string Status { get; private set; }
 
     public string PromptVersion { get; private set; }
+
+    public string RubricVersion { get; private set; }
+
+    public string ModelName { get; private set; }
+
+    public string ModelVersion { get; private set; }
+
+    public string? FailureStage { get; private set; }
+
+    public string? FailureMessage { get; private set; }
 
     public string? Summary { get; private set; }
 
@@ -37,6 +53,8 @@ public sealed class Evaluation : ITenantEntity
     public string? NeedsVerificationJson { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }
+
+    public DateTimeOffset? ExecutedAt { get; private set; }
 
     public static Evaluation Start(
         Guid tenantId,
@@ -51,11 +69,42 @@ public sealed class Evaluation : ITenantEntity
             PositionId = positionId,
             CandidateId = candidateId,
             DocumentId = documentId,
-            Status = "queued",
+            Status = "Pending",
             PromptVersion = "pending",
             CreatedAt = createdAt
         };
 
+    public void SetStage(string stage) => Status = stage;
+
+    public void Complete(
+        int? overallScore,
+        decimal coverageRatio,
+        string promptVersion,
+        string rubricVersion,
+        string modelName,
+        string modelVersion,
+        string? summary,
+        IReadOnlyList<string> followUps,
+        IReadOnlyList<string> needsVerification,
+        DateTimeOffset executedAt)
+    {
+        CvScore = overallScore;
+        OverallScore = overallScore;
+        CoverageRatio = coverageRatio;
+        PromptVersion = promptVersion;
+        RubricVersion = rubricVersion;
+        ModelName = modelName;
+        ModelVersion = modelVersion;
+        Summary = summary;
+        FollowUpsJson = string.Join('\n', followUps);
+        NeedsVerificationJson = string.Join('\n', needsVerification);
+        ExecutedAt = executedAt;
+        FailureStage = null;
+        FailureMessage = null;
+        Status = "Completed";
+    }
+
+    /// <summary>Backward-compatible overload used by older callers.</summary>
     public void Complete(
         int? overallScore,
         string promptVersion,
@@ -63,13 +112,25 @@ public sealed class Evaluation : ITenantEntity
         IReadOnlyList<string> followUps,
         IReadOnlyList<string> needsVerification)
     {
-        CvScore = overallScore;
-        OverallScore = overallScore;
-        PromptVersion = promptVersion;
-        Summary = summary;
-        FollowUpsJson = string.Join('\n', followUps);
-        NeedsVerificationJson = string.Join('\n', needsVerification);
-        Status = "completed";
+        Complete(
+            overallScore,
+            coverageRatio: 1m,
+            promptVersion,
+            rubricVersion: "legacy",
+            modelName: "deterministic",
+            modelVersion: "1",
+            summary,
+            followUps,
+            needsVerification,
+            DateTimeOffset.UtcNow);
+    }
+
+    public void Fail(string stage, string message, DateTimeOffset executedAt)
+    {
+        Status = "Failed";
+        FailureStage = stage;
+        FailureMessage = message;
+        ExecutedAt = executedAt;
     }
 
     public void BlendInterview(int? interviewScore, int interviewWeight)

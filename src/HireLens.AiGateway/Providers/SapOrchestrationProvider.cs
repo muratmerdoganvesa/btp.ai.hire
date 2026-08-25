@@ -1,7 +1,3 @@
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Text;
-using System.Text.Json;
 using HireLens.AiGateway.Masking;
 using HireLens.AiGateway.Routing;
 using Microsoft.Extensions.Logging;
@@ -13,17 +9,40 @@ public sealed class SapAiCoreOptions
 {
     public const string SectionName = "SapAiCore";
 
+    /// <summary>Full AI Core service-key JSON. Preferred over discrete ClientId/Secret fields.</summary>
     public string? ServiceKeyJson { get; set; }
+
+    public string? AiApiUrl { get; set; }
+
+    public string? XsuaaUrl { get; set; }
+
+    public string? ClientId { get; set; }
+
+    public string? ClientSecret { get; set; }
 
     public string? DeploymentId { get; set; }
 
     public string ResourceGroup { get; set; } = "default";
+
+    public string ModelName { get; set; } = "anthropic--claude-4.5-haiku";
+
+    public string ModelVersion { get; set; } = "1";
+
+    public int TimeoutSeconds { get; set; } = 60;
+
+    public int MaxRetries { get; set; } = 3;
+
+    /// <summary>
+    /// Orchestration placeholder bag key. Verified landscapes use "placeholder_values";
+    /// some older deployments expect "input_params". Flip after a 400 on first call.
+    /// </summary>
+    public string PlaceholderValuesKey { get; set; } = "placeholder_values";
 }
 
 public sealed record AiCoreBinding(string TokenUrl, string ClientId, string ClientSecret, string AiApiUrl);
 
 public sealed class SapOrchestrationProvider(
-    HttpClient httpClient,
+    OrchestrationClient client,
     IOptions<SapAiCoreOptions> options,
     ILogger<SapOrchestrationProvider> logger) : IAiProvider
 {
@@ -32,54 +51,21 @@ public sealed class SapOrchestrationProvider(
         ModelProfile profile,
         CancellationToken cancellationToken)
     {
-        if (PiiMasker.ContainsUnmaskedPii(prompt.Text))
-        {
-            throw new InvalidOperationException("Refusing to send unmasked PII to Orchestration.");
-        }
+        var result = await client.CompleteAsync(prompt, profile, cancellationToken: cancellationToken);
+        logger.LogDebug(
+            "Orchestration completed model={Model} v={Version} promptTokens={Prompt} completionTokens={Completion} latencyMs={Latency}",
+            result.ModelId,
+            result.ModelVersion ?? options.Value.ModelVersion,
+            result.PromptTokens,
+            result.CompletionTokens,
+            result.LatencyMs);
 
-        var binding = ParseBinding(options.Value.ServiceKeyJson);
-        var deploymentId = options.Value.DeploymentId
-            ?? throw new InvalidOperationException("SapAiCore:DeploymentId is not configured.");
-
-        var token = await RequestTokenAsync(binding, cancellationToken);
-        var url = $"{binding.AiApiUrl.TrimEnd('/')}/v2/inference/deployments/{deploymentId}/v2/completion";
-
-        var body = new OrchestrationCompletionRequest
-        {
-            Config = new OrchestrationConfig
-            {
-                LlmModelDetails = new LlmModelDetails
-                {
-                    Name = profile.ModelId,
-                    Params = new Dictionary<string, object>
-                    {
-                        ["max_tokens"] = profile.MaxOutputTokens,
-                        ["temperature"] = profile.Temperature
-                    }
-                },
-                Template = [new OrchestrationMessage { Role = "user", Content = prompt.Text }]
-            }
-        };
-
-        using var request = new HttpRequestMessage(HttpMethod.Post, url);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        request.Headers.TryAddWithoutValidation("AI-Resource-Group", options.Value.ResourceGroup);
-        request.Content = JsonContent.Create(body);
-
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-        var raw = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            logger.LogWarning("Orchestration completion failed with {Status}", (int)response.StatusCode);
-            throw new HttpRequestException($"Orchestration returned {(int)response.StatusCode}.");
-        }
-
-        var parsed = JsonSerializer.Deserialize<OrchestrationCompletionResponse>(raw);
-        var content = parsed?.OrchestrationResult?.Choices?.FirstOrDefault()?.Message?.Content
-            ?? parsed?.ModuleResults?.Llm?.Choices?.FirstOrDefault()?.Message?.Content
-            ?? raw;
-
-        return new ProviderCompletion(content, profile.ModelId, 0, 0, 0m);
+        return new ProviderCompletion(
+            result.Content,
+            result.ModelId,
+            result.PromptTokens,
+            result.CompletionTokens,
+            0m);
     }
 
     public static AiCoreBinding ParseBinding(string? json)
@@ -89,7 +75,7 @@ public sealed class SapOrchestrationProvider(
             throw new InvalidOperationException("AICORE_SERVICE_KEY / SapAiCore:ServiceKeyJson is not set.");
         }
 
-        using var document = JsonDocument.Parse(json);
+        using var document = System.Text.Json.JsonDocument.Parse(json);
         var root = document.RootElement;
         var clientId = root.GetProperty("clientid").GetString()
             ?? throw new InvalidOperationException("AI Core binding omitted clientid.");
@@ -106,25 +92,5 @@ public sealed class SapOrchestrationProvider(
             ?? throw new InvalidOperationException("AI Core binding omitted serviceurls.AI_API_URL.");
 
         return new AiCoreBinding(tokenUrl, clientId, clientSecret, aiApi);
-    }
-
-    private async Task<string> RequestTokenAsync(AiCoreBinding binding, CancellationToken cancellationToken)
-    {
-        using var request = new HttpRequestMessage(HttpMethod.Post, binding.TokenUrl);
-        var raw = $"{binding.ClientId}:{binding.ClientSecret}";
-        request.Headers.Authorization = new AuthenticationHeaderValue(
-            "Basic",
-            Convert.ToBase64String(Encoding.UTF8.GetBytes(raw)));
-        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
-        {
-            ["grant_type"] = "client_credentials"
-        });
-
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-        return document.RootElement.GetProperty("access_token").GetString()
-            ?? throw new InvalidOperationException("AI Core token response omitted access_token.");
     }
 }

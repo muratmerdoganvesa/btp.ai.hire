@@ -25,28 +25,46 @@ export function ScoreBreakdownTable({
           </tr>
         </thead>
         <tbody>
-          {scores.map((row) => (
-            <tr key={row.criterionId} className="border-b border-border last:border-0">
-              <td className="px-4 py-3 font-medium">{row.criterionName}</td>
-              <td className="px-4 py-3">{row.weight}%</td>
-              <td className="px-4 py-3">
-                <ScoreBadge
-                  score={row.score}
-                  label={row.score === null ? t("score.insufficient") : t("score.solid")}
-                />
-              </td>
-              <td className="px-4 py-3">
-                <ConfidenceMeter value={row.confidence} />
-              </td>
-              <td className="px-4 py-3">
-                <div className="flex flex-wrap gap-2">
-                  {row.evidence.map((item) => (
-                    <EvidenceChip key={`${item.startOffset}-${item.quote}`} evidence={item} onSelect={(e) => onSelect?.(e.quote)} />
-                  ))}
-                </div>
-              </td>
-            </tr>
-          ))}
+          {scores.map((row) => {
+            const noEvidence = row.score === null || row.evidenceStatus === "Insufficient";
+            return (
+              <tr
+                key={row.criterionId}
+                className={
+                  noEvidence
+                    ? "border-b border-border bg-muted/20 text-muted last:border-0"
+                    : "border-b border-border last:border-0"
+                }
+              >
+                <td className="px-4 py-3 font-medium">{row.criterionName}</td>
+                <td className="px-4 py-3">{row.weight}%</td>
+                <td className="px-4 py-3">
+                  <ScoreBadge
+                    score={row.score}
+                    label={noEvidence ? t("score.insufficient") : t("score.solid")}
+                  />
+                </td>
+                <td className="px-4 py-3">
+                  <ConfidenceMeter value={row.confidence} />
+                </td>
+                <td className="px-4 py-3">
+                  {row.evidence.length === 0 ? (
+                    <span className="text-xs text-muted">{t("evaluation.noEvidence")}</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {row.evidence.map((item) => (
+                        <EvidenceChip
+                          key={`${item.startOffset}-${item.quote}`}
+                          evidence={item}
+                          onSelect={(e) => onSelect?.(e.quote)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

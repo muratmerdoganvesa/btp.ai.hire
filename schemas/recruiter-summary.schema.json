@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hirelens.local/schemas/recruiter-summary.schema.json",
+  "title": "recruiter_summary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "followUpQuestions", "needsHumanReview"],
+  "properties": {
+    "summary": { "type": "string" },
+    "followUpQuestions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "needsHumanReview": { "type": "boolean" },
+    "riskFlags": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

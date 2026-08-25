@@ -11,6 +11,11 @@ public sealed record DocumentTextSnapshot(Guid DocumentId, Guid CandidateId, Gui
 public interface IDocumentTextPort
 {
     Task<DocumentTextSnapshot?> GetMaskedTextAsync(Guid documentId, CancellationToken cancellationToken);
+
+    Task<DocumentTextSnapshot?> GetLatestParsedAsync(
+        Guid candidateId,
+        Guid positionId,
+        CancellationToken cancellationToken);
 }
 
 public interface IParseCache

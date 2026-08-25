@@ -130,12 +130,29 @@ export interface components {
       positionId: string;
       candidateId: string;
       overallScore: number | null;
+      coverageRatio: number;
       status: string;
       promptVersion: string;
+      rubricVersion: string;
+      modelName: string;
+      modelVersion: string;
       summary: string | null;
       followUps: string[];
       needsVerification: string[];
       scores: components["schemas"]["CriterionScore"][];
+      executedAt?: string | null;
+      failureStage?: string | null;
+      failureMessage?: string | null;
+    };
+    EvaluationAudit: {
+      evaluationId: string;
+      promptVersion: string;
+      rubricVersion: string;
+      modelName: string;
+      modelVersion: string;
+      coverageRatio: number;
+      executedAt: string | null;
+      status: string;
     };
     Decision: {
       id: string;
