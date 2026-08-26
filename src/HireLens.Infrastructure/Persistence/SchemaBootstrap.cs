@@ -679,7 +679,7 @@ public static class SchemaBootstrap
                     "SessionId" NVARCHAR(36) NOT NULL,
                     "CriterionId" NVARCHAR(36) NOT NULL,
                     "Prompt" NVARCHAR(2000) NOT NULL,
-                    "Order" INT NOT NULL
+                    "QuestionOrder" INT NOT NULL
                 )
                 """,
                 cancellationToken);
@@ -748,6 +748,11 @@ public static class SchemaBootstrap
             db,
             logger,
             """ALTER TABLE "InterviewSessions" ADD ("VideoMeetingUrl" NVARCHAR(1000) NULL)""",
+            cancellationToken);
+        await ExecuteIgnoreDuplicateAsync(
+            db,
+            logger,
+            """ALTER TABLE "InterviewQuestions" ADD ("QuestionOrder" INT DEFAULT 0 NOT NULL)""",
             cancellationToken);
         logger.LogInformation("Interview session columns ensured.");
     }

@@ -161,7 +161,8 @@ public sealed class InterviewService(
         }
 
         var session = opened.Value;
-        if (!await privacy.HasAsync(session.CandidateId, DisclosurePurpose, cancellationToken))
+        if (!session.DisclosureAccepted
+            && !await privacy.HasAsync(session.CandidateId, DisclosurePurpose, cancellationToken))
         {
             return Result.Failure<InterviewSessionDto>(Error.Validation("AI disclosure consent is required."));
         }
@@ -169,25 +170,61 @@ public sealed class InterviewService(
         if (session.Questions.Count == 0)
         {
             await SeedQuestionsAsync(session, cancellationToken);
-            foreach (var question in session.Questions)
-            {
-                EnsureAdded(question);
-            }
+        }
+
+        if (session.Questions.Count == 0)
+        {
+            // Last-resort prompt so start never dies on empty criteria / missing evaluation.
+            session.AddQuestion(
+                Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                "Bu rol için somut bir başarı veya deneyiminizi anlatın.",
+                1);
         }
 
         var started = session.Start();
         if (started.IsFailure)
         {
-            return Result.Failure<InterviewSessionDto>(started.Error);
+            // Disclosure flag may only live on ConsentRecords after ExecuteUpdate path.
+            if (!session.DisclosureAccepted && await privacy.HasAsync(session.CandidateId, DisclosurePurpose, cancellationToken))
+            {
+                session.AcceptDisclosure();
+                started = session.Start();
+            }
+
+            if (started.IsFailure)
+            {
+                return Result.Failure<InterviewSessionDto>(started.Error);
+            }
+        }
+
+        // Detach parent before inserting children — Sap HANA EF throws
+        // "Sequence contains no elements" when SaveChanges updates InterviewSession
+        // together with AutoIncluded Questions/Turns.
+        db.Entry(session).State = EntityState.Detached;
+        foreach (var question in session.Questions)
+        {
+            var entry = db.Entry(question);
+            if (entry.State == EntityState.Detached)
+            {
+                db.Set<InterviewQuestion>().Add(question);
+            }
         }
 
         var first = session.Questions.OrderBy(q => q.Order).FirstOrDefault();
         if (first is not null && session.Turns.Count == 0)
         {
-            EnsureAdded(session.AddTurn("assistant", first.Prompt, first.Id, clock.UtcNow));
+            var turn = session.AddTurn("assistant", first.Prompt, first.Id, clock.UtcNow);
+            db.Set<InterviewTurn>().Add(turn);
         }
 
         await db.SaveChangesAsync(cancellationToken);
+
+        await db.Set<InterviewSession>()
+            .Where(s => s.Id == session.Id)
+            .ExecuteUpdateAsync(
+                setters => setters.SetProperty(s => s.Status, "in_progress"),
+                cancellationToken);
+
         return Result.Success(ToDto(session));
     }
 
@@ -248,23 +285,41 @@ public sealed class InterviewService(
 
         var current = session.Questions.OrderBy(q => q.Order)
             .FirstOrDefault(q => session.Turns.Count(t => t.QuestionId == q.Id && t.Role == "candidate") == 0);
-        EnsureAdded(session.AddTurn("candidate", request.Text.Trim(), current?.Id, clock.UtcNow));
-        _ = await gateway.ExecuteAsync<LiveStub>(
-            AiTaskType.InterviewLiveTurn,
-            new PromptContext(request.Text, "v1"),
-            ct: cancellationToken);
+
+        db.Entry(session).State = EntityState.Detached;
+        var candidateTurn = session.AddTurn("candidate", request.Text.Trim(), current?.Id, clock.UtcNow);
+        db.Set<InterviewTurn>().Add(candidateTurn);
 
         var unanswered = session.Questions.OrderBy(q => q.Order)
             .FirstOrDefault(q => session.Turns.Count(t => t.QuestionId == q.Id && t.Role == "candidate") == 0);
         if (unanswered is not null)
         {
-            EnsureAdded(session.AddTurn("assistant", unanswered.Prompt, unanswered.Id, clock.UtcNow));
+            var next = session.AddTurn("assistant", unanswered.Prompt, unanswered.Id, clock.UtcNow);
+            db.Set<InterviewTurn>().Add(next);
             await db.SaveChangesAsync(cancellationToken);
             return Result.Success(ToDto(session));
         }
 
-        await EvaluateAsync(session, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            await EvaluateAsync(session, cancellationToken);
+        }
+        catch
+        {
+            session.Complete(null, "Interview finished; scoring will be reviewed by the recruiter.");
+        }
+
+        await db.Set<InterviewSession>()
+            .Where(s => s.Id == session.Id)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(s => s.Status, session.Status)
+                    .SetProperty(s => s.InterviewScore, session.InterviewScore)
+                    .SetProperty(s => s.Summary, session.Summary),
+                cancellationToken);
+
         return Result.Success(ToDto(session));
     }
 
@@ -320,20 +375,36 @@ public sealed class InterviewService(
 
     private async Task SeedQuestionsAsync(InterviewSession session, CancellationToken cancellationToken)
     {
-        var evaluation = await evaluations.GetForCandidateAsync(session.CandidateId, cancellationToken);
-        var position = await positions.GetAsync(session.PositionId, cancellationToken);
-        var gaps = evaluation?.Scores.Where(s => s.Score is null).ToList() ?? [];
+        // Deterministic only — do not call the AI gateway here. Gateway SaveChanges /
+        // orchestration failures were surfacing as opaque "Sequence contains no elements"
+        // on the public start endpoint.
+        IReadOnlyList<CriterionScoreDto> gaps = [];
+        try
+        {
+            var evaluation = await evaluations.GetForCandidateAsync(session.CandidateId, cancellationToken);
+            gaps = evaluation?.Scores.Where(s => s.Score is null).ToList() ?? [];
+        }
+        catch
+        {
+            gaps = [];
+        }
+
+        PositionSnapshot? position = null;
+        try
+        {
+            position = await positions.GetAsync(session.PositionId, cancellationToken);
+        }
+        catch
+        {
+            position = null;
+        }
+
         if (gaps.Count == 0 && position is not null)
         {
             gaps = position.Criteria
                 .Select(c => new CriterionScoreDto(c.Id, c.Name, null, c.Weight, 0, EvidenceStatus.Insufficient, []))
                 .ToList();
         }
-
-        _ = await gateway.ExecuteAsync<QuestionStub>(
-            AiTaskType.InterviewQuestionGen,
-            new PromptContext(string.Join('\n', gaps.Select(g => g.CriterionName)), "v1"),
-            ct: cancellationToken);
 
         var order = 1;
         foreach (var gap in gaps.Take(3))

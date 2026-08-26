@@ -27,6 +27,8 @@ public sealed class InterviewQuestionConfiguration : IEntityTypeConfiguration<In
         builder.ToTable("InterviewQuestions");
         builder.HasKey(q => q.Id);
         builder.Property(q => q.Prompt).HasMaxLength(2000).IsRequired();
+        // HANA: ORDER is reserved — persist as QuestionOrder.
+        builder.Property(q => q.Order).HasColumnName("QuestionOrder");
     }
 }
 
