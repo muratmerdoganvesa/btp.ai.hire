@@ -61,6 +61,20 @@ public sealed record UpsertPositionRequest(
 
 public sealed record UpsertCriterionRequest(string Name, string Description, int Weight);
 
+public sealed record ExtractCriteriaRequest(string JobTitle, string JobDescription);
+
+public sealed record ExtractedCriterionDto(string Label, string Description, int Weight, bool Mandatory);
+
+public sealed record FlaggedPhraseDto(string Phrase, string Category, string Reason);
+
+public sealed record UnmeasurablePhraseDto(string Phrase, string Reason);
+
+public sealed record ExtractCriteriaResponse(
+    IReadOnlyList<ExtractedCriterionDto> Criteria,
+    IReadOnlyList<FlaggedPhraseDto> FlaggedPhrases,
+    IReadOnlyList<UnmeasurablePhraseDto> Unmeasurable,
+    int TotalWeight);
+
 public sealed record PositionSnapshot(
     Guid Id,
     string Title,

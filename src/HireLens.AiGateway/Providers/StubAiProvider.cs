@@ -12,8 +12,10 @@ public sealed class StubAiProvider : IAiProvider
     public Task<ProviderCompletion> CompleteAsync(
         MaskedPrompt prompt,
         ModelProfile profile,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        OrchestrationPromptSpec? promptSpec = null)
     {
+        _ = promptSpec;
         if (PiiMasker.ContainsUnmaskedPii(prompt.Text))
         {
             throw new InvalidOperationException("Stub provider refused unmasked PII.");

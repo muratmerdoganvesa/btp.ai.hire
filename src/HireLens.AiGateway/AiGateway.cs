@@ -59,6 +59,24 @@ public sealed class AiGateway(
             throw new InvalidOperationException("Masked prompt still contained PII.");
         }
 
+        IReadOnlyDictionary<string, string>? maskedVariables = null;
+        if (context.Variables is { Count: > 0 })
+        {
+            maskedVariables = context.Variables.ToDictionary(
+                pair => pair.Key,
+                pair => masker.Mask(pair.Value).Text,
+                StringComparer.Ordinal);
+        }
+
+        OrchestrationPromptSpec? promptSpec = null;
+        if (!string.IsNullOrWhiteSpace(context.SystemPrompt) || !string.IsNullOrWhiteSpace(context.UserPrompt))
+        {
+            promptSpec = new OrchestrationPromptSpec(
+                context.SystemPrompt,
+                context.UserPrompt ?? masked.Text,
+                maskedVariables ?? new Dictionary<string, string>(StringComparer.Ordinal));
+        }
+
         var profile = router.Resolve(taskType, tenantContext.TenantId, options);
         var started = clock.UtcNow;
         var warnings = new List<string>();
@@ -67,13 +85,13 @@ public sealed class AiGateway(
         try
         {
             completion = await _pipeline.ExecuteAsync(
-                async token => await provider.CompleteAsync(masked, profile, token),
+                async token => await provider.CompleteAsync(masked, profile, token, promptSpec),
                 ct);
         }
         catch (Exception) when (!string.IsNullOrWhiteSpace(profile.FallbackModelId))
         {
             var fallback = profile with { ModelId = profile.FallbackModelId! };
-            completion = await provider.CompleteAsync(masked, fallback, ct);
+            completion = await provider.CompleteAsync(masked, fallback, ct, promptSpec);
             warnings.Add("fallback_model");
         }
 
@@ -137,9 +155,10 @@ public sealed class AiGateway(
 
     private static bool TryDeserialize<T>(string content, out T? value)
     {
+        var normalized = NormalizeJsonContent(content);
         try
         {
-            value = JsonSerializer.Deserialize<T>(content, JsonOptions);
+            value = JsonSerializer.Deserialize<T>(normalized, JsonOptions);
             return value is not null;
         }
         catch (JsonException)
@@ -147,5 +166,44 @@ public sealed class AiGateway(
             value = default;
             return false;
         }
+    }
+
+    private static string NormalizeJsonContent(string content)
+    {
+        var trimmed = content.Trim();
+        if (trimmed.StartsWith("```", StringComparison.Ordinal))
+        {
+            var firstNewline = trimmed.IndexOf('\n');
+            if (firstNewline > 0)
+            {
+                trimmed = trimmed[(firstNewline + 1)..];
+            }
+
+            var fence = trimmed.LastIndexOf("```", StringComparison.Ordinal);
+            if (fence >= 0)
+            {
+                trimmed = trimmed[..fence];
+            }
+
+            trimmed = trimmed.Trim();
+        }
+
+        if (trimmed.Length >= 2 && trimmed[0] == '"' && trimmed[^1] == '"')
+        {
+            try
+            {
+                var unquoted = JsonSerializer.Deserialize<string>(trimmed);
+                if (!string.IsNullOrWhiteSpace(unquoted))
+                {
+                    return unquoted.Trim();
+                }
+            }
+            catch (JsonException)
+            {
+                /* keep original */
+            }
+        }
+
+        return trimmed;
     }
 }

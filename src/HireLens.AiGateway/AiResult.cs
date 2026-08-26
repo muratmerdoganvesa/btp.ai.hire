@@ -14,7 +14,9 @@ public sealed record AiResult<T>(
 public sealed record PromptContext(
     string TaskInput,
     string PromptVersion,
-    IReadOnlyDictionary<string, string>? Variables = null);
+    IReadOnlyDictionary<string, string>? Variables = null,
+    string? SystemPrompt = null,
+    string? UserPrompt = null);
 
 public sealed record AiOptions(
     string? ModelOverride = null,

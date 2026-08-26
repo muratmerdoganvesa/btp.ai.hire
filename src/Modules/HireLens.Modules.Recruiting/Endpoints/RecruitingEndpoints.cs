@@ -28,6 +28,24 @@ public static class RecruitingEndpoints
         var jobs = endpoints.MapGroup("/api/jobs").WithTags("Recruiting").RequireAuthorization();
         jobs.MapGet("/", async (bool? includeStats, IPositionService svc, CancellationToken ct) =>
             HttpResults.From(await svc.ListAsync(includeStats ?? false, ct)));
+        jobs.MapPost("/criteria/extract", async (
+            ExtractCriteriaRequest request,
+            ICriteriaExtractionService svc,
+            CancellationToken ct) =>
+        {
+            var result = await svc.ExtractAsync(request, ct);
+            if (result.IsSuccess)
+            {
+                return Results.Ok(result.Value);
+            }
+
+            if (result.Error.Code == "validation")
+            {
+                return Results.BadRequest(new { error = result.Error.Message });
+            }
+
+            return Results.Json(new { error = result.Error.Message }, statusCode: StatusCodes.Status503ServiceUnavailable);
+        });
         return endpoints;
     }
 }

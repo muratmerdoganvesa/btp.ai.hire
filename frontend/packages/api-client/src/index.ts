@@ -20,6 +20,10 @@ export type PublicApplicationResponse = components["schemas"]["PublicApplication
 export type PublicApplicationStatus = components["schemas"]["PublicApplicationStatus"];
 export type PositionStats = components["schemas"]["PositionStats"];
 export type CandidateExport = components["schemas"]["CandidateExport"];
+export type ExtractCriteriaRequest = components["schemas"]["ExtractCriteriaRequest"];
+export type ExtractCriteriaResponse = components["schemas"]["ExtractCriteriaResponse"];
+export type FlaggedPhrase = components["schemas"]["FlaggedPhrase"];
+export type UnmeasurablePhrase = components["schemas"]["UnmeasurablePhrase"];
 export type { paths, components } from "./schema";
 
 export class ApiError extends Error {
@@ -65,6 +69,10 @@ export class ApiClient {
 
   public async updatePosition(id: string, input: UpsertPosition): Promise<Position> {
     return this.send<Position>(`/api/positions/${id}`, "PUT", input);
+  }
+
+  public async extractCriteria(input: ExtractCriteriaRequest): Promise<ExtractCriteriaResponse> {
+    return this.send<ExtractCriteriaResponse>("/api/jobs/criteria/extract", "POST", input);
   }
 
   public async listCandidates(positionId: string): Promise<Candidate[]> {

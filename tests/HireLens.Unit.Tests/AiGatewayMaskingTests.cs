@@ -79,8 +79,10 @@ public sealed class AiGatewayMaskingTests
         public Task<ProviderCompletion> CompleteAsync(
             MaskedPrompt prompt,
             ModelProfile profile,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            OrchestrationPromptSpec? promptSpec = null)
         {
+            _ = promptSpec;
             LastPrompt = prompt;
             return Task.FromResult(new ProviderCompletion("""{"status":"ok"}""", profile.ModelId, 1, 1, 0m));
         }

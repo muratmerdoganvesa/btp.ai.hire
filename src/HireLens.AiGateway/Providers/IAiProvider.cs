@@ -15,5 +15,6 @@ public interface IAiProvider
     Task<ProviderCompletion> CompleteAsync(
         MaskedPrompt prompt,
         ModelProfile profile,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        OrchestrationPromptSpec? promptSpec = null);
 }

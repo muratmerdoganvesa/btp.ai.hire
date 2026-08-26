@@ -116,6 +116,31 @@ export interface components {
       jobDescription: string;
       criteria: { name: string; description: string; weight: number }[];
     };
+    ExtractCriteriaRequest: {
+      jobTitle: string;
+      jobDescription: string;
+    };
+    ExtractedCriterion: {
+      label: string;
+      description: string;
+      weight: number;
+      mandatory: boolean;
+    };
+    FlaggedPhrase: {
+      phrase: string;
+      category: string;
+      reason: string;
+    };
+    UnmeasurablePhrase: {
+      phrase: string;
+      reason: string;
+    };
+    ExtractCriteriaResponse: {
+      criteria: components["schemas"]["ExtractedCriterion"][];
+      flaggedPhrases: components["schemas"]["FlaggedPhrase"][];
+      unmeasurable: components["schemas"]["UnmeasurablePhrase"][];
+      totalWeight: number;
+    };
     Candidate: {
       id: string;
       positionId: string;

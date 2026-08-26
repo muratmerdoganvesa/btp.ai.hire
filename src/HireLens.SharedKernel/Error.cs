@@ -13,4 +13,6 @@ public sealed record Error(string Code, string Message)
     public static Error Forbidden(string message) => new("forbidden", message);
 
     public static Error Unexpected(string message) => new("unexpected", message);
+
+    public static Error Unavailable(string message) => new("unavailable", message);
 }

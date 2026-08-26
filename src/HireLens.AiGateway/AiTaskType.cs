@@ -9,5 +9,6 @@ public enum AiTaskType
     InterviewLiveTurn = 5,
     InterviewEvaluation = 6,
     RecruiterSummary = 7,
-    Embedding = 8
+    Embedding = 8,
+    CriteriaExtraction = 9
 }

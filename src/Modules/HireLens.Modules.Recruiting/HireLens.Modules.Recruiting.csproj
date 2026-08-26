@@ -14,5 +14,6 @@
     <ProjectReference Include="..\..\HireLens.SharedKernel\HireLens.SharedKernel.csproj" />
     <ProjectReference Include="..\..\HireLens.Contracts\HireLens.Contracts.csproj" />
     <ProjectReference Include="..\..\HireLens.Infrastructure\HireLens.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\HireLens.AiGateway\HireLens.AiGateway.csproj" />
   </ItemGroup>
 </Project>

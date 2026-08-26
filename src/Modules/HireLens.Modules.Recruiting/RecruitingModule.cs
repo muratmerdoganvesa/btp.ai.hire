@@ -14,6 +14,7 @@ public static class RecruitingModule
         services.AddScoped<IPositionService>(sp => sp.GetRequiredService<PositionService>());
         services.AddScoped<IPositionReadPort>(sp => sp.GetRequiredService<PositionService>());
         services.AddScoped<IPositionWritePort>(sp => sp.GetRequiredService<PositionService>());
+        services.AddScoped<ICriteriaExtractionService, CriteriaExtractionService>();
         return services;
     }
 

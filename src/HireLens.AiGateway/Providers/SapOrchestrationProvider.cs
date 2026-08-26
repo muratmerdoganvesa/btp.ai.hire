@@ -52,9 +52,10 @@ public sealed class SapOrchestrationProvider(
     public async Task<ProviderCompletion> CompleteAsync(
         MaskedPrompt prompt,
         ModelProfile profile,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        OrchestrationPromptSpec? promptSpec = null)
     {
-        var result = await client.CompleteAsync(prompt, profile, cancellationToken: cancellationToken);
+        var result = await client.CompleteAsync(prompt, profile, promptSpec, cancellationToken);
         logger.LogDebug(
             "Orchestration completed model={Model} v={Version} promptTokens={Prompt} completionTokens={Completion} latencyMs={Latency}",
             result.ModelId,

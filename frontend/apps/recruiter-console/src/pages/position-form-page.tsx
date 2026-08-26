@@ -1,5 +1,6 @@
 import { Button } from "@hirelens/ui";
 import { ApiError } from "@hirelens/api-client";
+import type { FlaggedPhrase, UnmeasurablePhrase } from "@hirelens/api-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
@@ -49,6 +50,10 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
   const [jobDescription, setJobDescription] = useState("");
   const [criteria, setCriteria] = useState<CriterionRow[]>(defaultCriteria);
   const [error, setError] = useState<string | null>(null);
+  const [extractError, setExtractError] = useState<string | null>(null);
+  const [flaggedPhrases, setFlaggedPhrases] = useState<FlaggedPhrase[]>([]);
+  const [unmeasurable, setUnmeasurable] = useState<UnmeasurablePhrase[]>([]);
+  const [flaggedDismissed, setFlaggedDismissed] = useState(false);
 
   useEffect(() => {
     if (!existing.data) {
@@ -66,6 +71,8 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
   }, [existing.data]);
 
   const weightSum = useMemo(() => criteria.reduce((sum, row) => sum + (Number(row.weight) || 0), 0), [criteria]);
+
+  const canExtract = title.trim().length > 0 && jobDescription.trim().length >= 100;
 
   const blockers = useMemo(() => {
     const items: string[] = [];
@@ -120,6 +127,37 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
     setCriteria((rows) => rows.map((row, index) => ({ ...row, weight: weights[index] ?? 0 })));
   };
 
+  const extract = useMutation({
+    mutationFn: () =>
+      api.extractCriteria({
+        jobTitle: title.trim(),
+        jobDescription: jobDescription.trim()
+      }),
+    onSuccess: (response) => {
+      setExtractError(null);
+      setCriteria(
+        response.criteria.map((item) => ({
+          name: item.label,
+          description: item.description,
+          weight: item.weight
+        }))
+      );
+      setFlaggedPhrases(response.flaggedPhrases ?? []);
+      setUnmeasurable(response.unmeasurable ?? []);
+      setFlaggedDismissed(false);
+      if (response.criteria.length === 0) {
+        setExtractError(t("positions.extractEmpty"));
+      }
+    },
+    onError: (err) => {
+      if (err instanceof ApiError) {
+        setExtractError(err.message);
+        return;
+      }
+      setExtractError(t("positions.extractFailed"));
+    }
+  });
+
   const save = useMutation({
     mutationFn: () => {
       const payload = {
@@ -167,6 +205,8 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
     );
   }
 
+  const showFlagged = !flaggedDismissed && flaggedPhrases.length > 0;
+
   return (
     <AppShell>
       <header className="flex shrink-0 flex-wrap items-end justify-between gap-3">
@@ -182,7 +222,7 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
       </header>
 
       <div
-        data-tour="tour-composer"
+        data-tour="form-composer"
         className="flex min-h-0 flex-1 flex-col overflow-auto rounded-xl border border-border bg-surface"
       >
         <div className="flex flex-col gap-4 p-4 sm:p-5">
@@ -194,6 +234,7 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
                 value={title}
                 onChange={(event) => {
                   setError(null);
+                  setExtractError(null);
                   setTitle(event.target.value);
                 }}
                 placeholder={t("positions.namePlaceholder")}
@@ -206,6 +247,7 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
                   value={jobDescription}
                   onChange={(event) => {
                     setError(null);
+                    setExtractError(null);
                     setJobDescription(event.target.value);
                   }}
                   placeholder={t("positions.jdPlaceholder")}
@@ -221,6 +263,15 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
                 <span className={`text-sm font-semibold ${weightSum === 100 ? "text-success-fg" : "text-danger"}`}>
                   {t("positions.weightSum")}: {weightSum}/100
                 </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!canExtract || extract.isPending}
+                  onClick={() => extract.mutate()}
+                >
+                  {extract.isPending ? t("positions.extracting") : t("positions.extractCriteria")}
+                </Button>
                 <Button type="button" variant="outline" size="sm" onClick={balanceWeights}>
                   {t("positions.balanceWeights")}
                 </Button>
@@ -229,6 +280,32 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
                 </Button>
               </div>
             </div>
+
+            {showFlagged ? (
+              <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                <p className="font-semibold">
+                  {t("positions.flaggedIntro", { count: flaggedPhrases.length })}
+                </p>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  {flaggedPhrases.map((item, index) => (
+                    <li key={`${item.phrase}-${index}`}>
+                      <span className="font-medium">{item.phrase}</span>
+                      {item.reason ? ` — ${item.reason}` : null}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-2">{t("positions.flaggedFooter")}</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
+                  onClick={() => setFlaggedDismissed(true)}
+                >
+                  {t("positions.flaggedDismiss")}
+                </Button>
+              </div>
+            ) : null}
 
             <div className="overflow-x-auto rounded-xl border border-border">
               <table className="w-full min-w-[36rem] text-left text-sm">
@@ -282,9 +359,25 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
                 </tbody>
               </table>
             </div>
+
+            {unmeasurable.length > 0 ? (
+              <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-xs text-muted">
+                <p className="font-semibold text-foreground">{t("positions.unmeasurableIntro")}</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                  {unmeasurable.map((item, index) => (
+                    <li key={`${item.phrase}-${index}`}>
+                      <span className="font-medium">{item.phrase}</span>
+                      {item.reason ? ` — ${item.reason}` : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
             <p className="text-xs text-muted">{t("positions.weightsHint")}</p>
           </section>
 
+          {extractError ? <p className="text-sm font-medium text-danger">{extractError}</p> : null}
           {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
 
           <div className="flex flex-wrap gap-2 border-t border-border pt-4">
