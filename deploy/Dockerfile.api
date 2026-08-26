@@ -3,6 +3,7 @@ WORKDIR /src
 COPY Directory.Build.props Directory.Packages.props HireLens.sln ./
 COPY src ./src
 COPY tests ./tests
+COPY prompts ./prompts
 RUN dotnet restore HireLens.sln
 RUN dotnet publish src/HireLens.Api/HireLens.Api.csproj -c Release -o /app --no-restore
 
@@ -11,6 +12,7 @@ ARG GIT_SHA=unknown
 WORKDIR /app
 RUN useradd --create-home --uid 10001 hirelens
 COPY --from=build /app .
+COPY --from=build /src/prompts ./prompts
 RUN mkdir -p /app/App_Data/object-store && chown -R hirelens:hirelens /app/App_Data
 USER 10001
 ENV ASPNETCORE_URLS=

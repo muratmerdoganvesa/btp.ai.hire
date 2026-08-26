@@ -31,4 +31,10 @@
     <ProjectReference Include="..\Modules\HireLens.Modules.Integration\HireLens.Modules.Integration.csproj" />
     <ProjectReference Include="..\Modules\HireLens.Modules.Analytics\HireLens.Modules.Analytics.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\prompts\**\*"
+             Link="prompts\%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

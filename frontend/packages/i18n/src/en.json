@@ -140,6 +140,7 @@
     "extracting": "Extracting…",
     "extractEmpty": "No criteria could be extracted; you can enter them manually.",
     "extractFailed": "Service unavailable. You can enter criteria manually.",
+    "extractAuthFailed": "Your session is invalid or expired. Sign out, sign in again, then retry.",
     "flaggedIntro": "{{count}} phrases in your posting cannot be turned into evaluation criteria",
     "flaggedFooter": "These phrases carry discrimination risk and were not converted to criteria. We recommend reviewing the job text.",
     "flaggedDismiss": "Got it",

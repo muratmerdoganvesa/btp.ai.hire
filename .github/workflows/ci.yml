@@ -271,8 +271,11 @@ jobs:
           OWNER="$(printf '%s' "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
           DOCKER_USER="$(printf '%s' "${GHCR_USER}" | tr '[:upper:]' '[:lower:]' | tr -d '\r\n')"
           sed "s#ghcr.io/OWNER/#ghcr.io/${OWNER}/#g" deploy/manifest.yml > /tmp/manifest.yml
-          # Preserve HANA_CONNECTION across recreate (set via cf set-env; not in repo).
+          # Preserve HANA_CONNECTION / AI Core across recreate (set via cf set-env; not in repo).
           HANA_CONN="$(./cf env hirelens-api 2>/dev/null | awk '/^HANA_CONNECTION:/{sub(/^HANA_CONNECTION:[[:space:]]*/,""); print; exit}' || true)"
+          AICORE_KEY="$(./cf env hirelens-api 2>/dev/null | awk '/^AICORE_SERVICE_KEY:/{sub(/^AICORE_SERVICE_KEY:[[:space:]]*/,""); print; exit}' || true)"
+          AICORE_DEP="$(./cf env hirelens-api 2>/dev/null | awk '/^AICORE_DEPLOYMENT_ID:/{sub(/^AICORE_DEPLOYMENT_ID:[[:space:]]*/,""); print; exit}' || true)"
+          AICORE_RG="$(./cf env hirelens-api 2>/dev/null | awk '/^AICORE_RESOURCE_GROUP:/{sub(/^AICORE_RESOURCE_GROUP:[[:space:]]*/,""); print; exit}' || true)"
           # Drop app-scoped registry creds (expired GITHUB_TOKEN → GHCR 403 even on public packages).
           ./cf delete hirelens-api -f || true
           ./cf delete hirelens-worker -f || true
@@ -302,6 +305,18 @@ jobs:
           if [ -n "${HANA_CONN}" ]; then
             ./cf set-env hirelens-api HANA_CONNECTION "${HANA_CONN}"
             ./cf set-env hirelens-worker HANA_CONNECTION "${HANA_CONN}"
+          fi
+          if [ -n "${AICORE_KEY}" ]; then
+            ./cf set-env hirelens-api AICORE_SERVICE_KEY "${AICORE_KEY}"
+            ./cf set-env hirelens-worker AICORE_SERVICE_KEY "${AICORE_KEY}"
+          fi
+          if [ -n "${AICORE_DEP}" ]; then
+            ./cf set-env hirelens-api AICORE_DEPLOYMENT_ID "${AICORE_DEP}"
+            ./cf set-env hirelens-worker AICORE_DEPLOYMENT_ID "${AICORE_DEP}"
+          fi
+          if [ -n "${AICORE_RG}" ]; then
+            ./cf set-env hirelens-api AICORE_RESOURCE_GROUP "${AICORE_RG}"
+            ./cf set-env hirelens-worker AICORE_RESOURCE_GROUP "${AICORE_RG}"
           fi
           ./cf unset-env hirelens-api HireLens__EnableDevAuth || true
           ./cf unset-env hirelens-api DOTNET_ENVIRONMENT || true

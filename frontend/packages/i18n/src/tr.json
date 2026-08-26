@@ -140,6 +140,7 @@
     "extracting": "Çıkarılıyor…",
     "extractEmpty": "Kriter çıkarılamadı, elle girebilirsiniz.",
     "extractFailed": "Servis yanıt vermiyor. Kriterleri elle girebilirsiniz.",
+    "extractAuthFailed": "Oturum geçersiz veya süresi dolmuş. Çıkış yapıp tekrar giriş yapın, ardından yeniden deneyin.",
     "flaggedIntro": "İlan metninizde değerlendirme kriteri yapılamayacak {{count}} ifade bulundu",
     "flaggedFooter": "Bu ifadeler ayrımcılık riski taşır ve kritere çevrilmedi. İlan metnini gözden geçirmenizi öneririz.",
     "flaggedDismiss": "Anladım",

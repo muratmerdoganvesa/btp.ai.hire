@@ -151,6 +151,10 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
     },
     onError: (err) => {
       if (err instanceof ApiError) {
+        if (err.status === 401 || err.status === 403) {
+          setExtractError(t("positions.extractAuthFailed"));
+          return;
+        }
         setExtractError(err.message);
         return;
       }
