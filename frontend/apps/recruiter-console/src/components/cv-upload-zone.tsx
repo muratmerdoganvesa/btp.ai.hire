@@ -21,14 +21,31 @@ async function waitForJob(jobId: string, onTick: (status: string) => void): Prom
   throw new Error("job_timeout");
 }
 
+export async function uploadCandidateCv(
+  positionId: string,
+  candidateId: string,
+  file: File,
+  onPhase?: (phase: string) => void
+): Promise<void> {
+  onPhase?.("upload");
+  const session = await api.startUpload(positionId, candidateId, file);
+  await api.putObject(session.uploadUrl, file);
+  onPhase?.("parse");
+  const job = await api.completeUpload(session.documentId);
+  onPhase?.("match");
+  await waitForJob(job.jobId, (status) => onPhase?.(`match:${status}`));
+}
+
 export function CvUploadZone({
   positionId,
   candidateId,
-  onCompleted
+  onCompleted,
+  compact
 }: {
   positionId: string;
   candidateId: string;
   onCompleted: () => void;
+  compact?: boolean;
 }) {
   const { t } = useTranslation();
   const [file, setFile] = useState<File | null>(null);
@@ -43,14 +60,13 @@ export function CvUploadZone({
 
     setBusy(true);
     setError(null);
-    setPhase(t("upload.phaseUpload"));
     try {
-      const session = await api.startUpload(positionId, candidateId, file);
-      await api.putObject(session.uploadUrl, file);
-      setPhase(t("upload.phaseParse"));
-      const job = await api.completeUpload(session.documentId);
-      setPhase(t("upload.phaseMatch"));
-      await waitForJob(job.jobId, (status) => setPhase(`${t("upload.phaseMatch")} (${status})`));
+      await uploadCandidateCv(positionId, candidateId, file, (p) => {
+        if (p === "upload") setPhase(t("upload.phaseUpload"));
+        else if (p === "parse") setPhase(t("upload.phaseParse"));
+        else if (p.startsWith("match")) setPhase(`${t("upload.phaseMatch")} (${p.split(":")[1] ?? ""})`);
+        else setPhase(t("upload.phaseMatch"));
+      });
       setPhase(null);
       setFile(null);
       onCompleted();
@@ -58,7 +74,7 @@ export function CvUploadZone({
       const message = err instanceof Error ? err.message : "";
       if (/scanned|could not be extracted|text could not/i.test(message)) {
         setError(t("upload.scanned"));
-      } else       if (err instanceof ApiError && message) {
+      } else if (err instanceof ApiError && message) {
         setError(`${t("errors.generic")} (${message.replace(/^http_\d+:/, "")})`);
       } else if (message) {
         setError(`${t("errors.generic")} (${message})`);
@@ -71,37 +87,45 @@ export function CvUploadZone({
     }
   };
 
+  const body = (
+    <div className="flex flex-col gap-3">
+      {!compact ? <p className="text-sm text-muted">{t("upload.hint")}</p> : null}
+      <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-border bg-brand-1/40 px-4 py-6 text-center transition-colors hover:border-brand-4">
+        <span className="text-sm font-medium">{file ? file.name : t("upload.title")}</span>
+        <span className="mt-1 text-xs text-muted">{t("upload.hint")}</span>
+        <input
+          type="file"
+          className="sr-only"
+          accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+          onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+        />
+      </label>
+      {phase ? (
+        <p className="text-sm text-muted" role="status">
+          {phase}
+        </p>
+      ) : null}
+      {error ? (
+        <p className="text-sm text-danger" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <Button type="button" size="sm" disabled={!file || busy} onClick={() => void upload()}>
+        {busy ? t("upload.working") : t("upload.submit")}
+      </Button>
+    </div>
+  );
+
+  if (compact) {
+    return body;
+  }
+
   return (
     <Card className="border-border/80 bg-surface/95">
       <CardHeader>
         <CardTitle className="font-display text-xl">{t("upload.title")}</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <p className="text-sm text-muted">{t("upload.hint")}</p>
-        <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-brand-1/40 px-4 py-8 text-center transition-colors hover:border-brand-4">
-          <span className="text-sm font-medium">{file ? file.name : t("upload.title")}</span>
-          <span className="mt-1 text-xs text-muted">{t("upload.hint")}</span>
-          <input
-            type="file"
-            className="sr-only"
-            accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-          />
-        </label>
-        {phase ? (
-          <p className="text-sm text-muted" role="status">
-            {phase}
-          </p>
-        ) : null}
-        {error ? (
-          <p className="text-sm text-danger" role="alert">
-            {error}
-          </p>
-        ) : null}
-        <Button type="button" disabled={!file || busy} onClick={() => void upload()}>
-          {busy ? t("upload.working") : t("upload.submit")}
-        </Button>
-      </CardContent>
+      <CardContent>{body}</CardContent>
     </Card>
   );
 }

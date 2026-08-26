@@ -1,4 +1,5 @@
 import { Button, cn } from "@hirelens/ui";
+import { ApiError } from "@hirelens/api-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
@@ -6,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { api } from "../api";
 import { AppShell } from "../components/app-shell";
 import { CandidatesTable } from "../components/candidates-table";
-import { CvUploadZone } from "../components/cv-upload-zone";
+import { CvUploadZone, uploadCandidateCv } from "../components/cv-upload-zone";
 
 type SourceMode = "choose" | "sf" | "manual";
 
@@ -15,12 +16,15 @@ export function CandidatesPage() {
   const { positionId } = useParams({ from: "/positions/$positionId" });
   const queryClient = useQueryClient();
   const [displayName, setDisplayName] = useState("");
+  const [cvFile, setCvFile] = useState<File | null>(null);
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
   const [sort, setSort] = useState<"score" | "date" | "coverage">("score");
   const [mode, setMode] = useState<SourceMode>("choose");
   const [linkCopied, setLinkCopied] = useState(false);
   const [sfMessage, setSfMessage] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formPhase, setFormPhase] = useState<string | null>(null);
 
   const position = useQuery({
     queryKey: ["position", positionId],
@@ -34,12 +38,43 @@ export function CandidatesPage() {
   });
 
   const create = useMutation({
-    mutationFn: () => api.createCandidate(positionId, displayName.trim()),
+    mutationFn: async () => {
+      setFormError(null);
+      setFormPhase(null);
+      const candidate = await api.createCandidate(positionId, displayName.trim());
+      if (cvFile) {
+        setFormPhase(t("upload.phaseUpload"));
+        try {
+          await uploadCandidateCv(positionId, candidate.id, cvFile, (p) => {
+            if (p === "upload") setFormPhase(t("upload.phaseUpload"));
+            else if (p === "parse") setFormPhase(t("upload.phaseParse"));
+            else if (p.startsWith("match")) setFormPhase(`${t("upload.phaseMatch")} (${p.split(":")[1] ?? ""})`);
+          });
+        } catch (err) {
+          const message = err instanceof Error ? err.message : "";
+          if (/scanned|could not be extracted|text could not/i.test(message)) {
+            throw new Error(t("upload.scanned"));
+          }
+          if (err instanceof ApiError && message) {
+            throw new Error(`${t("errors.generic")} (${message.replace(/^http_\d+:/, "")})`);
+          }
+          throw err instanceof Error ? err : new Error(t("errors.generic"));
+        }
+      }
+      return candidate;
+    },
     onSuccess: async (candidate) => {
       setDisplayName("");
+      setCvFile(null);
+      setFormPhase(null);
+      setFormError(null);
       setSelectedCandidateId(candidate.id);
       setMode("manual");
       await queryClient.invalidateQueries({ queryKey: ["candidates", positionId] });
+    },
+    onError: (err) => {
+      setFormPhase(null);
+      setFormError(err instanceof Error ? err.message : t("errors.generic"));
     }
   });
 
@@ -187,8 +222,8 @@ export function CandidatesPage() {
                 </Button>
               ) : null}
             </div>
-            <div className="flex flex-wrap items-end gap-2">
-              <label className="min-w-[12rem] flex-1 text-sm">
+            <div className="flex flex-col gap-3">
+              <label className="text-sm">
                 <span className="mb-1 block font-semibold text-muted">{t("candidates.displayName")}</span>
                 <input
                   value={displayName}
@@ -196,13 +231,34 @@ export function CandidatesPage() {
                   className="h-9 w-full rounded-lg border border-border bg-white px-3 text-sm outline-none focus-visible:border-brand-5 focus-visible:ring-2 focus-visible:ring-brand-6/15"
                 />
               </label>
+              <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-border bg-brand-1/40 px-4 py-5 text-center transition-colors hover:border-brand-4">
+                <span className="text-sm font-medium">{cvFile ? cvFile.name : t("candidates.cvRequired")}</span>
+                <span className="mt-1 text-xs text-muted">{t("upload.hint")}</span>
+                <input
+                  type="file"
+                  className="sr-only"
+                  accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                  onChange={(event) => setCvFile(event.target.files?.[0] ?? null)}
+                />
+              </label>
+              {formPhase ? (
+                <p className="text-sm text-muted" role="status">
+                  {formPhase}
+                </p>
+              ) : null}
+              {formError ? (
+                <p className="text-sm text-danger" role="alert">
+                  {formError}
+                </p>
+              ) : null}
               <Button
                 type="button"
                 size="sm"
-                disabled={!displayName.trim() || create.isPending}
+                className="self-start"
+                disabled={!displayName.trim() || !cvFile || create.isPending}
                 onClick={() => create.mutate()}
               >
-                {t("candidates.create")}
+                {create.isPending ? t("candidates.creatingWithCv") : t("candidates.createWithCv")}
               </Button>
             </div>
           </div>
@@ -213,6 +269,7 @@ export function CandidatesPage() {
                   {t("candidates.uploadFor", { name: selected.displayName })}
                 </p>
                 <CvUploadZone
+                  compact
                   positionId={positionId}
                   candidateId={selected.id}
                   onCompleted={() => void queryClient.invalidateQueries({ queryKey: ["candidates", positionId] })}
@@ -220,7 +277,7 @@ export function CandidatesPage() {
               </div>
             ) : (
               <p className="rounded-lg border border-dashed border-border px-4 py-6 text-sm text-muted">
-                {t("candidates.selectHint")}
+                {t("candidates.selectHintAfter")}
               </p>
             )}
           </div>
