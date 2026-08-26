@@ -121,32 +121,20 @@ public sealed class InterviewService(
 
         var session = opened.Value;
 
-        // Persist consent first while the session entity is still Unchanged — otherwise
-        // GrantAsync.SaveChanges also flushes DisclosureAccepted and can trip HANA/EF
-        // on AutoIncluded empty Questions/Turns collections ("Sequence contains no elements").
         await privacy.GrantAsync(session.CandidateId, DisclosurePurpose, cancellationToken);
 
         if (!session.DisclosureAccepted)
         {
-            var affected = await db.Set<InterviewSession>()
-                .Where(s => s.Id == session.Id)
-                .ExecuteUpdateAsync(
-                    setters => setters
-                        .SetProperty(s => s.DisclosureAccepted, true)
-                        .SetProperty(s => s.Status, "disclosed"),
-                    cancellationToken);
-
-            if (affected == 0)
-            {
-                // Fallback when provider cannot translate ExecuteUpdate (or row vanished).
-                session.AcceptDisclosure();
-                await db.SaveChangesAsync(cancellationToken);
-            }
-            else
-            {
-                session.AcceptDisclosure();
-                db.Entry(session).State = EntityState.Detached;
-            }
+            // Raw SQL — avoid EF ExecuteUpdate/SaveChanges on AutoIncluded interview graphs (HANA).
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                UPDATE "InterviewSessions"
+                SET "DisclosureAccepted" = TRUE, "Status" = {"disclosed"}
+                WHERE "Id" = {session.Id.ToString("D")}
+                """,
+                cancellationToken);
+            session.AcceptDisclosure();
+            db.Entry(session).State = EntityState.Detached;
         }
 
         return Result.Success(ToDto(session));
@@ -167,6 +155,18 @@ public sealed class InterviewService(
             return Result.Failure<InterviewSessionDto>(Error.Validation("AI disclosure consent is required."));
         }
 
+        if (!session.DisclosureAccepted)
+        {
+            session.AcceptDisclosure();
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                UPDATE "InterviewSessions"
+                SET "DisclosureAccepted" = TRUE
+                WHERE "Id" = {session.Id.ToString("D")}
+                """,
+                cancellationToken);
+        }
+
         if (session.Questions.Count == 0)
         {
             await SeedQuestionsAsync(session, cancellationToken);
@@ -174,7 +174,6 @@ public sealed class InterviewService(
 
         if (session.Questions.Count == 0)
         {
-            // Last-resort prompt so start never dies on empty criteria / missing evaluation.
             session.AddQuestion(
                 Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 "Bu rol için somut bir başarı veya deneyiminizi anlatın.",
@@ -184,46 +183,30 @@ public sealed class InterviewService(
         var started = session.Start();
         if (started.IsFailure)
         {
-            // Disclosure flag may only live on ConsentRecords after ExecuteUpdate path.
-            if (!session.DisclosureAccepted && await privacy.HasAsync(session.CandidateId, DisclosurePurpose, cancellationToken))
-            {
-                session.AcceptDisclosure();
-                started = session.Start();
-            }
-
-            if (started.IsFailure)
-            {
-                return Result.Failure<InterviewSessionDto>(started.Error);
-            }
+            return Result.Failure<InterviewSessionDto>(started.Error);
         }
 
-        // Detach parent before inserting children — Sap HANA EF throws
-        // "Sequence contains no elements" when SaveChanges updates InterviewSession
-        // together with AutoIncluded Questions/Turns.
-        db.Entry(session).State = EntityState.Detached;
+        db.ChangeTracker.Clear();
+
         foreach (var question in session.Questions)
         {
-            var entry = db.Entry(question);
-            if (entry.State == EntityState.Detached)
-            {
-                db.Set<InterviewQuestion>().Add(question);
-            }
+            await InsertQuestionRawAsync(question, cancellationToken);
         }
 
         var first = session.Questions.OrderBy(q => q.Order).FirstOrDefault();
         if (first is not null && session.Turns.Count == 0)
         {
             var turn = session.AddTurn("assistant", first.Prompt, first.Id, clock.UtcNow);
-            db.Set<InterviewTurn>().Add(turn);
+            await InsertTurnRawAsync(turn, cancellationToken);
         }
 
-        await db.SaveChangesAsync(cancellationToken);
-
-        await db.Set<InterviewSession>()
-            .Where(s => s.Id == session.Id)
-            .ExecuteUpdateAsync(
-                setters => setters.SetProperty(s => s.Status, "in_progress"),
-                cancellationToken);
+        await db.Database.ExecuteSqlInterpolatedAsync(
+            $"""
+            UPDATE "InterviewSessions"
+            SET "Status" = {"in_progress"}
+            WHERE "Id" = {session.Id.ToString("D")}
+            """,
+            cancellationToken);
 
         return Result.Success(ToDto(session));
     }
@@ -419,6 +402,68 @@ public sealed class InterviewService(
                 session.AddQuestion(criterion.Id, $"Please share concrete evidence for {criterion.Name}.", order++);
             }
         }
+    }
+
+    private async Task InsertQuestionRawAsync(InterviewQuestion question, CancellationToken cancellationToken)
+    {
+        // Prefer QuestionOrder; fall back to legacy "Order" column if ALTER has not run yet.
+        try
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                UPSERT "InterviewQuestions"
+                ("Id","TenantId","SessionId","CriterionId","Prompt","QuestionOrder")
+                VALUES (
+                    {question.Id.ToString("D")},
+                    {question.TenantId.ToString("D")},
+                    {question.SessionId.ToString("D")},
+                    {question.CriterionId.ToString("D")},
+                    {question.Prompt},
+                    {question.Order}
+                )
+                WITH PRIMARY KEY
+                """,
+                cancellationToken);
+        }
+        catch
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                UPSERT "InterviewQuestions"
+                ("Id","TenantId","SessionId","CriterionId","Prompt","Order")
+                VALUES (
+                    {question.Id.ToString("D")},
+                    {question.TenantId.ToString("D")},
+                    {question.SessionId.ToString("D")},
+                    {question.CriterionId.ToString("D")},
+                    {question.Prompt},
+                    {question.Order}
+                )
+                WITH PRIMARY KEY
+                """,
+                cancellationToken);
+        }
+    }
+
+    private async Task InsertTurnRawAsync(InterviewTurn turn, CancellationToken cancellationToken)
+    {
+        var questionId = turn.QuestionId is Guid qid ? qid.ToString("D") : null;
+        await db.Database.ExecuteSqlInterpolatedAsync(
+            $"""
+            UPSERT "InterviewTurns"
+            ("Id","TenantId","SessionId","QuestionId","Role","Text","CreatedAt")
+            VALUES (
+                {turn.Id.ToString("D")},
+                {turn.TenantId.ToString("D")},
+                {turn.SessionId.ToString("D")},
+                {questionId},
+                {turn.Role},
+                {turn.Text},
+                {turn.CreatedAt.ToString("O")}
+            )
+            WITH PRIMARY KEY
+            """,
+            cancellationToken);
     }
 
     private async Task EvaluateAsync(InterviewSession session, CancellationToken cancellationToken)
