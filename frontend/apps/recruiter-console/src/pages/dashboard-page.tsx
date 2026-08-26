@@ -91,7 +91,9 @@ export function DashboardPage() {
     return null;
   }
 
-  const workspaceName = tenant.data?.name?.trim() || session.subject;
+  const rawWorkspace = tenant.data?.name?.trim() || session.subject;
+  const looksLikeId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawWorkspace);
+  const workspaceName = looksLikeId ? t("dashboard.workspaceFallback") : rawWorkspace;
   const totals = {
     candidates: list.reduce((sum, p) => sum + (p.stats?.totalCandidates ?? 0), 0),
     evaluated: list.reduce((sum, p) => sum + (p.stats?.evaluatedCount ?? 0), 0),
@@ -100,21 +102,17 @@ export function DashboardPage() {
 
   return (
     <AppShell>
-      <header className="flex shrink-0 flex-col gap-2 border-b border-border pb-3 sm:flex-row sm:items-end sm:justify-between">
+      <header className="flex shrink-0 flex-col gap-3 border-b border-border pb-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs text-muted">{workspaceName}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">{workspaceName}</p>
           <h1 className="text-xl font-extrabold leading-tight tracking-tight text-foreground sm:text-2xl">
             {t("dashboard.title")}
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            className="rounded-lg px-3 py-1.5 text-sm font-semibold text-muted transition-colors hover:bg-brand-0 hover:text-foreground"
-            onClick={() => startTour(true)}
-          >
+          <Button type="button" variant="outline" size="sm" onClick={() => startTour(true)}>
             {t("tour.start")}
-          </button>
+          </Button>
           <Button asChild size="sm">
             <Link to="/positions/new">{t("dashboard.createPosition")}</Link>
           </Button>

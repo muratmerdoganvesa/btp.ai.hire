@@ -81,6 +81,27 @@ builder.Services.AddAuthorization();
 builder.Services.AddReverseProxy()
     .LoadFromMemory(
         [
+            // Candidate-facing API — no recruiter cookie required.
+            new Yarp.ReverseProxy.Configuration.RouteConfig
+            {
+                RouteId = "api-public-interviews",
+                ClusterId = "api",
+                AuthorizationPolicy = "Anonymous",
+                Match = new Yarp.ReverseProxy.Configuration.RouteMatch
+                {
+                    Path = "/api/interviews/public/{**catch-all}"
+                }
+            },
+            new Yarp.ReverseProxy.Configuration.RouteConfig
+            {
+                RouteId = "api-public",
+                ClusterId = "api",
+                AuthorizationPolicy = "Anonymous",
+                Match = new Yarp.ReverseProxy.Configuration.RouteMatch
+                {
+                    Path = "/api/public/{**catch-all}"
+                }
+            },
             new Yarp.ReverseProxy.Configuration.RouteConfig
             {
                 RouteId = "api",
@@ -150,6 +171,11 @@ app.MapGet("/logout", async (HttpContext context) =>
     return Results.Redirect("/");
 }).AllowAnonymous();
 app.MapReverseProxy().RequireAuthorization();
+
+// Interview tokens use dots (tenant.session.hmac). Default MapFallbackToFile uses
+// the :nonfile constraint and returns 404 for those URLs — bind explicit public SPA routes.
+app.MapFallbackToFile("/interview/{**path}", "index.html").AllowAnonymous();
+app.MapFallbackToFile("/apply/{**path}", "index.html").AllowAnonymous();
 app.MapFallbackToFile("index.html").RequireAuthorization();
 
 Log.Information("HireLens BFF origin={Origin} api={Api} authority={Authority}", publicOrigin, apiUrl, xsuaa.Authority);
