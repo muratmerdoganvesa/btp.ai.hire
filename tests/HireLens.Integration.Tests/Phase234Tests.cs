@@ -57,8 +57,21 @@ public sealed class Phase234Tests : IClassFixture<HireLensApiFactory>
         using var startDenied = await anonymous.PostAsync($"/api/interviews/public/{token}/start", null);
         startDenied.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
-        (await anonymous.PostAsync($"/api/interviews/public/{token}/disclose", null)).EnsureSuccessStatusCode();
-        (await anonymous.PostAsync($"/api/interviews/public/{token}/start", null)).EnsureSuccessStatusCode();
+        using var disclose = await anonymous.PostAsync($"/api/interviews/public/{token}/disclose", null);
+        if (!disclose.IsSuccessStatusCode)
+        {
+            var body = await disclose.Content.ReadAsStringAsync();
+            throw new HttpRequestException(
+                $"disclose failed {(int)disclose.StatusCode}: {body}");
+        }
+
+        using var start = await anonymous.PostAsync($"/api/interviews/public/{token}/start", null);
+        if (!start.IsSuccessStatusCode)
+        {
+            var body = await start.Content.ReadAsStringAsync();
+            throw new HttpRequestException(
+                $"start failed {(int)start.StatusCode}: {body}");
+        }
         var session = await anonymous.GetFromJsonAsync<InterviewSessionDto>($"/api/interviews/public/{token}", Json);
         session!.Questions.Should().OnlyContain(q => q.CriterionId != Guid.Empty);
 

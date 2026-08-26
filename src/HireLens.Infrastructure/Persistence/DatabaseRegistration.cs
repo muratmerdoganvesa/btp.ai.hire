@@ -28,18 +28,19 @@ public static class DatabaseRegistration
             var interceptor = sp.GetRequiredService<AuditSaveChangesInterceptor>();
             options.AddInterceptors(interceptor);
 
-            var hana = HanaConnection.Resolve(configuration);
-
-            if (!string.IsNullOrWhiteSpace(hana))
-            {
-                options.UseHana(hana);
-                return;
-            }
-
-            if (HanaConnection.UsesInMemory(configuration, environment))
+            // Integration/unit hosts must never pick up a machine/CI HANA_CONNECTION by accident —
+            // that made interview tests hit real HANA SQL and fail CI while local InMemory passed.
+            if (environment.IsEnvironment("Testing") || HanaConnection.UsesInMemory(configuration, environment))
             {
                 var name = configuration["INMEMORY_DATABASE_NAME"] ?? "HireLens";
                 options.UseInMemoryDatabase(name);
+                return;
+            }
+
+            var hana = HanaConnection.Resolve(configuration);
+            if (!string.IsNullOrWhiteSpace(hana))
+            {
+                options.UseHana(hana);
                 return;
             }
 

@@ -120,26 +120,16 @@ public sealed class InterviewService(
         }
 
         var session = opened.Value;
+
+        // Detach interview graph so consent SaveChanges cannot flush InterviewSession+AutoInclude.
+        db.ChangeTracker.Clear();
+
         await privacy.GrantAsync(session.CandidateId, DisclosurePurpose, cancellationToken);
 
         if (!session.DisclosureAccepted)
         {
+            await MarkSessionDisclosedAsync(session.Id, cancellationToken);
             session.AcceptDisclosure();
-            if (UsesRelationalSql())
-            {
-                await db.Database.ExecuteSqlInterpolatedAsync(
-                    $"""
-                    UPDATE "InterviewSessions"
-                    SET "DisclosureAccepted" = TRUE, "Status" = {"disclosed"}
-                    WHERE "Id" = {session.Id.ToString("D")}
-                    """,
-                    cancellationToken);
-                db.Entry(session).State = EntityState.Detached;
-            }
-            else
-            {
-                await db.SaveChangesAsync(cancellationToken);
-            }
         }
 
         return Result.Success(ToDto(session));
@@ -162,17 +152,8 @@ public sealed class InterviewService(
 
         if (!session.DisclosureAccepted)
         {
+            await MarkSessionDisclosedAsync(session.Id, cancellationToken);
             session.AcceptDisclosure();
-            if (UsesRelationalSql())
-            {
-                await db.Database.ExecuteSqlInterpolatedAsync(
-                    $"""
-                    UPDATE "InterviewSessions"
-                    SET "DisclosureAccepted" = TRUE
-                    WHERE "Id" = {session.Id.ToString("D")}
-                    """,
-                    cancellationToken);
-            }
         }
 
         if (session.Questions.Count == 0)
@@ -201,10 +182,11 @@ public sealed class InterviewService(
             openingTurn = session.AddTurn("assistant", first.Prompt, first.Id, clock.UtcNow);
         }
 
+        // Persist children without a tracked InterviewSession parent (HANA AutoInclude SaveChanges bug).
+        db.ChangeTracker.Clear();
+
         if (UsesRelationalSql())
         {
-            // HANA: never SaveChanges on AutoIncluded InterviewSession graphs.
-            db.ChangeTracker.Clear();
             foreach (var question in session.Questions)
             {
                 await InsertQuestionRawAsync(question, cancellationToken);
@@ -227,21 +209,46 @@ public sealed class InterviewService(
         {
             foreach (var question in session.Questions)
             {
-                if (db.Entry(question).State == EntityState.Detached)
-                {
-                    db.Set<InterviewQuestion>().Add(question);
-                }
+                db.Set<InterviewQuestion>().Add(question);
             }
 
-            if (openingTurn is not null && db.Entry(openingTurn).State == EntityState.Detached)
+            if (openingTurn is not null)
             {
                 db.Set<InterviewTurn>().Add(openingTurn);
             }
 
             await db.SaveChangesAsync(cancellationToken);
+            await db.Set<InterviewSession>()
+                .Where(s => s.Id == session.Id)
+                .ExecuteUpdateAsync(
+                    setters => setters.SetProperty(s => s.Status, "in_progress"),
+                    cancellationToken);
         }
 
         return Result.Success(ToDto(session));
+    }
+
+    private async Task MarkSessionDisclosedAsync(Guid sessionId, CancellationToken cancellationToken)
+    {
+        if (UsesRelationalSql())
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                UPDATE "InterviewSessions"
+                SET "DisclosureAccepted" = TRUE, "Status" = {"disclosed"}
+                WHERE "Id" = {sessionId.ToString("D")}
+                """,
+                cancellationToken);
+            return;
+        }
+
+        await db.Set<InterviewSession>()
+            .Where(s => s.Id == sessionId)
+            .ExecuteUpdateAsync(
+                setters => setters
+                    .SetProperty(s => s.DisclosureAccepted, true)
+                    .SetProperty(s => s.Status, "disclosed"),
+                cancellationToken);
     }
 
     public async Task<Result<InterviewSessionDto>> PauseAsync(string token, CancellationToken cancellationToken)
