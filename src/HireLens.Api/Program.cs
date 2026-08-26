@@ -103,15 +103,37 @@ if (!app.Environment.IsEnvironment("Testing")
         var db = scope.ServiceProvider.GetRequiredService<HireLensDbContext>();
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("SchemaBootstrap");
         await SchemaBootstrap.EnsureApplicationTablesAsync(db, logger);
+        await SchemaBootstrap.EnsureCandidateTablesAsync(db, logger);
         await SchemaBootstrap.EnsureAuditTablesAsync(db, logger);
         await SchemaBootstrap.EnsureDocumentPipelineTablesAsync(db, logger);
         await SchemaBootstrap.EnsurePrivacyTablesAsync(db, logger);
         await SchemaBootstrap.EnsureEvaluationAuditColumnsAsync(db, logger);
+        await BackfillPositionSlugsAsync(db, logger);
     }
     catch (Exception ex)
     {
         Log.Error(ex, "Schema bootstrap failed; API will start and report DB via /health/ready.");
     }
+}
+
+static async Task BackfillPositionSlugsAsync(HireLensDbContext db, Microsoft.Extensions.Logging.ILogger logger)
+{
+    var empty = await db.Set<HireLens.Modules.Recruiting.Domain.Position>()
+        .IgnoreQueryFilters()
+        .Where(p => p.Slug == string.Empty)
+        .ToListAsync();
+    if (empty.Count == 0)
+    {
+        return;
+    }
+
+    logger.LogWarning("Backfilling Slug for {Count} positions.", empty.Count);
+    foreach (var position in empty)
+    {
+        position.EnsureSlug();
+    }
+
+    await db.SaveChangesAsync();
 }
 
 app.UseSerilogRequestLogging();

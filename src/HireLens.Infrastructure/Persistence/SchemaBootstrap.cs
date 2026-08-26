@@ -101,6 +101,51 @@ public static class SchemaBootstrap
         await EnsurePositionSlugColumnAsync(db, logger, cancellationToken);
     }
 
+    public static async Task EnsureCandidateTablesAsync(
+        HireLensDbContext db,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        if (db.Database.IsInMemory())
+        {
+            return;
+        }
+
+        if (await TableExistsAsync(db, "CANDIDATES", cancellationToken))
+        {
+            logger.LogInformation("HireLens candidate tables present (Candidates).");
+            return;
+        }
+
+        logger.LogWarning("Missing candidate table (Candidates). Creating.");
+        await ExecuteIgnoreDuplicateAsync(
+            db,
+            logger,
+            """
+            CREATE TABLE "Candidates" (
+                "Id" NVARCHAR(36) NOT NULL CONSTRAINT "PK_Candidates" PRIMARY KEY,
+                "TenantId" NVARCHAR(36) NOT NULL,
+                "PositionId" NVARCHAR(36) NOT NULL,
+                "DisplayName" NVARCHAR(200) NOT NULL,
+                "Status" NVARCHAR(32) NOT NULL,
+                "CreatedAt" NVARCHAR(48) NOT NULL
+            )
+            """,
+            cancellationToken);
+        await ExecuteIgnoreDuplicateAsync(
+            db,
+            logger,
+            """CREATE UNIQUE INDEX "IX_Candidates_TenantId_Id" ON "Candidates" ("TenantId", "Id")""",
+            cancellationToken);
+        await ExecuteIgnoreDuplicateAsync(
+            db,
+            logger,
+            """CREATE INDEX "IX_Candidates_TenantId_PositionId" ON "Candidates" ("TenantId", "PositionId")""",
+            cancellationToken);
+
+        logger.LogInformation("HireLens candidate tables ready.");
+    }
+
     private static async Task EnsurePositionSlugColumnAsync(
         HireLensDbContext db,
         ILogger logger,

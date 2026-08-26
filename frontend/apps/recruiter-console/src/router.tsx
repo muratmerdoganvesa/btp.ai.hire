@@ -7,6 +7,7 @@ import { EvaluationPage } from "./pages/evaluation-page";
 import { LoginPage } from "./pages/login-page";
 import { SessionErrorPage } from "./pages/session-error-page";
 import { PositionsPage } from "./pages/positions-page";
+import { PositionCreatePage, PositionEditPage } from "./pages/position-form-page";
 import { ApplyJobPage } from "./pages/apply/apply-job-page";
 import { ApplyConsentPage } from "./pages/apply/apply-consent-page";
 import { ApplyFormPage } from "./pages/apply/apply-form-page";
@@ -52,6 +53,20 @@ const positionsRoute = createRoute({
   path: "/positions",
   beforeLoad: requireSession,
   component: PositionsPage
+});
+
+const positionCreateRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/positions/new",
+  beforeLoad: requireSession,
+  component: PositionCreatePage
+});
+
+const positionEditRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/positions/$positionId/edit",
+  beforeLoad: requireSession,
+  component: PositionEditPage
 });
 
 const positionDetailRoute = createRoute({
@@ -109,6 +124,8 @@ const routeTree = rootRoute.addChildren([
   loginRoute,
   sessionErrorRoute,
   positionsRoute,
+  positionCreateRoute,
+  positionEditRoute,
   positionDetailRoute,
   evaluationRoute,
   applyJobRoute,

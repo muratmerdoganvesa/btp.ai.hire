@@ -122,6 +122,14 @@ public sealed class Position : ITenantEntity
         return $"{normalized}-{id.ToString("N")[..8]}";
     }
 
+    public void EnsureSlug()
+    {
+        if (string.IsNullOrWhiteSpace(Slug))
+        {
+            Slug = BuildSlug(Title, Id);
+        }
+    }
+
     internal static Result ValidateWeights(IReadOnlyList<int> weights)
     {
         if (weights.Count == 0)

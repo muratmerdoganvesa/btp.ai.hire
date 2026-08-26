@@ -75,6 +75,15 @@ export function ProductTour() {
             return;
           }
         }
+      } else if (step.route === "/positions/new") {
+        if (pathname !== "/positions/new") {
+          navigating.current = true;
+          await navigate({ to: "/positions/new" });
+          navigating.current = false;
+          if (cancelled) {
+            return;
+          }
+        }
       } else if (step.route === "first-position") {
         const onPositionDetail = /^\/positions\/[^/]+$/.test(pathname);
         if (!onPositionDetail) {

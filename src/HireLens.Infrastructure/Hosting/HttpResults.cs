@@ -29,7 +29,7 @@ public static class HttpResults
         error.Code switch
         {
             "not_found" => Results.NotFound(),
-            "validation" => Results.BadRequest(new { error = error.Message }),
+            "validation" => Results.BadRequest(new { error = "validation", detail = error.Message }),
             "conflict" => Results.Conflict(new { error = error.Message }),
             "unauthorized" => Results.Unauthorized(),
             "forbidden" => Results.Json(new { error = error.Message }, statusCode: 403),

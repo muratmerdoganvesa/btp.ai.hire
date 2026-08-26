@@ -3,7 +3,7 @@ import { create } from "zustand";
 export type TourStepDef = {
   id: string;
   /** Path to open before highlighting. Use "first-position" for dynamic position. */
-  route?: "/" | "/positions" | "first-position";
+  route?: "/" | "/positions" | "/positions/new" | "first-position";
   target: string;
   titleKey: string;
   bodyKey: string;
@@ -33,7 +33,7 @@ export const TOUR_STEPS: TourStepDef[] = [
   },
   {
     id: "composer",
-    route: "/positions",
+    route: "/positions/new",
     target: "tour-composer",
     titleKey: "tour.stepComposerTitle",
     bodyKey: "tour.stepComposerBody"

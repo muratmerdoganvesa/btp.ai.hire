@@ -238,14 +238,21 @@ public sealed class PublicApplicationService(
 
     private static string ExtractObjectKey(string uploadUrl)
     {
-        var marker = "/objects/";
-        var index = uploadUrl.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
-        if (index < 0)
+        const string objectStoreMarker = "/api/object-store/";
+        var objectStoreIndex = uploadUrl.IndexOf(objectStoreMarker, StringComparison.OrdinalIgnoreCase);
+        if (objectStoreIndex >= 0)
         {
-            return uploadUrl.TrimStart('/');
+            return Uri.UnescapeDataString(uploadUrl[(objectStoreIndex + objectStoreMarker.Length)..]);
         }
 
-        return Uri.UnescapeDataString(uploadUrl[(index + marker.Length)..]);
+        const string objectsMarker = "/objects/";
+        var objectsIndex = uploadUrl.IndexOf(objectsMarker, StringComparison.OrdinalIgnoreCase);
+        if (objectsIndex >= 0)
+        {
+            return Uri.UnescapeDataString(uploadUrl[(objectsIndex + objectsMarker.Length)..]);
+        }
+
+        return Uri.UnescapeDataString(uploadUrl.TrimStart('/'));
     }
 
     private static string BuildDisplayName(PublicApplicationRequest request) =>
@@ -283,10 +290,32 @@ public sealed class PublicApplicationService(
                 .SingleOrDefaultAsync(p => p.Id == id, cancellationToken);
         }
 
-        return await db.Set<Position>()
+        var bySlug = await db.Set<Position>()
             .IgnoreQueryFilters()
             .Include(p => p.Criteria)
             .SingleOrDefaultAsync(p => p.Slug == slug, cancellationToken);
+        if (bySlug is not null)
+        {
+            return bySlug;
+        }
+
+        // Legacy rows may have an empty Slug column; BuildSlug ends with "-{first 8 hex of id}".
+        if (slug.Length >= 9 && slug[^9] == '-')
+        {
+            var idPrefix = slug[^8..].ToUpperInvariant();
+            var matches = await db.Set<Position>()
+                .IgnoreQueryFilters()
+                .Include(p => p.Criteria)
+                .Where(p => p.Id.ToString().Replace("-", "").StartsWith(idPrefix))
+                .Take(2)
+                .ToListAsync(cancellationToken);
+            if (matches.Count == 1)
+            {
+                return matches[0];
+            }
+        }
+
+        return null;
     }
 
     private static string DisplaySlug(Position position) =>

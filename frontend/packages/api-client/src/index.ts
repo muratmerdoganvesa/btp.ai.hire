@@ -305,6 +305,9 @@ export class ApiClient {
   private errorDetail(status: number, text: string): string {
     try {
       const payload = JSON.parse(text) as { error?: string; detail?: string };
+      if (payload.error === "validation" && payload.detail) {
+        return `validation:${payload.detail}`;
+      }
       const parts = [payload.error, payload.detail].filter((part) => Boolean(part));
       if (parts.length > 0) {
         return parts.join(":");

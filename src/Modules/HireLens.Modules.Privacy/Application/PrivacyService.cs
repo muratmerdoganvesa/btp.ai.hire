@@ -30,14 +30,18 @@ public sealed class PrivacyService(HireLensDbContext db, ITenantContext tenant, 
         CancellationToken cancellationToken)
     {
         RepositoryGuard.RequireTenant(tenant);
-        var existing = await db.Set<ConsentRecord>()
-            .SingleOrDefaultAsync(c => c.CandidateId == candidateId && c.Purpose == purpose, cancellationToken);
-        if (existing is not null)
+        var alreadyGranted = await db.Set<ConsentRecord>()
+            .AnyAsync(c => c.CandidateId == candidateId && c.Purpose == purpose, cancellationToken);
+        if (alreadyGranted)
         {
+            var existing = await db.Set<ConsentRecord>()
+                .Where(c => c.CandidateId == candidateId && c.Purpose == purpose)
+                .Select(c => new { c.Id, c.AcceptedAt, c.TextVersion, c.RemoteIp })
+                .SingleAsync(cancellationToken);
             return new ConsentRecordDto(
                 existing.Id,
-                existing.CandidateId,
-                existing.Purpose,
+                candidateId,
+                purpose,
                 existing.AcceptedAt,
                 existing.TextVersion,
                 existing.RemoteIp);

@@ -81,7 +81,7 @@ export function ApplyFormPage() {
         return;
       }
       if (err instanceof ApiError) {
-        setError(t("apply.submitFailed"));
+        setError(mapApplyApiError(err, t));
         return;
       }
       setError(t("errors.generic"));
@@ -188,4 +188,32 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       {children}
     </label>
   );
+}
+
+function mapApplyApiError(err: ApiError, t: (key: string) => string): string {
+  if (err.status === 400) {
+    const detail = err.message.startsWith("validation:")
+      ? err.message.slice("validation:".length)
+      : err.message.includes(":")
+        ? err.message.split(":").slice(1).join(":")
+        : err.message;
+
+    if (/consent/i.test(detail)) {
+      return t("apply.consentRequired");
+    }
+    if (/cv file is required|cv_required/i.test(detail)) {
+      return t("apply.cvRequired");
+    }
+    if (/10 mb|too large/i.test(detail)) {
+      return t("apply.tooLarge");
+    }
+    if (/not found/i.test(detail)) {
+      return t("apply.jobNotFound");
+    }
+    if (detail.trim()) {
+      return detail.trim();
+    }
+  }
+
+  return t("apply.submitFailed");
 }
