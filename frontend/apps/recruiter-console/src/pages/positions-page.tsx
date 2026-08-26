@@ -56,7 +56,7 @@ export function PositionsPage() {
                   <th className="px-4 py-3 font-bold">{t("positions.colCriteria")}</th>
                   <th className="px-4 py-3 font-bold">{t("positions.colCandidates")}</th>
                   <th className="px-4 py-3 font-bold">{t("positions.colCreated")}</th>
-                  <th className="px-4 py-3 text-right font-bold">{t("positions.colActions")}</th>
+                  <th className="w-52 px-4 py-3 text-right font-bold">{t("positions.colActions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -88,17 +88,21 @@ export function PositionsPage() {
                         {new Date(position.createdAt).toLocaleDateString("tr-TR")}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex justify-end gap-2">
-                          <Button asChild variant="outline" size="sm">
-                            <Link to="/positions/$positionId/edit" params={{ positionId: position.id }}>
-                              {t("positions.editAction")}
-                            </Link>
-                          </Button>
-                          <Button asChild size="sm">
-                            <Link to="/positions/$positionId" params={{ positionId: position.id }}>
-                              {t("positions.open")}
-                            </Link>
-                          </Button>
+                        <div className="flex flex-nowrap items-center justify-end gap-2">
+                          <Link
+                            to="/positions/$positionId/edit"
+                            params={{ positionId: position.id }}
+                            className="inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-lg border border-border bg-white px-3.5 text-sm font-semibold text-foreground transition-colors hover:bg-brand-0"
+                          >
+                            {t("positions.editAction")}
+                          </Link>
+                          <Link
+                            to="/positions/$positionId"
+                            params={{ positionId: position.id }}
+                            className="inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-brand-6 px-3.5 text-sm font-semibold text-white transition-colors hover:bg-brand-7"
+                          >
+                            {t("positions.open")}
+                          </Link>
                         </div>
                       </td>
                     </tr>

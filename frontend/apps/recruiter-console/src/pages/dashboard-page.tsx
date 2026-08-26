@@ -322,11 +322,13 @@ function JobRow({ position }: { position: Position }) {
               {copied ? t("dashboard.linkCopied") : t("dashboard.copyLink")}
             </button>
           ) : null}
-          <Button asChild size="sm" className="!h-9 !min-h-9 !px-4 !text-xs">
-            <Link to="/positions/$positionId" params={{ positionId: position.id }}>
-              {t("positions.open")}
-            </Link>
-          </Button>
+          <Link
+            to="/positions/$positionId"
+            params={{ positionId: position.id }}
+            className="inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-brand-6 px-3.5 text-sm font-semibold text-white transition-colors hover:bg-brand-7"
+          >
+            {t("positions.open")}
+          </Link>
         </div>
       </td>
     </tr>

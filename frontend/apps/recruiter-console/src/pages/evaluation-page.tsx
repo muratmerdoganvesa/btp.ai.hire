@@ -23,6 +23,8 @@ export function EvaluationPage() {
   const queryClient = useQueryClient();
   const [quote, setQuote] = useState<string | null>(null);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [inviteExpiresAt, setInviteExpiresAt] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
 
   const candidate = useQuery({
@@ -86,12 +88,30 @@ export function EvaluationPage() {
       return api.inviteInterview(candidateId, positionId);
     },
     onSuccess: async (result) => {
-      setInviteUrl(result.inviteUrl);
+      const absolute =
+        result.inviteUrl.startsWith("http")
+          ? result.inviteUrl
+          : `${window.location.origin}${result.inviteUrl}`;
+      setInviteUrl(absolute);
+      setInviteExpiresAt(result.expiresAt);
       setInviteError(null);
       await queryClient.invalidateQueries({ queryKey: ["interview", candidateId] });
     },
     onError: () => setInviteError(t("errors.generic"))
   });
+
+  const copyInvite = async () => {
+    if (!inviteUrl) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      /* ignore */
+    }
+  };
 
   const sourceText = (evaluation.data?.scores ?? [])
     .flatMap((score) => score.evidence.map((item) => item.quote))
@@ -161,24 +181,57 @@ export function EvaluationPage() {
             disabled={invite.isPending || !hasEvaluation}
             onClick={() => invite.mutate()}
           >
-            {t("interview.invite")}
+            {invite.isPending ? t("interview.inviting") : t("interview.invite")}
           </Button>
         </div>
       </header>
 
-      {inviteUrl ? (
-        <p className="rounded-xl border border-brand-3/50 bg-brand-1/50 px-4 py-3 text-sm">
-          {t("interview.invited")}:{" "}
-          <a className="font-medium text-brand underline-offset-2 hover:underline" href={inviteUrl}>
-            {inviteUrl}
-          </a>
-        </p>
-      ) : null}
-      {inviteError ? (
-        <p className="text-sm text-danger" role="alert">
-          {inviteError}
-        </p>
-      ) : null}
+      <Card className="border-brand-3/40 bg-gradient-to-br from-surface via-surface to-brand-0/70">
+        <CardHeader>
+          <CardTitle className="font-display text-xl">{t("interview.inviteCardTitle")}</CardTitle>
+          <p className="text-sm text-muted">{t("interview.inviteCardHint")}</p>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <p className="text-sm leading-relaxed text-muted">{t("interview.inviteCardBody")}</p>
+
+          {(inviteUrl || interview.data) ? (
+            <div className="rounded-xl border border-border bg-white/80 px-4 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-foreground">{t("interview.invited")}</p>
+                {inviteExpiresAt || interview.data?.expiresAt ? (
+                  <p className="text-xs text-muted">
+                    {t("interview.expires")}:{" "}
+                    {new Date(inviteExpiresAt ?? interview.data!.expiresAt!).toLocaleString()}
+                  </p>
+                ) : null}
+              </div>
+              {inviteUrl ? (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <a
+                    className="max-w-full truncate text-sm font-medium text-brand-6 underline-offset-2 hover:underline"
+                    href={inviteUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {inviteUrl}
+                  </a>
+                  <Button type="button" variant="outline" size="sm" onClick={() => void copyInvite()}>
+                    {copied ? t("interview.linkCopied") : t("interview.copyLink")}
+                  </Button>
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-muted">{t("interview.existingSession", { status: interview.data?.status })}</p>
+              )}
+            </div>
+          ) : null}
+
+          {inviteError ? (
+            <p className="text-sm text-danger" role="alert">
+              {inviteError}
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
 
       {hasEvaluation ? (
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,22rem)]">

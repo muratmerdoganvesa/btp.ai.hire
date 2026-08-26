@@ -14,9 +14,9 @@ const buttonVariants = cva(
         danger: "bg-danger text-danger-fg"
       },
       size: {
-        default: "h-11 min-h-11 px-6 text-sm",
-        sm: "h-10 min-h-10 px-5 text-sm",
-        lg: "h-12 min-h-12 px-8 text-base"
+        default: "h-11 min-h-11 px-6 text-sm whitespace-nowrap",
+        sm: "h-9 min-h-9 px-3.5 text-sm whitespace-nowrap",
+        lg: "h-12 min-h-12 px-8 text-base whitespace-nowrap"
       }
     },
     defaultVariants: {

@@ -12,6 +12,7 @@ import { ApplyJobPage } from "./pages/apply/apply-job-page";
 import { ApplyConsentPage } from "./pages/apply/apply-consent-page";
 import { ApplyFormPage } from "./pages/apply/apply-form-page";
 import { ApplyDonePage, ApplyUnreadablePage } from "./pages/apply/apply-done-page";
+import { PublicInterviewPage } from "./pages/interview/public-interview-page";
 
 const rootRoute = createRootRoute({
   component: Outlet
@@ -119,6 +120,12 @@ const applyUnreadableRoute = createRoute({
   component: ApplyUnreadablePage
 });
 
+const interviewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/interview/$token",
+  component: PublicInterviewPage
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
@@ -132,7 +139,8 @@ const routeTree = rootRoute.addChildren([
   applyConsentRoute,
   applyFormRoute,
   applyDoneRoute,
-  applyUnreadableRoute
+  applyUnreadableRoute,
+  interviewRoute
 ]);
 
 export const router = createRouter({ routeTree });

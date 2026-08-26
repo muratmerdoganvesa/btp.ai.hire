@@ -11,6 +11,7 @@ using HireLens.Infrastructure.Persistence;
 using HireLens.Modules.Interview.Domain;
 using HireLens.SharedKernel;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace HireLens.Modules.Interview.Application;
 
@@ -40,6 +41,7 @@ public sealed class InterviewService(
     ITenantContext tenant,
     TenantContext tenantState,
     IClock clock,
+    IConfiguration configuration,
     ICandidateReadPort candidates,
     IPositionReadPort positions,
     IEvaluationReadPort evaluations,
@@ -62,18 +64,28 @@ public sealed class InterviewService(
             return Result.Failure<InterviewInviteDto>(Error.NotFound("Candidate was not found."));
         }
 
-        var session = InterviewSession.Invite(tenant.TenantId, request.CandidateId, request.PositionId, "pending", clock.UtcNow);
+        var session = InterviewSession.Invite(
+            tenant.TenantId,
+            request.CandidateId,
+            request.PositionId,
+            "pending",
+            clock.UtcNow);
         var token = tokens.Issue(tenant.TenantId, session.Id);
         session.BindToken(tokens.Hash(token));
         db.Set<InterviewSession>().Add(session);
         await db.SaveChangesAsync(cancellationToken);
 
-        var url = $"/interview/{token}";
+        var url = BuildInviteUrl(token);
         await notifications.SendAsync(
-            new NotificationDraft(request.CandidateId, "email", "HireLens interview invitation", "A signed interview link was issued.", url),
+            new NotificationDraft(
+                request.CandidateId,
+                "email",
+                "HireLens interview invitation",
+                "A signed video interview link was issued (3 camera answers → transcript).",
+                url),
             cancellationToken);
 
-        return Result.Success(new InterviewInviteDto(session.Id, url, session.ExpiresAt));
+        return Result.Success(new InterviewInviteDto(session.Id, url, session.ExpiresAt, session.VideoMeetingUrl));
     }
 
     public async Task<Result<InterviewPrepDto>> PrepAsync(string token, CancellationToken cancellationToken)
@@ -85,10 +97,12 @@ public sealed class InterviewService(
         }
 
         return Result.Success(new InterviewPrepDto(
-            "Text-only questions about evidence gaps on the requisition. No video or voice analysis.",
-            20,
-            "Answers are stored as transcript text and scored only with quoted evidence.",
-            true));
+            "Up to 3 questions. Open your camera, speak your answer; HireLens converts speech to text for evidence scoring. No face or emotion analysis.",
+            15,
+            "Spoken answers become transcript text. Video is captured in your browser for answering; scoring uses text quotes only.",
+            true,
+            null,
+            opened.Value.ExpiresAt));
     }
 
     public async Task<Result<InterviewSessionDto>> GetByTokenAsync(string token, CancellationToken cancellationToken)
@@ -239,6 +253,22 @@ public sealed class InterviewService(
             : Result.Success(ToDto(session));
     }
 
+    private string BuildInviteUrl(string token)
+    {
+        var host = configuration["PUBLIC_HOST"]
+            ?? configuration["App:PublicHost"]
+            ?? configuration["BTP:PublicHost"];
+        if (string.IsNullOrWhiteSpace(host))
+        {
+            return $"/interview/{token}";
+        }
+
+        var baseUrl = host.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+            ? host.TrimEnd('/')
+            : $"https://{host.Trim().TrimEnd('/')}";
+        return $"{baseUrl}/interview/{token}";
+    }
+
     private async Task<Result<InterviewSession>> OpenAsync(string token, CancellationToken cancellationToken)
     {
         if (!tokens.TryRead(token, out var tenantId, out var sessionId))
@@ -279,15 +309,17 @@ public sealed class InterviewService(
             ct: cancellationToken);
 
         var order = 1;
-        foreach (var gap in gaps)
+        foreach (var gap in gaps.Take(3))
         {
             session.AddQuestion(gap.CriterionId, $"Please share concrete evidence for {gap.CriterionName}.", order++);
         }
 
         if (session.Questions.Count == 0 && position is not null)
         {
-            var first = position.Criteria.First();
-            session.AddQuestion(first.Id, $"Please share concrete evidence for {first.Name}.", 1);
+            foreach (var criterion in position.Criteria.Take(3))
+            {
+                session.AddQuestion(criterion.Id, $"Please share concrete evidence for {criterion.Name}.", order++);
+            }
         }
     }
 
@@ -357,7 +389,9 @@ public sealed class InterviewService(
             session.InterviewScore,
             session.Questions.OrderBy(q => q.Order).Select(q => new InterviewQuestionDto(q.Id, q.CriterionId, q.Prompt, q.Order)).ToList(),
             session.Turns.OrderBy(t => t.CreatedAt).Select(t => new InterviewTurnDto(t.Id, t.Role, t.Text, t.QuestionId, t.CreatedAt)).ToList(),
-            session.Summary);
+            session.Summary,
+            session.VideoMeetingUrl,
+            session.ExpiresAt);
 
     private sealed record LiveStub(string? Status);
 

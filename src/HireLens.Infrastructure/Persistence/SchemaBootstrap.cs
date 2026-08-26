@@ -597,6 +597,30 @@ public static class SchemaBootstrap
         logger.LogInformation("Evaluation audit columns ensured.");
     }
 
+    public static async Task EnsureInterviewColumnsAsync(
+        HireLensDbContext db,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        if (db.Database.IsInMemory())
+        {
+            return;
+        }
+
+        if (!await TableExistsAsync(db, "INTERVIEWSESSIONS", cancellationToken))
+        {
+            logger.LogInformation("InterviewSessions table not present yet; skipping column bootstrap.");
+            return;
+        }
+
+        await ExecuteIgnoreDuplicateAsync(
+            db,
+            logger,
+            """ALTER TABLE "InterviewSessions" ADD ("VideoMeetingUrl" NVARCHAR(1000) NULL)""",
+            cancellationToken);
+        logger.LogInformation("Interview session columns ensured.");
+    }
+
     private static async Task ExecuteIgnoreDuplicateAsync(
         HireLensDbContext db,
         ILogger logger,

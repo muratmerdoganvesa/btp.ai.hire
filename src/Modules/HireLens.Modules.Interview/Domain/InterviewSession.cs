@@ -31,6 +31,9 @@ public sealed class InterviewSession : ITenantEntity
 
     public string? Summary { get; private set; }
 
+    /// <summary>Optional external video call (Meet/Teams/Zoom). Not analyzed by HireLens.</summary>
+    public string? VideoMeetingUrl { get; private set; }
+
     public DateTimeOffset ExpiresAt { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }
@@ -46,7 +49,8 @@ public sealed class InterviewSession : ITenantEntity
         Guid candidateId,
         Guid positionId,
         string tokenHash,
-        DateTimeOffset now) =>
+        DateTimeOffset now,
+        string? videoMeetingUrl = null) =>
         new()
         {
             Id = Guid.NewGuid(),
@@ -55,9 +59,30 @@ public sealed class InterviewSession : ITenantEntity
             PositionId = positionId,
             TokenHash = tokenHash,
             Status = "invited",
+            VideoMeetingUrl = NormalizeMeetingUrl(videoMeetingUrl),
             ExpiresAt = now.AddDays(7),
             CreatedAt = now
         };
+
+    public void SetVideoMeetingUrl(string? videoMeetingUrl) =>
+        VideoMeetingUrl = NormalizeMeetingUrl(videoMeetingUrl);
+
+    private static string? NormalizeMeetingUrl(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var trimmed = value.Trim();
+        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp))
+        {
+            throw new ArgumentException("Video meeting URL must be an absolute http(s) link.", nameof(value));
+        }
+
+        return uri.AbsoluteUri;
+    }
 
     public Result AcceptDisclosure()
     {

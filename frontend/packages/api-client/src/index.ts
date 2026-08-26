@@ -150,8 +150,16 @@ export class ApiClient {
     return this.get<CandidateExport>(`/compliance/export/${candidateId}`);
   }
 
-  public async inviteInterview(candidateId: string, positionId: string): Promise<{ sessionId: string; inviteUrl: string }> {
-    return this.send("/api/interviews/invites", "POST", { candidateId, positionId });
+  public async inviteInterview(
+    candidateId: string,
+    positionId: string,
+    videoMeetingUrl?: string | null
+  ): Promise<{ sessionId: string; inviteUrl: string; expiresAt: string; videoMeetingUrl?: string | null }> {
+    return this.send("/api/interviews/invites", "POST", {
+      candidateId,
+      positionId,
+      videoMeetingUrl: videoMeetingUrl?.trim() || null
+    });
   }
 
   public async getInterview(candidateId: string): Promise<{
@@ -160,8 +168,96 @@ export class ApiClient {
     turns: { role: string; text: string }[];
     questions: { criterionId: string; prompt: string }[];
     summary: string | null;
+    videoMeetingUrl?: string | null;
+    expiresAt?: string | null;
   }> {
     return this.get(`/api/candidates/${candidateId}/interview`);
+  }
+
+  public async getInterviewPrep(token: string): Promise<{
+    whatToExpect: string;
+    estimatedMinutes: number;
+    dataUse: string;
+    disclosureRequired: boolean;
+    videoMeetingUrl?: string | null;
+    expiresAt?: string | null;
+  }> {
+    return this.getPublic(`/api/interviews/public/${encodeURIComponent(token)}/prep`);
+  }
+
+  public async getInterviewSession(token: string): Promise<{
+    status: string;
+    disclosureAccepted: boolean;
+    turns: { role: string; text: string }[];
+    questions: { criterionId: string; prompt: string }[];
+    summary: string | null;
+    videoMeetingUrl?: string | null;
+    expiresAt?: string | null;
+  }> {
+    return this.getPublic(`/api/interviews/public/${encodeURIComponent(token)}`);
+  }
+
+  public async discloseInterview(token: string): Promise<{
+    status: string;
+    disclosureAccepted: boolean;
+    turns: { role: string; text: string }[];
+    questions: { criterionId: string; prompt: string }[];
+    summary: string | null;
+    videoMeetingUrl?: string | null;
+    expiresAt?: string | null;
+  }> {
+    return this.sendPublicJson(`/api/interviews/public/${encodeURIComponent(token)}/disclose`, "POST");
+  }
+
+  public async startInterview(token: string): Promise<{
+    status: string;
+    disclosureAccepted: boolean;
+    turns: { role: string; text: string }[];
+    questions: { criterionId: string; prompt: string }[];
+    summary: string | null;
+    videoMeetingUrl?: string | null;
+    expiresAt?: string | null;
+  }> {
+    return this.sendPublicJson(`/api/interviews/public/${encodeURIComponent(token)}/start`, "POST");
+  }
+
+  public async pauseInterview(token: string): Promise<{
+    status: string;
+    disclosureAccepted: boolean;
+    turns: { role: string; text: string }[];
+    questions: { criterionId: string; prompt: string }[];
+    summary: string | null;
+    videoMeetingUrl?: string | null;
+    expiresAt?: string | null;
+  }> {
+    return this.sendPublicJson(`/api/interviews/public/${encodeURIComponent(token)}/pause`, "POST");
+  }
+
+  public async resumeInterview(token: string): Promise<{
+    status: string;
+    disclosureAccepted: boolean;
+    turns: { role: string; text: string }[];
+    questions: { criterionId: string; prompt: string }[];
+    summary: string | null;
+    videoMeetingUrl?: string | null;
+    expiresAt?: string | null;
+  }> {
+    return this.sendPublicJson(`/api/interviews/public/${encodeURIComponent(token)}/resume`, "POST");
+  }
+
+  public async answerInterview(
+    token: string,
+    text: string
+  ): Promise<{
+    status: string;
+    disclosureAccepted: boolean;
+    turns: { role: string; text: string }[];
+    questions: { criterionId: string; prompt: string }[];
+    summary: string | null;
+    videoMeetingUrl?: string | null;
+    expiresAt?: string | null;
+  }> {
+    return this.sendPublicJson(`/api/interviews/public/${encodeURIComponent(token)}/answers`, "POST", { text });
   }
 
   public async getTheme(): Promise<{ brandHue: number; logoUrl: string | null; radiusScale: number; contrastOk: boolean; interviewWeight: number }> {
@@ -241,6 +337,20 @@ export class ApiClient {
       credentials: "same-origin",
       headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" },
       body
+    });
+    return this.readJson<T>(response);
+  }
+
+  private async sendPublicJson<T>(path: string, method: string, body?: unknown): Promise<T> {
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      method,
+      credentials: "same-origin",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest"
+      },
+      body: body === undefined ? undefined : JSON.stringify(body)
     });
     return this.readJson<T>(response);
   }
