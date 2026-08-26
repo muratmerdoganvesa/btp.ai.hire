@@ -120,21 +120,26 @@ public sealed class InterviewService(
         }
 
         var session = opened.Value;
-
         await privacy.GrantAsync(session.CandidateId, DisclosurePurpose, cancellationToken);
 
         if (!session.DisclosureAccepted)
         {
-            // Raw SQL — avoid EF ExecuteUpdate/SaveChanges on AutoIncluded interview graphs (HANA).
-            await db.Database.ExecuteSqlInterpolatedAsync(
-                $"""
-                UPDATE "InterviewSessions"
-                SET "DisclosureAccepted" = TRUE, "Status" = {"disclosed"}
-                WHERE "Id" = {session.Id.ToString("D")}
-                """,
-                cancellationToken);
             session.AcceptDisclosure();
-            db.Entry(session).State = EntityState.Detached;
+            if (UsesRelationalSql())
+            {
+                await db.Database.ExecuteSqlInterpolatedAsync(
+                    $"""
+                    UPDATE "InterviewSessions"
+                    SET "DisclosureAccepted" = TRUE, "Status" = {"disclosed"}
+                    WHERE "Id" = {session.Id.ToString("D")}
+                    """,
+                    cancellationToken);
+                db.Entry(session).State = EntityState.Detached;
+            }
+            else
+            {
+                await db.SaveChangesAsync(cancellationToken);
+            }
         }
 
         return Result.Success(ToDto(session));
@@ -158,13 +163,16 @@ public sealed class InterviewService(
         if (!session.DisclosureAccepted)
         {
             session.AcceptDisclosure();
-            await db.Database.ExecuteSqlInterpolatedAsync(
-                $"""
-                UPDATE "InterviewSessions"
-                SET "DisclosureAccepted" = TRUE
-                WHERE "Id" = {session.Id.ToString("D")}
-                """,
-                cancellationToken);
+            if (UsesRelationalSql())
+            {
+                await db.Database.ExecuteSqlInterpolatedAsync(
+                    $"""
+                    UPDATE "InterviewSessions"
+                    SET "DisclosureAccepted" = TRUE
+                    WHERE "Id" = {session.Id.ToString("D")}
+                    """,
+                    cancellationToken);
+            }
         }
 
         if (session.Questions.Count == 0)
@@ -186,27 +194,52 @@ public sealed class InterviewService(
             return Result.Failure<InterviewSessionDto>(started.Error);
         }
 
-        db.ChangeTracker.Clear();
-
-        foreach (var question in session.Questions)
-        {
-            await InsertQuestionRawAsync(question, cancellationToken);
-        }
-
         var first = session.Questions.OrderBy(q => q.Order).FirstOrDefault();
+        InterviewTurn? openingTurn = null;
         if (first is not null && session.Turns.Count == 0)
         {
-            var turn = session.AddTurn("assistant", first.Prompt, first.Id, clock.UtcNow);
-            await InsertTurnRawAsync(turn, cancellationToken);
+            openingTurn = session.AddTurn("assistant", first.Prompt, first.Id, clock.UtcNow);
         }
 
-        await db.Database.ExecuteSqlInterpolatedAsync(
-            $"""
-            UPDATE "InterviewSessions"
-            SET "Status" = {"in_progress"}
-            WHERE "Id" = {session.Id.ToString("D")}
-            """,
-            cancellationToken);
+        if (UsesRelationalSql())
+        {
+            // HANA: never SaveChanges on AutoIncluded InterviewSession graphs.
+            db.ChangeTracker.Clear();
+            foreach (var question in session.Questions)
+            {
+                await InsertQuestionRawAsync(question, cancellationToken);
+            }
+
+            if (openingTurn is not null)
+            {
+                await InsertTurnRawAsync(openingTurn, cancellationToken);
+            }
+
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                UPDATE "InterviewSessions"
+                SET "Status" = {"in_progress"}
+                WHERE "Id" = {session.Id.ToString("D")}
+                """,
+                cancellationToken);
+        }
+        else
+        {
+            foreach (var question in session.Questions)
+            {
+                if (db.Entry(question).State == EntityState.Detached)
+                {
+                    db.Set<InterviewQuestion>().Add(question);
+                }
+            }
+
+            if (openingTurn is not null && db.Entry(openingTurn).State == EntityState.Detached)
+            {
+                db.Set<InterviewTurn>().Add(openingTurn);
+            }
+
+            await db.SaveChangesAsync(cancellationToken);
+        }
 
         return Result.Success(ToDto(session));
     }
@@ -294,14 +327,24 @@ public sealed class InterviewService(
             session.Complete(null, "Interview finished; scoring will be reviewed by the recruiter.");
         }
 
-        await db.Set<InterviewSession>()
-            .Where(s => s.Id == session.Id)
-            .ExecuteUpdateAsync(
-                setters => setters
-                    .SetProperty(s => s.Status, session.Status)
-                    .SetProperty(s => s.InterviewScore, session.InterviewScore)
-                    .SetProperty(s => s.Summary, session.Summary),
+        if (UsesRelationalSql())
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                UPDATE "InterviewSessions"
+                SET "Status" = {session.Status},
+                    "InterviewScore" = {session.InterviewScore},
+                    "Summary" = {session.Summary}
+                WHERE "Id" = {session.Id.ToString("D")}
+                """,
                 cancellationToken);
+        }
+        else
+        {
+            var tracked = await db.Set<InterviewSession>().SingleAsync(s => s.Id == session.Id, cancellationToken);
+            tracked.Complete(session.InterviewScore, session.Summary);
+            await db.SaveChangesAsync(cancellationToken);
+        }
 
         return Result.Success(ToDto(session));
     }
@@ -403,6 +446,8 @@ public sealed class InterviewService(
             }
         }
     }
+
+    private bool UsesRelationalSql() => !db.Database.IsInMemory();
 
     private async Task InsertQuestionRawAsync(InterviewQuestion question, CancellationToken cancellationToken)
     {
