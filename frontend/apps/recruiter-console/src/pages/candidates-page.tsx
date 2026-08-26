@@ -1,4 +1,4 @@
-import { Button, Card, CardContent, CardHeader, CardTitle } from "@hirelens/ui";
+import { Button, cn } from "@hirelens/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
@@ -7,7 +7,8 @@ import { api } from "../api";
 import { AppShell } from "../components/app-shell";
 import { CandidatesTable } from "../components/candidates-table";
 import { CvUploadZone } from "../components/cv-upload-zone";
-import { Field, TextInput } from "../components/field";
+
+type SourceMode = "choose" | "sf" | "manual";
 
 export function CandidatesPage() {
   const { t } = useTranslation();
@@ -17,6 +18,9 @@ export function CandidatesPage() {
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
   const [sort, setSort] = useState<"score" | "date" | "coverage">("score");
+  const [mode, setMode] = useState<SourceMode>("choose");
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [sfMessage, setSfMessage] = useState<string | null>(null);
 
   const position = useQuery({
     queryKey: ["position", positionId],
@@ -30,12 +34,23 @@ export function CandidatesPage() {
   });
 
   const create = useMutation({
-    mutationFn: () => api.createCandidate(positionId, displayName),
+    mutationFn: () => api.createCandidate(positionId, displayName.trim()),
     onSuccess: async (candidate) => {
       setDisplayName("");
       setSelectedCandidateId(candidate.id);
+      setMode("manual");
       await queryClient.invalidateQueries({ queryKey: ["candidates", positionId] });
     }
+  });
+
+  const pullSf = useMutation({
+    mutationFn: () => api.pullSfCandidates(positionId),
+    onSuccess: async (result) => {
+      setSfMessage(t("candidates.sfDone", { count: result.imported }));
+      setMode("choose");
+      await queryClient.invalidateQueries({ queryKey: ["candidates", positionId] });
+    },
+    onError: () => setSfMessage(t("candidates.sfError"))
   });
 
   const list = useMemo(() => {
@@ -62,100 +77,237 @@ export function CandidatesPage() {
   }, [candidates.data, filter, sort]);
 
   const applySlug = position.data?.slug;
+  const applyHref = applySlug ? `${window.location.origin}/apply/${applySlug}` : null;
+  const selected = list.find((row) => row.id === selectedCandidateId) ?? null;
+  const isEmpty = !candidates.isLoading && list.length === 0;
+  const showChooser = isEmpty && mode === "choose";
+
+  const copyApplyLink = async () => {
+    if (!applyHref) {
+      return;
+    }
+    await navigator.clipboard.writeText(applyHref);
+    setLinkCopied(true);
+    window.setTimeout(() => setLinkCopied(false), 1600);
+  };
 
   return (
     <AppShell>
-      <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
-        <Link to="/positions" className="font-medium text-brand hover:text-brand-7">
-          {t("nav.positions")}
-        </Link>
-        <span aria-hidden="true">/</span>
-        <span>{position.data?.title ?? t("candidates.title")}</span>
-      </div>
-
-      <div className="rounded-xl border border-brand-3/40 bg-brand-0/50 px-4 py-3 text-sm">
-        {t("candidates.rankingDisclaimer")}
-      </div>
-
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand">{t("candidates.title")}</p>
-          <h1 className="font-display mt-1 text-3xl font-semibold tracking-tight">
+      <header className="flex shrink-0 flex-col gap-3 border-b border-border pb-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted">
+            <Link to="/positions" className="text-brand-6 hover:underline">
+              {t("nav.positions")}
+            </Link>
+            <span aria-hidden="true">/</span>
+            <span>{t("candidates.title")}</span>
+          </div>
+          <h1 className="mt-1 truncate text-xl font-extrabold leading-tight tracking-tight sm:text-2xl">
             {position.data?.title ?? t("candidates.title")}
           </h1>
           {applySlug ? (
-            <p className="mt-2 text-sm text-muted">
-              {t("candidates.publicLink")}:{" "}
-              <a className="font-medium text-brand underline-offset-2 hover:underline" href={`/apply/${applySlug}`}>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-muted">{t("candidates.publicLink")}</span>
+              <a className="font-medium text-brand-6 underline-offset-2 hover:underline" href={`/apply/${applySlug}`}>
                 /apply/{applySlug}
               </a>
-            </p>
+              <Button type="button" variant="outline" size="sm" onClick={() => void copyApplyLink()}>
+                {linkCopied ? t("candidates.copied") : t("candidates.copyLink")}
+              </Button>
+            </div>
           ) : null}
         </div>
-        <p className="text-sm text-muted">
-          {list.length} {t("candidates.count")}
-        </p>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <Field label={t("candidates.filter")}>
-              <TextInput
-                value={filter}
-                placeholder={t("candidates.filterPlaceholder")}
-                onChange={(event) => setFilter(event.target.value)}
-              />
-            </Field>
-            <Field label={t("candidates.sort")}>
-              <select
-                className="rounded-lg border border-border px-3 py-2 text-sm"
-                value={sort}
-                onChange={(event) => setSort(event.target.value as typeof sort)}
-              >
-                <option value="score">{t("candidates.sortScore")}</option>
-                <option value="date">{t("candidates.sortDate")}</option>
-                <option value="coverage">{t("candidates.sortCoverage")}</option>
-              </select>
-            </Field>
-          </div>
-
-          {list.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-border px-6 py-12 text-center text-sm text-muted">
-              {t("candidates.empty")}
-            </div>
-          ) : (
-            <CandidatesTable rows={list} />
-          )}
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm tabular-nums text-muted">
+            {list.length} {t("candidates.count")}
+          </p>
+          {!isEmpty ? (
+            <>
+              <Button type="button" variant="outline" size="sm" onClick={() => setMode("sf")}>
+                {t("candidates.sfTitle")}
+              </Button>
+              <Button type="button" size="sm" onClick={() => setMode("manual")}>
+                {t("candidates.manualTitle")}
+              </Button>
+            </>
+          ) : null}
         </div>
+      </header>
 
-        <div className="flex flex-col gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">{t("candidates.create")}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              <Field label={t("candidates.displayName")}>
-                <TextInput value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
-              </Field>
-              <Button type="button" disabled={!displayName.trim() || create.isPending} onClick={() => create.mutate()}>
+      <p className="shrink-0 text-xs text-muted">{t("candidates.rankingDisclaimer")}</p>
+
+      {showChooser ? (
+        <section className="grid shrink-0 gap-3 md:grid-cols-2">
+          <SourcePanel
+            title={t("candidates.sfTitle")}
+            body={t("candidates.sfBody")}
+            actionLabel={pullSf.isPending ? t("candidates.sfWorking") : t("candidates.sfAction")}
+            disabled={pullSf.isPending}
+            onAction={() => {
+              setSfMessage(null);
+              pullSf.mutate();
+            }}
+            emphasize
+          />
+          <SourcePanel
+            title={t("candidates.manualTitle")}
+            body={t("candidates.manualBody")}
+            actionLabel={t("candidates.manualAction")}
+            onAction={() => setMode("manual")}
+          />
+        </section>
+      ) : null}
+
+      {mode === "sf" && !showChooser ? (
+        <section className="flex shrink-0 flex-wrap items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-extrabold">{t("candidates.sfTitle")}</p>
+            <p className="text-sm text-muted">{t("candidates.sfBody")}</p>
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={() => setMode("choose")}>
+            {t("candidates.backToSources")}
+          </Button>
+          <Button type="button" size="sm" disabled={pullSf.isPending} onClick={() => pullSf.mutate()}>
+            {pullSf.isPending ? t("candidates.sfWorking") : t("candidates.sfAction")}
+          </Button>
+        </section>
+      ) : null}
+
+      {mode === "manual" ? (
+        <section className="grid shrink-0 gap-3 rounded-xl border border-border bg-surface p-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-extrabold">{t("candidates.manualTitle")}</p>
+                <p className="text-sm text-muted">{t("candidates.manualBody")}</p>
+              </div>
+              {isEmpty ? (
+                <Button type="button" variant="outline" size="sm" onClick={() => setMode("choose")}>
+                  {t("candidates.backToSources")}
+                </Button>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="min-w-[12rem] flex-1 text-sm">
+                <span className="mb-1 block font-semibold text-muted">{t("candidates.displayName")}</span>
+                <input
+                  value={displayName}
+                  onChange={(event) => setDisplayName(event.target.value)}
+                  className="h-9 w-full rounded-lg border border-border bg-white px-3 text-sm outline-none focus-visible:border-brand-5 focus-visible:ring-2 focus-visible:ring-brand-6/15"
+                />
+              </label>
+              <Button
+                type="button"
+                size="sm"
+                disabled={!displayName.trim() || create.isPending}
+                onClick={() => create.mutate()}
+              >
                 {t("candidates.create")}
               </Button>
-            </CardContent>
-          </Card>
-          {selectedCandidateId ? (
-            <CvUploadZone
-              positionId={positionId}
-              candidateId={selectedCandidateId}
-              onCompleted={() => void queryClient.invalidateQueries({ queryKey: ["candidates", positionId] })}
-            />
-          ) : (
-            <div className="rounded-2xl border border-dashed border-border bg-brand-1/40 px-6 py-10 text-sm text-muted">
-              {t("candidates.selectHint")}
             </div>
+          </div>
+          <div>
+            {selected ? (
+              <div className="flex flex-col gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                  {t("candidates.uploadFor", { name: selected.displayName })}
+                </p>
+                <CvUploadZone
+                  positionId={positionId}
+                  candidateId={selected.id}
+                  onCompleted={() => void queryClient.invalidateQueries({ queryKey: ["candidates", positionId] })}
+                />
+              </div>
+            ) : (
+              <p className="rounded-lg border border-dashed border-border px-4 py-6 text-sm text-muted">
+                {t("candidates.selectHint")}
+              </p>
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      {sfMessage ? (
+        <p
+          className={cn(
+            "shrink-0 rounded-lg px-3 py-2 text-sm",
+            pullSf.isError ? "bg-danger-bg text-danger" : "bg-brand-0 text-brand-7"
           )}
-        </div>
-      </div>
+          role="status"
+        >
+          {sfMessage}
+        </p>
+      ) : null}
+
+      {!isEmpty ? (
+        <section className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <input
+              value={filter}
+              placeholder={t("candidates.filterPlaceholder")}
+              onChange={(event) => setFilter(event.target.value)}
+              className="h-9 min-w-[12rem] flex-1 rounded-lg border border-border bg-surface px-3 text-sm outline-none placeholder:text-muted focus-visible:border-brand-5 focus-visible:ring-2 focus-visible:ring-brand-6/15 sm:max-w-xs"
+            />
+            <select
+              className="h-9 rounded-lg border border-border bg-surface px-3 text-sm outline-none focus-visible:border-brand-5 focus-visible:ring-2 focus-visible:ring-brand-6/15"
+              value={sort}
+              onChange={(event) => setSort(event.target.value as typeof sort)}
+              aria-label={t("candidates.sort")}
+            >
+              <option value="score">{t("candidates.sortScore")}</option>
+              <option value="date">{t("candidates.sortDate")}</option>
+              <option value="coverage">{t("candidates.sortCoverage")}</option>
+            </select>
+          </div>
+          <div className="min-h-0 flex-1 overflow-auto">
+            <CandidatesTable
+              rows={list}
+              selectedId={selectedCandidateId}
+              onSelect={(id) => {
+                setSelectedCandidateId(id);
+                setMode("manual");
+              }}
+            />
+          </div>
+        </section>
+      ) : mode === "choose" ? (
+        <p className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted">
+          {t("candidates.empty")}
+        </p>
+      ) : null}
     </AppShell>
+  );
+}
+
+function SourcePanel({
+  title,
+  body,
+  actionLabel,
+  onAction,
+  disabled,
+  emphasize
+}: {
+  title: string;
+  body: string;
+  actionLabel: string;
+  onAction: () => void;
+  disabled?: boolean;
+  emphasize?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-3 rounded-xl border bg-surface p-4",
+        emphasize ? "border-brand-4 shadow-sm" : "border-border"
+      )}
+    >
+      <div>
+        <h2 className="text-base font-extrabold tracking-tight">{title}</h2>
+        <p className="mt-1 text-sm leading-relaxed text-muted">{body}</p>
+      </div>
+      <Button type="button" size="sm" variant={emphasize ? "default" : "outline"} disabled={disabled} onClick={onAction}>
+        {actionLabel}
+      </Button>
+    </div>
   );
 }
