@@ -79,6 +79,17 @@ export class ApiClient {
     return this.send<Candidate>(`/api/positions/${positionId}/candidates`, "POST", { displayName });
   }
 
+  public async pullSfCandidates(
+    positionId: string,
+    candidates?: { externalId: string; displayName: string }[]
+  ): Promise<{ imported: number; system: string; ranAt: string }> {
+    return this.send<{ imported: number; system: string; ranAt: string }>(
+      `/api/positions/${positionId}/integrations/successfactors/pull`,
+      "POST",
+      { candidates: candidates ?? null }
+    );
+  }
+
   public async startUpload(positionId: string, candidateId: string, file: File): Promise<UploadSession> {
     return this.send<UploadSession>(
       `/api/positions/${positionId}/candidates/${candidateId}/documents/upload-session`,

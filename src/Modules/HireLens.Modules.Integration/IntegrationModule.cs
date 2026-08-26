@@ -27,6 +27,16 @@ public static class IntegrationModule
             return result.IsSuccess ? Results.Accepted($"/api/integrations/runs/{result.Value.Id}", result.Value) : HttpResults.From(result);
         }).WithTags("Integration").RequireAuthorization();
 
+        endpoints.MapPost("/api/positions/{positionId:guid}/integrations/successfactors/pull", async (
+            Guid positionId,
+            SfPullRequest? request,
+            IIntegrationService integration,
+            CancellationToken ct) =>
+            HttpResults.From(await integration.PullSuccessFactorsCandidatesAsync(
+                positionId,
+                request?.Candidates,
+                ct))).WithTags("Integration").RequireAuthorization();
+
         endpoints.MapGet("/api/integrations/runs", async (IIntegrationService integration, CancellationToken ct) =>
             HttpResults.From(await integration.ListAsync(ct))).WithTags("Integration").RequireAuthorization();
         return endpoints;
