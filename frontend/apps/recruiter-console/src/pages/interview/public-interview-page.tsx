@@ -86,8 +86,8 @@ export function PublicInterviewPage() {
     }
   };
 
-  const submitAnswer = async (transcript: string) => {
-    const next = await publicApi.answerInterview(token, transcript);
+  const submitAnswer = async (transcript: string, framesBase64: string[]) => {
+    const next = await publicApi.answerInterview(token, transcript, framesBase64);
     setSession(next);
   };
 

@@ -181,6 +181,14 @@ export class ApiClient {
     summary: string | null;
     videoMeetingUrl?: string | null;
     expiresAt?: string | null;
+    frames?: {
+      id: string;
+      questionId: string | null;
+      turnId: string | null;
+      contentType: string;
+      imageBase64: string;
+      capturedAt: string;
+    }[];
   }> {
     return this.get(`/api/candidates/${candidateId}/interview`);
   }
@@ -258,7 +266,8 @@ export class ApiClient {
 
   public async answerInterview(
     token: string,
-    text: string
+    text: string,
+    framesBase64?: string[]
   ): Promise<{
     status: string;
     disclosureAccepted: boolean;
@@ -268,7 +277,10 @@ export class ApiClient {
     videoMeetingUrl?: string | null;
     expiresAt?: string | null;
   }> {
-    return this.sendPublicJson(`/api/interviews/public/${encodeURIComponent(token)}/answers`, "POST", { text });
+    return this.sendPublicJson(`/api/interviews/public/${encodeURIComponent(token)}/answers`, "POST", {
+      text,
+      framesBase64: framesBase64?.length ? framesBase64 : null
+    });
   }
 
   public async getTheme(): Promise<{ brandHue: number; logoUrl: string | null; radiusScale: number; contrastOk: boolean; interviewWeight: number }> {

@@ -614,8 +614,9 @@ public static class SchemaBootstrap
         var sessionsOk = await TableExistsAsync(db, "INTERVIEWSESSIONS", cancellationToken);
         var questionsOk = await TableExistsAsync(db, "INTERVIEWQUESTIONS", cancellationToken);
         var turnsOk = await TableExistsAsync(db, "INTERVIEWTURNS", cancellationToken);
+        var framesOk = await TableExistsAsync(db, "INTERVIEWFRAMES", cancellationToken);
 
-        if (sessionsOk && questionsOk && turnsOk)
+        if (sessionsOk && questionsOk && turnsOk && framesOk)
         {
             await EnsureInterviewColumnsAsync(db, logger, cancellationToken);
             logger.LogInformation("HireLens interview tables present.");
@@ -623,10 +624,11 @@ public static class SchemaBootstrap
         }
 
         logger.LogWarning(
-            "Missing interview tables (Sessions={Sessions}, Questions={Questions}, Turns={Turns}). Creating.",
+            "Missing interview tables (Sessions={Sessions}, Questions={Questions}, Turns={Turns}, Frames={Frames}). Creating.",
             sessionsOk,
             questionsOk,
-            turnsOk);
+            turnsOk,
+            framesOk);
 
         if (!sessionsOk)
         {
@@ -721,6 +723,43 @@ public static class SchemaBootstrap
                 db,
                 logger,
                 """CREATE INDEX "IX_InterviewTurns_SessionId" ON "InterviewTurns" ("SessionId")""",
+                cancellationToken);
+        }
+
+        if (!framesOk)
+        {
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """
+                CREATE TABLE "InterviewFrames" (
+                    "Id" NVARCHAR(36) NOT NULL CONSTRAINT "PK_InterviewFrames" PRIMARY KEY,
+                    "TenantId" NVARCHAR(36) NOT NULL,
+                    "SessionId" NVARCHAR(36) NOT NULL,
+                    "CandidateId" NVARCHAR(36) NOT NULL,
+                    "PositionId" NVARCHAR(36) NOT NULL,
+                    "QuestionId" NVARCHAR(36) NULL,
+                    "TurnId" NVARCHAR(36) NULL,
+                    "ContentType" NVARCHAR(64) NOT NULL,
+                    "ImageBase64" NCLOB NOT NULL,
+                    "CapturedAt" NVARCHAR(48) NOT NULL
+                )
+                """,
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE UNIQUE INDEX "IX_InterviewFrames_TenantId_Id" ON "InterviewFrames" ("TenantId", "Id")""",
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE INDEX "IX_InterviewFrames_SessionId" ON "InterviewFrames" ("SessionId")""",
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE INDEX "IX_InterviewFrames_TenantId_CandidateId" ON "InterviewFrames" ("TenantId", "CandidateId")""",
                 cancellationToken);
         }
 

@@ -322,6 +322,11 @@ public sealed class InterviewService(
         var candidateTurn = session.AddTurn("candidate", request.Text.Trim(), current?.Id, clock.UtcNow);
         db.Set<InterviewTurn>().Add(candidateTurn);
 
+        foreach (var frame in BuildFrames(session, candidateTurn, current?.Id, request.FramesBase64))
+        {
+            db.Set<InterviewFrame>().Add(frame);
+        }
+
         var unanswered = session.Questions.OrderBy(q => q.Order)
             .FirstOrDefault(q => session.Turns.Count(t => t.QuestionId == q.Id && t.Role == "candidate") == 0);
         if (unanswered is not null)
@@ -372,9 +377,16 @@ public sealed class InterviewService(
             .Where(s => s.CandidateId == candidateId)
             .OrderByDescending(s => s.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);
-        return session is null
-            ? Result.Failure<InterviewSessionDto>(Error.NotFound("Interview was not found."))
-            : Result.Success(ToDto(session));
+        if (session is null)
+        {
+            return Result.Failure<InterviewSessionDto>(Error.NotFound("Interview was not found."));
+        }
+
+        var frames = await db.Set<InterviewFrame>()
+            .Where(f => f.SessionId == session.Id)
+            .OrderBy(f => f.CapturedAt)
+            .ToListAsync(cancellationToken);
+        return Result.Success(ToDto(session, frames));
     }
 
     private string BuildInviteUrl(string token)
@@ -583,7 +595,9 @@ public sealed class InterviewService(
         }
     }
 
-    private static InterviewSessionDto ToDto(InterviewSession session) =>
+    private static InterviewSessionDto ToDto(
+        InterviewSession session,
+        IReadOnlyList<InterviewFrame>? frames = null) =>
         new(
             session.Id,
             session.CandidateId,
@@ -595,7 +609,99 @@ public sealed class InterviewService(
             session.Turns.OrderBy(t => t.CreatedAt).Select(t => new InterviewTurnDto(t.Id, t.Role, t.Text, t.QuestionId, t.CreatedAt)).ToList(),
             session.Summary,
             session.VideoMeetingUrl,
-            session.ExpiresAt);
+            session.ExpiresAt,
+            frames?.Select(f => new InterviewFrameDto(
+                f.Id,
+                f.QuestionId,
+                f.TurnId,
+                f.ContentType,
+                f.ImageBase64,
+                f.CapturedAt)).ToList());
+
+    private List<InterviewFrame> BuildFrames(
+        InterviewSession session,
+        InterviewTurn turn,
+        Guid? questionId,
+        IReadOnlyList<string>? framesBase64)
+    {
+        if (framesBase64 is null || framesBase64.Count == 0)
+        {
+            return [];
+        }
+
+        const int maxFrames = 3;
+        const int maxBase64Chars = 220_000;
+        var result = new List<InterviewFrame>();
+        foreach (var raw in framesBase64.Take(maxFrames))
+        {
+            if (!TryNormalizeFrame(raw, out var contentType, out var base64))
+            {
+                continue;
+            }
+
+            if (base64.Length > maxBase64Chars)
+            {
+                continue;
+            }
+
+            result.Add(InterviewFrame.Create(
+                session.TenantId,
+                session.Id,
+                session.CandidateId,
+                session.PositionId,
+                contentType,
+                base64,
+                questionId,
+                turn.Id,
+                clock.UtcNow));
+        }
+
+        return result;
+    }
+
+    private static bool TryNormalizeFrame(string? raw, out string contentType, out string base64)
+    {
+        contentType = "image/jpeg";
+        base64 = string.Empty;
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return false;
+        }
+
+        var value = raw.Trim();
+        if (value.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+        {
+            var comma = value.IndexOf(',');
+            if (comma <= 0)
+            {
+                return false;
+            }
+
+            var header = value[..comma];
+            base64 = value[(comma + 1)..].Trim();
+            if (header.Contains("image/png", StringComparison.OrdinalIgnoreCase))
+            {
+                contentType = "image/png";
+            }
+            else if (header.Contains("image/jpeg", StringComparison.OrdinalIgnoreCase)
+                     || header.Contains("image/jpg", StringComparison.OrdinalIgnoreCase))
+            {
+                contentType = "image/jpeg";
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else
+        {
+            base64 = value;
+        }
+
+        // Cheap sanity: base64 alphabet only (ignore whitespace already trimmed).
+        return base64.Length >= 32
+               && base64.All(c => char.IsLetterOrDigit(c) || c is '+' or '/' or '=' or '\r' or '\n');
+    }
 
     private sealed record LiveStub(string? Status);
 

@@ -43,3 +43,17 @@ public sealed class InterviewTurnConfiguration : IEntityTypeConfiguration<Interv
         builder.Property(t => t.Text).HasMaxLength(5000).IsRequired();
     }
 }
+
+public sealed class InterviewFrameConfiguration : IEntityTypeConfiguration<InterviewFrame>
+{
+    public void Configure(EntityTypeBuilder<InterviewFrame> builder)
+    {
+        builder.ToTable("InterviewFrames");
+        builder.HasKey(f => f.Id);
+        builder.Property(f => f.ContentType).HasMaxLength(64).IsRequired();
+        // JPEG/PNG base64 — NCLOB on HANA (no MaxLength → provider maps to large text).
+        builder.Property(f => f.ImageBase64).IsRequired();
+        builder.HasIndex(f => f.SessionId);
+        builder.HasIndex(f => new { f.TenantId, f.CandidateId });
+    }
+}

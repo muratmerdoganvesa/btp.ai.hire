@@ -27,6 +27,25 @@ function createRecognition(lang: string): SpeechRecognitionLike | null {
   return recognition;
 }
 
+function captureJpegFromVideo(video: HTMLVideoElement | null, maxWidth = 640, quality = 0.72): string | null {
+  if (!video || video.videoWidth < 2 || video.videoHeight < 2) {
+    return null;
+  }
+
+  const scale = Math.min(1, maxWidth / video.videoWidth);
+  const width = Math.max(1, Math.round(video.videoWidth * scale));
+  const height = Math.max(1, Math.round(video.videoHeight * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return null;
+  }
+  ctx.drawImage(video, 0, 0, width, height);
+  return canvas.toDataURL("image/jpeg", quality);
+}
+
 export function VideoAnswerRecorder({
   question,
   questionIndex,
@@ -38,7 +57,7 @@ export function VideoAnswerRecorder({
   questionIndex: number;
   questionTotal: number;
   disabled?: boolean;
-  onSubmit: (transcript: string) => Promise<void>;
+  onSubmit: (transcript: string, framesBase64: string[]) => Promise<void>;
 }) {
   const { t, i18n } = useTranslation();
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -46,6 +65,7 @@ export function VideoAnswerRecorder({
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const framesRef = useRef<string[]>([]);
 
   const [cameraReady, setCameraReady] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -54,6 +74,17 @@ export function VideoAnswerRecorder({
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [sttSupported, setSttSupported] = useState(true);
+
+  const pushFrame = () => {
+    const frame = captureJpegFromVideo(videoRef.current);
+    if (!frame) {
+      return;
+    }
+    if (framesRef.current.length >= 3) {
+      return;
+    }
+    framesRef.current = [...framesRef.current, frame];
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -95,6 +126,7 @@ export function VideoAnswerRecorder({
     setInterim("");
     setError(null);
     setRecording(false);
+    framesRef.current = [];
   }, [question]);
 
   const startRecording = () => {
@@ -104,6 +136,9 @@ export function VideoAnswerRecorder({
       setError(t("interview.cameraDenied"));
       return;
     }
+
+    framesRef.current = [];
+    pushFrame();
 
     chunksRef.current = [];
     try {
@@ -164,6 +199,7 @@ export function VideoAnswerRecorder({
   };
 
   const stopRecording = () => {
+    pushFrame();
     recognitionRef.current?.stop();
     recognitionRef.current = null;
     if (recorderRef.current && recorderRef.current.state !== "inactive") {
@@ -183,10 +219,13 @@ export function VideoAnswerRecorder({
     setSubmitting(true);
     setError(null);
     try {
+      pushFrame();
       stopRecording();
-      await onSubmit(text);
+      const frames = framesRef.current.slice(0, 3);
+      await onSubmit(text, frames);
       setTranscript("");
       setInterim("");
+      framesRef.current = [];
     } catch {
       setError(t("errors.generic"));
     } finally {

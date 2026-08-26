@@ -12,6 +12,14 @@ public sealed record InterviewQuestionDto(Guid Id, Guid CriterionId, string Prom
 
 public sealed record InterviewTurnDto(Guid Id, string Role, string Text, Guid? QuestionId, DateTimeOffset CreatedAt);
 
+public sealed record InterviewFrameDto(
+    Guid Id,
+    Guid? QuestionId,
+    Guid? TurnId,
+    string ContentType,
+    string ImageBase64,
+    DateTimeOffset CapturedAt);
+
 public sealed record InterviewSessionDto(
     Guid Id,
     Guid CandidateId,
@@ -23,9 +31,10 @@ public sealed record InterviewSessionDto(
     IReadOnlyList<InterviewTurnDto> Turns,
     string? Summary,
     string? VideoMeetingUrl = null,
-    DateTimeOffset? ExpiresAt = null);
+    DateTimeOffset? ExpiresAt = null,
+    IReadOnlyList<InterviewFrameDto>? Frames = null);
 
-public sealed record InterviewAnswerRequest(string Text);
+public sealed record InterviewAnswerRequest(string Text, IReadOnlyList<string>? FramesBase64 = null);
 
 public sealed record InterviewPrepDto(
     string WhatToExpect,

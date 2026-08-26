@@ -221,3 +221,57 @@ public sealed class InterviewTurn : ITenantEntity
             CreatedAt = now
         };
 }
+
+/// <summary>Webcam still frame stored as base64 in HANA (no object store).</summary>
+public sealed class InterviewFrame : ITenantEntity
+{
+    private InterviewFrame()
+    {
+        ContentType = "image/jpeg";
+        ImageBase64 = string.Empty;
+    }
+
+    public Guid Id { get; private set; }
+
+    public Guid TenantId { get; private set; }
+
+    public Guid SessionId { get; private set; }
+
+    public Guid CandidateId { get; private set; }
+
+    public Guid PositionId { get; private set; }
+
+    public Guid? QuestionId { get; private set; }
+
+    public Guid? TurnId { get; private set; }
+
+    public string ContentType { get; private set; }
+
+    public string ImageBase64 { get; private set; }
+
+    public DateTimeOffset CapturedAt { get; private set; }
+
+    public static InterviewFrame Create(
+        Guid tenantId,
+        Guid sessionId,
+        Guid candidateId,
+        Guid positionId,
+        string contentType,
+        string imageBase64,
+        Guid? questionId,
+        Guid? turnId,
+        DateTimeOffset now) =>
+        new()
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            SessionId = sessionId,
+            CandidateId = candidateId,
+            PositionId = positionId,
+            QuestionId = questionId,
+            TurnId = turnId,
+            ContentType = Guard.NotNullOrWhiteSpace(contentType, nameof(contentType)),
+            ImageBase64 = Guard.NotNullOrWhiteSpace(imageBase64, nameof(imageBase64)),
+            CapturedAt = now
+        };
+}

@@ -15,6 +15,7 @@ import { ScoreBreakdownTable } from "../components/score-breakdown-table";
 import { AiDisclosureBanner } from "../components/ai-disclosure-banner";
 import { GapCard } from "../components/gap-card";
 import { InterviewTranscript } from "../components/interview-transcript";
+import { InterviewFramesGallery } from "../components/interview-frames-gallery";
 import { SourceHighlighter } from "../components/source-highlighter";
 
 export function EvaluationPage() {
@@ -349,6 +350,7 @@ export function EvaluationPage() {
           <AiDisclosureBanner />
           <GapCard gaps={interview.data.questions.map((question) => question.prompt)} />
           <InterviewTranscript turns={interview.data.turns} />
+          <InterviewFramesGallery frames={interview.data.frames ?? []} />
           {interview.data.summary ? (
             <Card>
               <CardHeader>
