@@ -17,6 +17,7 @@ WORKDIR /app
 COPY deploy/approuter/package.json ./
 RUN npm install --omit=dev
 COPY deploy/approuter/xs-app.json ./
+COPY deploy/approuter/start.js ./
 COPY --from=build /web/apps/recruiter-console/dist ./resources
 COPY deploy/approuter/logged-out.html ./resources/logged-out.html
 RUN chown -R node:node /app
@@ -25,4 +26,4 @@ ENV NODE_ENV=production
 ENV HOME=/home/node
 USER node
 EXPOSE 8080
-CMD ["node", "node_modules/@sap/approuter/approuter.js"]
+CMD ["npm", "start"]

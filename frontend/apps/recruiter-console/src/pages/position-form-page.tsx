@@ -1,4 +1,4 @@
-import { Button, Card, CardContent, CardHeader, CardTitle } from "@hirelens/ui";
+import { Button } from "@hirelens/ui";
 import { ApiError } from "@hirelens/api-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
@@ -169,25 +169,26 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
 
   return (
     <AppShell>
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">{t("positions.title")}</p>
-            <h1 className="mt-1 text-2xl font-extrabold tracking-tight">
-              {isEditing ? t("positions.edit") : t("positions.create")}
-            </h1>
-          </div>
-          <Button asChild variant="outline">
-            <Link to="/positions">{t("positions.backToList")}</Link>
-          </Button>
+      <header className="flex shrink-0 flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">{t("positions.title")}</p>
+          <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">
+            {isEditing ? t("positions.edit") : t("positions.create")}
+          </h1>
         </div>
+        <Button asChild variant="outline" size="sm">
+          <Link to="/positions">{t("positions.backToList")}</Link>
+        </Button>
+      </header>
 
-        <Card data-tour="tour-composer">
-          <CardHeader>
-            <CardTitle>{t("positions.formSection")}</CardTitle>
-            <p className="text-sm text-muted">{t("positions.formHint")}</p>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-6">
+      <div
+        data-tour="tour-composer"
+        className="flex min-h-0 flex-1 flex-col overflow-auto rounded-xl border border-border bg-surface"
+      >
+        <div className="flex flex-col gap-4 p-4 sm:p-5">
+          <p className="text-sm text-muted">{t("positions.formHint")}</p>
+
+          <div className="grid gap-4 lg:grid-cols-2">
             <Field label={t("positions.name")}>
               <TextInput
                 value={title}
@@ -198,103 +199,103 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
                 placeholder={t("positions.namePlaceholder")}
               />
             </Field>
-
-            <Field label={t("positions.jd")}>
-              <TextArea
-                value={jobDescription}
-                onChange={(event) => {
-                  setError(null);
-                  setJobDescription(event.target.value);
-                }}
-                placeholder={t("positions.jdPlaceholder")}
-              />
-            </Field>
-
-            <section className="flex flex-col gap-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="text-sm font-bold">{t("positions.criteria")}</h3>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={`text-sm font-semibold ${weightSum === 100 ? "text-success-fg" : "text-danger"}`}
-                  >
-                    {t("positions.weightSum")}: {weightSum}/100
-                  </span>
-                  <Button type="button" variant="outline" size="sm" onClick={balanceWeights}>
-                    {t("positions.balanceWeights")}
-                  </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={addRow}>
-                    {t("positions.addCriterion")}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto rounded-xl border border-border">
-                <table className="w-full min-w-[32rem] text-left text-sm">
-                  <thead className="border-b border-border bg-brand-0/50 text-xs uppercase tracking-wide text-muted">
-                    <tr>
-                      <th className="px-3 py-2.5 font-bold">{t("positions.criterionName")}</th>
-                      <th className="px-3 py-2.5 font-bold">{t("positions.criterionDesc")}</th>
-                      <th className="w-24 px-3 py-2.5 font-bold">{t("positions.weight")}</th>
-                      <th className="w-16 px-3 py-2.5" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {criteria.map((row, index) => (
-                      <tr key={index} className="border-b border-border last:border-0">
-                        <td className="px-3 py-2">
-                          <TextInput
-                            className="min-w-[8rem] rounded-lg px-3 py-2"
-                            value={row.name}
-                            onChange={(event) => updateRow(index, { name: event.target.value })}
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <TextInput
-                            className="min-w-[10rem] rounded-lg px-3 py-2"
-                            value={row.description}
-                            onChange={(event) => updateRow(index, { description: event.target.value })}
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <TextInput
-                            className="rounded-lg px-3 py-2"
-                            type="number"
-                            min={1}
-                            max={100}
-                            value={row.weight}
-                            onChange={(event) => updateRow(index, { weight: Number(event.target.value) || 0 })}
-                          />
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          <button
-                            type="button"
-                            className="text-xs font-semibold text-muted hover:text-danger disabled:opacity-40"
-                            disabled={criteria.length <= 1}
-                            onClick={() => removeRow(index)}
-                          >
-                            {t("positions.remove")}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="text-xs text-muted">{t("positions.weightsHint")}</p>
-            </section>
-
-            {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
-
-            <div className="flex flex-wrap gap-3">
-              <Button type="button" onClick={trySave} disabled={save.isPending}>
-                {save.isPending ? t("positions.saving") : isEditing ? t("positions.update") : t("positions.submit")}
-              </Button>
-              <Button asChild variant="outline" disabled={save.isPending}>
-                <Link to="/positions">{t("positions.cancelEdit")}</Link>
-              </Button>
+            <div className="lg:col-span-2">
+              <Field label={t("positions.jd")}>
+                <TextArea
+                  className="min-h-28"
+                  value={jobDescription}
+                  onChange={(event) => {
+                    setError(null);
+                    setJobDescription(event.target.value);
+                  }}
+                  placeholder={t("positions.jdPlaceholder")}
+                />
+              </Field>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+
+          <section className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-sm font-bold">{t("positions.criteria")}</h3>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`text-sm font-semibold ${weightSum === 100 ? "text-success-fg" : "text-danger"}`}>
+                  {t("positions.weightSum")}: {weightSum}/100
+                </span>
+                <Button type="button" variant="outline" size="sm" onClick={balanceWeights}>
+                  {t("positions.balanceWeights")}
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={addRow}>
+                  {t("positions.addCriterion")}
+                </Button>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border border-border">
+              <table className="w-full min-w-[36rem] text-left text-sm">
+                <thead className="border-b border-border bg-brand-0/50 text-[0.7rem] uppercase tracking-wide text-muted">
+                  <tr>
+                    <th className="px-3 py-2 font-bold">{t("positions.criterionName")}</th>
+                    <th className="px-3 py-2 font-bold">{t("positions.criterionDesc")}</th>
+                    <th className="w-24 px-3 py-2 font-bold">{t("positions.weight")}</th>
+                    <th className="w-16 px-3 py-2" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {criteria.map((row, index) => (
+                    <tr key={index} className="border-b border-border last:border-0">
+                      <td className="px-3 py-1.5">
+                        <TextInput
+                          className="min-w-[8rem] rounded-lg px-3 py-2"
+                          value={row.name}
+                          onChange={(event) => updateRow(index, { name: event.target.value })}
+                        />
+                      </td>
+                      <td className="px-3 py-1.5">
+                        <TextInput
+                          className="min-w-[10rem] rounded-lg px-3 py-2"
+                          value={row.description}
+                          onChange={(event) => updateRow(index, { description: event.target.value })}
+                        />
+                      </td>
+                      <td className="px-3 py-1.5">
+                        <TextInput
+                          className="rounded-lg px-3 py-2"
+                          type="number"
+                          min={1}
+                          max={100}
+                          value={row.weight}
+                          onChange={(event) => updateRow(index, { weight: Number(event.target.value) || 0 })}
+                        />
+                      </td>
+                      <td className="px-3 py-1.5 text-right">
+                        <button
+                          type="button"
+                          className="text-xs font-semibold text-muted hover:text-danger disabled:opacity-40"
+                          disabled={criteria.length <= 1}
+                          onClick={() => removeRow(index)}
+                        >
+                          {t("positions.remove")}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-muted">{t("positions.weightsHint")}</p>
+          </section>
+
+          {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
+
+          <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+            <Button type="button" size="sm" onClick={trySave} disabled={save.isPending}>
+              {save.isPending ? t("positions.saving") : isEditing ? t("positions.update") : t("positions.submit")}
+            </Button>
+            <Button asChild variant="outline" size="sm" disabled={save.isPending}>
+              <Link to="/positions">{t("positions.cancelEdit")}</Link>
+            </Button>
+          </div>
+        </div>
       </div>
     </AppShell>
   );
