@@ -597,6 +597,137 @@ public static class SchemaBootstrap
         logger.LogInformation("Evaluation audit columns ensured.");
     }
 
+    /// <summary>
+    /// Creates InterviewSessions / InterviewQuestions / InterviewTurns when missing.
+    /// Without these, public interview prep/start fails with HANA "could not find table/view".
+    /// </summary>
+    public static async Task EnsureInterviewTablesAsync(
+        HireLensDbContext db,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        if (db.Database.IsInMemory())
+        {
+            return;
+        }
+
+        var sessionsOk = await TableExistsAsync(db, "INTERVIEWSESSIONS", cancellationToken);
+        var questionsOk = await TableExistsAsync(db, "INTERVIEWQUESTIONS", cancellationToken);
+        var turnsOk = await TableExistsAsync(db, "INTERVIEWTURNS", cancellationToken);
+
+        if (sessionsOk && questionsOk && turnsOk)
+        {
+            await EnsureInterviewColumnsAsync(db, logger, cancellationToken);
+            logger.LogInformation("HireLens interview tables present.");
+            return;
+        }
+
+        logger.LogWarning(
+            "Missing interview tables (Sessions={Sessions}, Questions={Questions}, Turns={Turns}). Creating.",
+            sessionsOk,
+            questionsOk,
+            turnsOk);
+
+        if (!sessionsOk)
+        {
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """
+                CREATE TABLE "InterviewSessions" (
+                    "Id" NVARCHAR(36) NOT NULL CONSTRAINT "PK_InterviewSessions" PRIMARY KEY,
+                    "TenantId" NVARCHAR(36) NOT NULL,
+                    "CandidateId" NVARCHAR(36) NOT NULL,
+                    "PositionId" NVARCHAR(36) NOT NULL,
+                    "Status" NVARCHAR(32) NOT NULL,
+                    "TokenHash" NVARCHAR(128) NOT NULL,
+                    "DisclosureAccepted" BOOLEAN DEFAULT FALSE NOT NULL,
+                    "InterviewScore" INT NULL,
+                    "Summary" NCLOB NULL,
+                    "VideoMeetingUrl" NVARCHAR(1000) NULL,
+                    "ExpiresAt" NVARCHAR(48) NOT NULL,
+                    "CreatedAt" NVARCHAR(48) NOT NULL
+                )
+                """,
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE UNIQUE INDEX "IX_InterviewSessions_TenantId_Id" ON "InterviewSessions" ("TenantId", "Id")""",
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE INDEX "IX_InterviewSessions_TenantId_CandidateId" ON "InterviewSessions" ("TenantId", "CandidateId")""",
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE INDEX "IX_InterviewSessions_TokenHash" ON "InterviewSessions" ("TokenHash")""",
+                cancellationToken);
+        }
+
+        if (!questionsOk)
+        {
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """
+                CREATE TABLE "InterviewQuestions" (
+                    "Id" NVARCHAR(36) NOT NULL CONSTRAINT "PK_InterviewQuestions" PRIMARY KEY,
+                    "TenantId" NVARCHAR(36) NOT NULL,
+                    "SessionId" NVARCHAR(36) NOT NULL,
+                    "CriterionId" NVARCHAR(36) NOT NULL,
+                    "Prompt" NVARCHAR(2000) NOT NULL,
+                    "Order" INT NOT NULL
+                )
+                """,
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE UNIQUE INDEX "IX_InterviewQuestions_TenantId_Id" ON "InterviewQuestions" ("TenantId", "Id")""",
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE INDEX "IX_InterviewQuestions_SessionId" ON "InterviewQuestions" ("SessionId")""",
+                cancellationToken);
+        }
+
+        if (!turnsOk)
+        {
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """
+                CREATE TABLE "InterviewTurns" (
+                    "Id" NVARCHAR(36) NOT NULL CONSTRAINT "PK_InterviewTurns" PRIMARY KEY,
+                    "TenantId" NVARCHAR(36) NOT NULL,
+                    "SessionId" NVARCHAR(36) NOT NULL,
+                    "QuestionId" NVARCHAR(36) NULL,
+                    "Role" NVARCHAR(16) NOT NULL,
+                    "Text" NVARCHAR(5000) NOT NULL,
+                    "CreatedAt" NVARCHAR(48) NOT NULL
+                )
+                """,
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE UNIQUE INDEX "IX_InterviewTurns_TenantId_Id" ON "InterviewTurns" ("TenantId", "Id")""",
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """CREATE INDEX "IX_InterviewTurns_SessionId" ON "InterviewTurns" ("SessionId")""",
+                cancellationToken);
+        }
+
+        await EnsureInterviewColumnsAsync(db, logger, cancellationToken);
+        logger.LogInformation("HireLens interview tables ready.");
+    }
+
     public static async Task EnsureInterviewColumnsAsync(
         HireLensDbContext db,
         ILogger logger,

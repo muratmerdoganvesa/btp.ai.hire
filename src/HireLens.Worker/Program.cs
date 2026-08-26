@@ -83,7 +83,7 @@ if (!app.Environment.IsEnvironment("Testing")
         await SchemaBootstrap.EnsureDocumentPipelineTablesAsync(db, logger);
         await SchemaBootstrap.EnsurePrivacyTablesAsync(db, logger);
         await SchemaBootstrap.EnsureEvaluationAuditColumnsAsync(db, logger);
-        await SchemaBootstrap.EnsureInterviewColumnsAsync(db, logger);
+        await SchemaBootstrap.EnsureInterviewTablesAsync(db, logger);
     }
     catch (Exception ex)
     {
