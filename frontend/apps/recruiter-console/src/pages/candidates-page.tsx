@@ -1,5 +1,4 @@
 import { Button, cn } from "@hirelens/ui";
-import { ApiError } from "@hirelens/api-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
@@ -7,24 +6,20 @@ import { useTranslation } from "react-i18next";
 import { api } from "../api";
 import { AppShell } from "../components/app-shell";
 import { CandidatesTable } from "../components/candidates-table";
-import { CvUploadZone, uploadCandidateCv } from "../components/cv-upload-zone";
+import { CvUploadZone } from "../components/cv-upload-zone";
 
-type SourceMode = "choose" | "sf" | "manual";
+type SourceMode = "choose" | "sf";
 
 export function CandidatesPage() {
   const { t } = useTranslation();
   const { positionId } = useParams({ from: "/positions/$positionId" });
   const queryClient = useQueryClient();
-  const [displayName, setDisplayName] = useState("");
-  const [cvFile, setCvFile] = useState<File | null>(null);
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
   const [sort, setSort] = useState<"score" | "date" | "coverage">("score");
   const [mode, setMode] = useState<SourceMode>("choose");
   const [linkCopied, setLinkCopied] = useState(false);
   const [sfMessage, setSfMessage] = useState<string | null>(null);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [formPhase, setFormPhase] = useState<string | null>(null);
 
   const position = useQuery({
     queryKey: ["position", positionId],
@@ -35,47 +30,6 @@ export function CandidatesPage() {
     queryFn: () => api.listCandidates(positionId),
     refetchInterval: (query) =>
       (query.state.data ?? []).some((row) => row.recommendedAction === "processing") ? 3000 : false
-  });
-
-  const create = useMutation({
-    mutationFn: async () => {
-      setFormError(null);
-      setFormPhase(null);
-      const candidate = await api.createCandidate(positionId, displayName.trim());
-      if (cvFile) {
-        setFormPhase(t("upload.phaseUpload"));
-        try {
-          await uploadCandidateCv(positionId, candidate.id, cvFile, (p) => {
-            if (p === "upload") setFormPhase(t("upload.phaseUpload"));
-            else if (p === "parse") setFormPhase(t("upload.phaseParse"));
-            else if (p.startsWith("match")) setFormPhase(`${t("upload.phaseMatch")} (${p.split(":")[1] ?? ""})`);
-          });
-        } catch (err) {
-          const message = err instanceof Error ? err.message : "";
-          if (/scanned|could not be extracted|text could not/i.test(message)) {
-            throw new Error(t("upload.scanned"));
-          }
-          if (err instanceof ApiError && message) {
-            throw new Error(`${t("errors.generic")} (${message.replace(/^http_\d+:/, "")})`);
-          }
-          throw err instanceof Error ? err : new Error(t("errors.generic"));
-        }
-      }
-      return candidate;
-    },
-    onSuccess: async (candidate) => {
-      setDisplayName("");
-      setCvFile(null);
-      setFormPhase(null);
-      setFormError(null);
-      setSelectedCandidateId(candidate.id);
-      setMode("manual");
-      await queryClient.invalidateQueries({ queryKey: ["candidates", positionId] });
-    },
-    onError: (err) => {
-      setFormPhase(null);
-      setFormError(err instanceof Error ? err.message : t("errors.generic"));
-    }
   });
 
   const pullSf = useMutation({
@@ -126,6 +80,8 @@ export function CandidatesPage() {
     window.setTimeout(() => setLinkCopied(false), 1600);
   };
 
+  const clearSelection = () => setSelectedCandidateId(null);
+
   return (
     <AppShell>
       <header className="flex shrink-0 flex-col gap-3 border-b border-border pb-3 sm:flex-row sm:items-center sm:justify-between">
@@ -157,14 +113,9 @@ export function CandidatesPage() {
             {list.length} {t("candidates.count")}
           </p>
           {!isEmpty ? (
-            <>
-              <Button type="button" variant="outline" size="sm" onClick={() => setMode("sf")}>
-                {t("candidates.sfTitle")}
-              </Button>
-              <Button type="button" size="sm" onClick={() => setMode("manual")}>
-                {t("candidates.manualTitle")}
-              </Button>
-            </>
+            <Button type="button" variant="outline" size="sm" onClick={() => setMode("sf")}>
+              {t("candidates.sfTitle")}
+            </Button>
           ) : null}
         </div>
       </header>
@@ -184,12 +135,19 @@ export function CandidatesPage() {
             }}
             emphasize
           />
-          <SourcePanel
-            title={t("candidates.manualTitle")}
-            body={t("candidates.manualBody")}
-            actionLabel={t("candidates.manualAction")}
-            onAction={() => setMode("manual")}
-          />
+          <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-4">
+            <div>
+              <h2 className="text-base font-extrabold tracking-tight">{t("candidates.publicLink")}</h2>
+              <p className="mt-1 text-sm leading-relaxed text-muted">{t("candidates.emptyHint")}</p>
+            </div>
+            {applyHref ? (
+              <Button type="button" size="sm" variant="outline" onClick={() => void copyApplyLink()}>
+                {linkCopied ? t("candidates.copied") : t("candidates.copyLink")}
+              </Button>
+            ) : (
+              <p className="text-sm text-muted">{t("candidates.publicLinkPending")}</p>
+            )}
+          </div>
         </section>
       ) : null}
 
@@ -208,80 +166,29 @@ export function CandidatesPage() {
         </section>
       ) : null}
 
-      {mode === "manual" ? (
-        <section className="grid shrink-0 gap-3 rounded-xl border border-border bg-surface p-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]">
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="text-sm font-extrabold">{t("candidates.manualTitle")}</p>
-                <p className="text-sm text-muted">{t("candidates.manualBody")}</p>
-              </div>
-              {isEmpty ? (
-                <Button type="button" variant="outline" size="sm" onClick={() => setMode("choose")}>
-                  {t("candidates.backToSources")}
-                </Button>
-              ) : null}
-            </div>
-            <div className="flex flex-col gap-3">
-              <label className="text-sm">
-                <span className="mb-1 block font-semibold text-muted">{t("candidates.displayName")}</span>
-                <input
-                  value={displayName}
-                  onChange={(event) => setDisplayName(event.target.value)}
-                  className="h-9 w-full rounded-lg border border-border bg-white px-3 text-sm outline-none focus-visible:border-brand-5 focus-visible:ring-2 focus-visible:ring-brand-6/15"
-                />
-              </label>
-              <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-border bg-brand-1/40 px-4 py-5 text-center transition-colors hover:border-brand-4">
-                <span className="text-sm font-medium">{cvFile ? cvFile.name : t("candidates.cvRequired")}</span>
-                <span className="mt-1 text-xs text-muted">{t("upload.hint")}</span>
-                <input
-                  type="file"
-                  className="sr-only"
-                  accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-                  onChange={(event) => setCvFile(event.target.files?.[0] ?? null)}
-                />
-              </label>
-              {formPhase ? (
-                <p className="text-sm text-muted" role="status">
-                  {formPhase}
-                </p>
-              ) : null}
-              {formError ? (
-                <p className="text-sm text-danger" role="alert">
-                  {formError}
-                </p>
-              ) : null}
-              <Button
-                type="button"
-                size="sm"
-                className="self-start"
-                disabled={!displayName.trim() || !cvFile || create.isPending}
-                onClick={() => create.mutate()}
-              >
-                {create.isPending ? t("candidates.creatingWithCv") : t("candidates.createWithCv")}
-              </Button>
-            </div>
-          </div>
-          <div>
-            {selected ? (
-              <div className="flex flex-col gap-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                  {t("candidates.uploadFor", { name: selected.displayName })}
-                </p>
-                <CvUploadZone
-                  compact
-                  positionId={positionId}
-                  candidateId={selected.id}
-                  onCompleted={() => void queryClient.invalidateQueries({ queryKey: ["candidates", positionId] })}
-                />
-              </div>
-            ) : (
-              <p className="rounded-lg border border-dashed border-border px-4 py-6 text-sm text-muted">
-                {t("candidates.selectHintAfter")}
+      {selected ? (
+        <section className="flex shrink-0 flex-col gap-3 rounded-xl border border-border bg-surface p-4 sm:max-w-xl">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                {t("candidates.uploadFor", { name: selected.displayName })}
               </p>
-            )}
+              <p className="text-sm text-muted">{t("candidates.uploadEditHint")}</p>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={clearSelection}>
+              {t("candidates.closeUpload")}
+            </Button>
           </div>
+          <CvUploadZone
+            positionId={positionId}
+            candidateId={selected.id}
+            onCompleted={() => void queryClient.invalidateQueries({ queryKey: ["candidates", positionId] })}
+          />
         </section>
+      ) : !isEmpty ? (
+        <p className="shrink-0 rounded-lg border border-dashed border-border px-4 py-3 text-sm text-muted">
+          {t("candidates.selectHint")}
+        </p>
       ) : null}
 
       {sfMessage ? (
@@ -320,10 +227,7 @@ export function CandidatesPage() {
             <CandidatesTable
               rows={list}
               selectedId={selectedCandidateId}
-              onSelect={(id) => {
-                setSelectedCandidateId(id);
-                setMode("manual");
-              }}
+              onSelect={(id) => setSelectedCandidateId(id)}
             />
           </div>
         </section>

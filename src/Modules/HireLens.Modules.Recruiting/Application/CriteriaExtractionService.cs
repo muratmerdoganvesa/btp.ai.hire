@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net.Http;
+using System.Text.Json;
 using HireLens.AiGateway;
 using HireLens.AiGateway.Prompts;
 using HireLens.Contracts.Recruiting;
@@ -24,6 +25,11 @@ public sealed class CriteriaExtractionService(
     private const string PromptVersion = "1";
     private const int MinDescriptionLength = 100;
     private const int MaxDescriptionLength = 20_000;
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
 
     public async Task<Result<ExtractCriteriaResponse>> ExtractAsync(
         ExtractCriteriaRequest request,
@@ -65,7 +71,8 @@ public sealed class CriteriaExtractionService(
         var sw = Stopwatch.StartNew();
         try
         {
-            var aiResult = await gateway.ExecuteAsync<CriteriaExtractionAiPayload>(
+            // Deserialize in this assembly: AiGateway cannot construct private payload types.
+            var aiResult = await gateway.ExecuteAsync<string>(
                 AiTaskType.CriteriaExtraction,
                 new PromptContext(
                     TaskInput: $"{title}\n---\n{description}",
@@ -81,11 +88,11 @@ public sealed class CriteriaExtractionService(
                 cancellationToken);
 
             sw.Stop();
-            var payload = aiResult.Value ?? new CriteriaExtractionAiPayload();
+            var payload = ParsePayload(aiResult.Value) ?? new CriteriaExtractionAiPayload();
             var normalized = Normalize(payload);
 
             logger.LogInformation(
-                "AI call promptId={PromptId} promptVersion={PromptVersion} model={Model} inputTokens={InputTokens} outputTokens={OutputTokens} latencyMs={LatencyMs} status={Status} criteriaCount={CriteriaCount}",
+                "AI call promptId={PromptId} promptVersion={PromptVersion} model={Model} inputTokens={InputTokens} outputTokens={OutputTokens} latencyMs={LatencyMs} status={Status} criteriaCount={CriteriaCount} warnings={Warnings}",
                 PromptId,
                 prompt.Version,
                 aiResult.ModelId,
@@ -93,7 +100,8 @@ public sealed class CriteriaExtractionService(
                 aiResult.OutputTokens,
                 (long)aiResult.Latency.TotalMilliseconds,
                 "ok",
-                normalized.Criteria.Count);
+                normalized.Criteria.Count,
+                string.Join(',', aiResult.Warnings));
 
             return Result.Success(normalized);
         }
@@ -130,6 +138,41 @@ public sealed class CriteriaExtractionService(
             or TimeoutException
             or TaskCanceledException
             or InvalidOperationException;
+
+    private static CriteriaExtractionAiPayload? ParsePayload(string? content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return null;
+        }
+
+        var trimmed = content.Trim();
+        if (trimmed.StartsWith("```", StringComparison.Ordinal))
+        {
+            var firstNewline = trimmed.IndexOf('\n');
+            if (firstNewline > 0)
+            {
+                trimmed = trimmed[(firstNewline + 1)..];
+            }
+
+            var fence = trimmed.LastIndexOf("```", StringComparison.Ordinal);
+            if (fence >= 0)
+            {
+                trimmed = trimmed[..fence];
+            }
+
+            trimmed = trimmed.Trim();
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<CriteriaExtractionAiPayload>(trimmed, JsonOptions);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
 
     private static ExtractCriteriaResponse Normalize(CriteriaExtractionAiPayload payload)
     {
