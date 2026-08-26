@@ -18,6 +18,11 @@ if (!root) {
   throw new Error("Root element is missing.");
 }
 
+/** Candidate-facing entry points must not call /api/me (recruiter auth). */
+function isPublicEntryPath(pathname: string): boolean {
+  return pathname.startsWith("/interview/") || pathname.startsWith("/apply/");
+}
+
 const renderApp = () => {
   createRoot(root).render(
     <StrictMode>
@@ -38,7 +43,9 @@ const renderSessionError = () => {
 
 void (async () => {
   try {
-    await bootstrapSession();
+    if (!isPublicEntryPath(window.location.pathname)) {
+      await bootstrapSession();
+    }
     renderApp();
   } catch (error) {
     if (isDevAuth) {
