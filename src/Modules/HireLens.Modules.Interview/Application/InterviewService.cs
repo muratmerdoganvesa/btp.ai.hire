@@ -218,11 +218,21 @@ public sealed class InterviewService(
             }
 
             await db.SaveChangesAsync(cancellationToken);
-            await db.Set<InterviewSession>()
-                .Where(s => s.Id == session.Id)
-                .ExecuteUpdateAsync(
-                    setters => setters.SetProperty(s => s.Status, "in_progress"),
-                    cancellationToken);
+            var tracked = await db.Set<InterviewSession>()
+                .IgnoreAutoIncludes()
+                .SingleAsync(s => s.Id == session.Id, cancellationToken);
+            if (!tracked.DisclosureAccepted)
+            {
+                tracked.AcceptDisclosure();
+            }
+
+            var status = tracked.Start();
+            if (status.IsFailure)
+            {
+                return Result.Failure<InterviewSessionDto>(status.Error);
+            }
+
+            await db.SaveChangesAsync(cancellationToken);
         }
 
         return Result.Success(ToDto(session));
@@ -242,13 +252,12 @@ public sealed class InterviewService(
             return;
         }
 
-        await db.Set<InterviewSession>()
-            .Where(s => s.Id == sessionId)
-            .ExecuteUpdateAsync(
-                setters => setters
-                    .SetProperty(s => s.DisclosureAccepted, true)
-                    .SetProperty(s => s.Status, "disclosed"),
-                cancellationToken);
+        // EF InMemory has no ExecuteUpdate — update scalars only (no AutoInclude graph).
+        var tracked = await db.Set<InterviewSession>()
+            .IgnoreAutoIncludes()
+            .SingleAsync(s => s.Id == sessionId, cancellationToken);
+        tracked.AcceptDisclosure();
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<Result<InterviewSessionDto>> PauseAsync(string token, CancellationToken cancellationToken)
