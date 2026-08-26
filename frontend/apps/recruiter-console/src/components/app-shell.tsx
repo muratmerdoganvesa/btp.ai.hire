@@ -78,7 +78,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-border bg-surface px-4 py-3 lg:hidden">
           <Link to="/" className="text-lg font-extrabold text-brand-6">
             HireLens
@@ -87,7 +87,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             {t("dashboard.logout")}
           </Button>
         </header>
-        <main className="hl-rise mx-auto flex w-full max-w-[86rem] flex-1 flex-col gap-6 p-4 sm:p-6 lg:p-8">
+        <main className="hl-rise flex min-h-0 w-full min-w-0 flex-1 flex-col gap-3 overflow-hidden px-4 py-3 sm:px-5 sm:py-4 lg:px-6">
           {children}
         </main>
       </div>

@@ -47,6 +47,20 @@
       "authenticationType": "none"
     },
     {
+      "source": "^/interview/(.*)$",
+      "target": "/index.html",
+      "localDir": "resources",
+      "authenticationType": "none",
+      "cacheControl": "no-cache, no-store, must-revalidate"
+    },
+    {
+      "source": "^/apply/(.*)$",
+      "target": "/index.html",
+      "localDir": "resources",
+      "authenticationType": "none",
+      "cacheControl": "no-cache, no-store, must-revalidate"
+    },
+    {
       "source": "^/(.*)$",
       "target": "$1",
       "localDir": "resources",

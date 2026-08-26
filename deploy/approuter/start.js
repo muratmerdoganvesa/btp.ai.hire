@@ -101,8 +101,28 @@ function resolveUiFile(pathname) {
   if (exact) {
     return { file: exact, missingAsset: false };
   }
-  const ext = path.extname(pathname);
-  if (ext && ext !== ".html") {
+  // Interview tokens contain dots (tenant.session.hmac). Only treat real static
+  // asset extensions as missing files — everything else is SPA (index.html).
+  const ext = path.extname(pathname).toLowerCase();
+  const staticExt = new Set([
+    ".css",
+    ".js",
+    ".mjs",
+    ".map",
+    ".json",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".webp",
+    ".svg",
+    ".ico",
+    ".woff",
+    ".woff2",
+    ".ttf",
+    ".txt"
+  ]);
+  if (ext && staticExt.has(ext)) {
     return { file: null, missingAsset: true };
   }
   return { file: indexHtml, missingAsset: false };
