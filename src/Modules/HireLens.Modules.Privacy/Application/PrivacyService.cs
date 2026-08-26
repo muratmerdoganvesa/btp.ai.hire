@@ -30,14 +30,16 @@ public sealed class PrivacyService(HireLensDbContext db, ITenantContext tenant, 
         CancellationToken cancellationToken)
     {
         RepositoryGuard.RequireTenant(tenant);
-        var alreadyGranted = await db.Set<ConsentRecord>()
-            .AnyAsync(c => c.CandidateId == candidateId && c.Purpose == purpose, cancellationToken);
-        if (alreadyGranted)
+
+        // Prefer a single read — AnyAsync + SingleAsync races / HANA quirks can throw
+        // "Sequence contains no elements" even after a positive AnyAsync.
+        var existing = await db.Set<ConsentRecord>()
+            .AsNoTracking()
+            .Where(c => c.CandidateId == candidateId && c.Purpose == purpose)
+            .Select(c => new { c.Id, c.AcceptedAt, c.TextVersion, c.RemoteIp })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (existing is not null)
         {
-            var existing = await db.Set<ConsentRecord>()
-                .Where(c => c.CandidateId == candidateId && c.Purpose == purpose)
-                .Select(c => new { c.Id, c.AcceptedAt, c.TextVersion, c.RemoteIp })
-                .SingleAsync(cancellationToken);
             return new ConsentRecordDto(
                 existing.Id,
                 candidateId,

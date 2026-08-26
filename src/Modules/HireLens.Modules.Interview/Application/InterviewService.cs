@@ -119,10 +119,37 @@ public sealed class InterviewService(
             return Result.Failure<InterviewSessionDto>(opened.Error);
         }
 
-        opened.Value.AcceptDisclosure();
-        await privacy.GrantAsync(opened.Value.CandidateId, DisclosurePurpose, cancellationToken);
-        await db.SaveChangesAsync(cancellationToken);
-        return Result.Success(ToDto(opened.Value));
+        var session = opened.Value;
+
+        // Persist consent first while the session entity is still Unchanged — otherwise
+        // GrantAsync.SaveChanges also flushes DisclosureAccepted and can trip HANA/EF
+        // on AutoIncluded empty Questions/Turns collections ("Sequence contains no elements").
+        await privacy.GrantAsync(session.CandidateId, DisclosurePurpose, cancellationToken);
+
+        if (!session.DisclosureAccepted)
+        {
+            var affected = await db.Set<InterviewSession>()
+                .Where(s => s.Id == session.Id)
+                .ExecuteUpdateAsync(
+                    setters => setters
+                        .SetProperty(s => s.DisclosureAccepted, true)
+                        .SetProperty(s => s.Status, "disclosed"),
+                    cancellationToken);
+
+            if (affected == 0)
+            {
+                // Fallback when provider cannot translate ExecuteUpdate (or row vanished).
+                session.AcceptDisclosure();
+                await db.SaveChangesAsync(cancellationToken);
+            }
+            else
+            {
+                session.AcceptDisclosure();
+                db.Entry(session).State = EntityState.Detached;
+            }
+        }
+
+        return Result.Success(ToDto(session));
     }
 
     public async Task<Result<InterviewSessionDto>> StartAsync(string token, CancellationToken cancellationToken)
