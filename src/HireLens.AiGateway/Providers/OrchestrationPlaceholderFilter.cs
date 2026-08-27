@@ -58,4 +58,25 @@ public static class OrchestrationPlaceholderFilter
 
         return bag;
     }
+
+    /// <summary>
+    /// Generic orchestration merges deployment default placeholder_values into the
+    /// request. Configs cloned from cv-extraction still declare cv_text; if this
+    /// template does not reference it, SAP returns 400 unused cv_text.
+    /// </summary>
+    public static (string UserPrompt, Dictionary<string, string> Values) AbsorbLegacyCvText(
+        string? systemPrompt,
+        string userPrompt,
+        IReadOnlyDictionary<string, string> values)
+    {
+        var names = NamesIn((systemPrompt ?? string.Empty) + "\n" + userPrompt);
+        var bag = new Dictionary<string, string>(values, StringComparer.Ordinal);
+        if (names.Contains("cv_text"))
+        {
+            return (userPrompt, bag);
+        }
+
+        bag.TryAdd("cv_text", string.Empty);
+        return (userPrompt + "\n{{?cv_text}}", bag);
+    }
 }

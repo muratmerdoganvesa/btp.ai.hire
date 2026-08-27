@@ -196,6 +196,10 @@ public sealed class OrchestrationClient(
 
         var systemContent = promptSpec?.SystemPrompt ?? string.Empty;
         var userContent = promptSpec?.UserPrompt ?? prompt.Text;
+        (userContent, placeholders) = OrchestrationPlaceholderFilter.AbsorbLegacyCvText(
+            systemContent,
+            userContent,
+            placeholders);
         placeholders = OrchestrationPlaceholderFilter.ForTemplate(
             systemContent + "\n" + userContent,
             placeholders,

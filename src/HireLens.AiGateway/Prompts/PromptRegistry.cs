@@ -70,14 +70,7 @@ public sealed class PromptRegistry : IPromptRegistry
                 version = version[1..];
             }
 
-            var system = text;
-            var user = "{{?cv_text}}";
-            var split = text.IndexOf("\n---\n", StringComparison.Ordinal);
-            if (split > 0)
-            {
-                system = text[..split].Trim();
-                user = text[(split + 5)..].Trim();
-            }
+            var (system, user) = SplitMarkdown(text);
 
             var key = $"{id}@{version}";
             var definition = new PromptDefinition(id, version, system, user);
@@ -108,6 +101,18 @@ public sealed class PromptRegistry : IPromptRegistry
         }
 
         return result;
+    }
+
+    public static (string System, string User) SplitMarkdown(string text)
+    {
+        var normalized = text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
+        var split = normalized.IndexOf("\n---\n", StringComparison.Ordinal);
+        if (split <= 0)
+        {
+            return (normalized.Trim(), string.Empty);
+        }
+
+        return (normalized[..split].Trim(), normalized[(split + 5)..].Trim());
     }
 
     internal static string? FindRoot(string contentRoot, string folder)
