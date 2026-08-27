@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 import { api } from "../api";
 import { AppShell } from "../components/app-shell";
 import { Field, TextArea, TextInput } from "../components/field";
-import { PageBody } from "../components/page-hero";
+import { PageBody, PageHero } from "../components/page-hero";
 
 type CriterionRow = { name: string; description: string; weight: number };
 
@@ -205,6 +205,7 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
   if (isEditing && existing.isLoading) {
     return (
       <AppShell>
+        <PageHero kicker={t("positions.title")} title={t("positions.edit")} />
         <PageBody>
           <p className="text-sm text-muted">{t("positions.loading")}</p>
         </PageBody>
@@ -216,26 +217,22 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
 
   return (
     <AppShell>
+      <PageHero
+        kicker={t("positions.title")}
+        title={isEditing ? t("positions.edit") : t("positions.create")}
+        description={t("positions.formHint")}
+        actions={
+          <Button asChild variant="outline" size="sm" className="!border-white/40 !bg-white/10 !text-white hover:!bg-white/20 hover:!text-white">
+            <Link to="/positions">{t("positions.backToList")}</Link>
+          </Button>
+        }
+      />
       <PageBody>
-      <header className="flex shrink-0 flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">{t("positions.title")}</p>
-          <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">
-            {isEditing ? t("positions.edit") : t("positions.create")}
-          </h1>
-        </div>
-        <Button asChild variant="outline" size="sm">
-          <Link to="/positions">{t("positions.backToList")}</Link>
-        </Button>
-      </header>
-
       <div
         data-tour="form-composer"
         className="flex min-h-0 flex-1 flex-col overflow-auto rounded-xl border border-border bg-surface"
       >
         <div className="flex flex-col gap-4 p-4 sm:p-5">
-          <p className="text-sm text-muted">{t("positions.formHint")}</p>
-
           <div className="grid gap-4 lg:grid-cols-2">
             <Field label={t("positions.name")}>
               <TextInput

@@ -12,7 +12,7 @@ import { EvaluationAuditPanel } from "../components/evaluation-audit-panel";
 import { GapCard } from "../components/gap-card";
 import { InterviewFramesGallery } from "../components/interview-frames-gallery";
 import { InterviewTranscript } from "../components/interview-transcript";
-import { PageBody } from "../components/page-hero";
+import { PageBody, PageHero } from "../components/page-hero";
 import { RiskFlagList } from "../components/risk-flag-list";
 import { ScoreBreakdownTable } from "../components/score-breakdown-table";
 
@@ -174,6 +174,46 @@ export function EvaluationPage() {
 
   return (
     <AppShell>
+      <PageHero
+        kicker={position.data?.title ?? t("evaluation.title")}
+        title={candidate.data?.displayName ?? t("evaluation.title")}
+        description={t("evaluation.candidateSubtitle")}
+        actions={
+          <div className="flex flex-col items-stretch gap-2 sm:items-end">
+            <ScoreBadge
+              score={evaluation.data?.overallScore ?? candidate.data?.overallScore ?? null}
+              label={
+                evaluation.data?.overallScore == null && candidate.data?.overallScore == null
+                  ? t("score.unknown")
+                  : t("evaluation.overallOf100")
+              }
+            />
+            {coveragePct !== null ? (
+              <p className="text-xs text-white/75">
+                {t("evaluation.coverage")}: <span className="font-semibold tabular-nums">{coveragePct}%</span>
+                {coveragePct < 80 ? (
+                  <span className="ml-1 text-rose-200">· {t("evaluation.coverageWarningShort")}</span>
+                ) : null}
+              </p>
+            ) : null}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="!text-white/70 hover:!bg-white/10 hover:!text-white"
+              disabled={deleteCandidate.isPending}
+              onClick={() => {
+                if (!window.confirm(t("candidates.deleteConfirm"))) {
+                  return;
+                }
+                deleteCandidate.mutate();
+              }}
+            >
+              {deleteCandidate.isPending ? t("candidates.deleting") : t("candidates.delete")}
+            </Button>
+          </div>
+        }
+      />
       <PageBody>
       <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
         <Link to="/positions" className="font-medium text-brand-6 hover:underline">
@@ -245,75 +285,20 @@ export function EvaluationPage() {
         </div>
       ) : null}
 
-      <header
-        className={`flex flex-col gap-4 rounded-2xl border px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6 ${
-          isRejected
-            ? "border-rose-200 bg-rose-50/40"
-            : isAdvanced
-              ? "border-emerald-200 bg-emerald-50/30"
-              : "border-border bg-surface"
-        }`}
-      >
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            {isRejected ? (
-              <Badge tone="danger">{t("evaluation.statusRejected")}</Badge>
-            ) : isAdvanced ? (
-              <Badge className="!bg-emerald-100 !text-emerald-800">{t("evaluation.statusAdvanced")}</Badge>
-            ) : isHeld ? (
-              <Badge className="!bg-amber-100 !text-amber-900">{t("evaluation.statusHeld")}</Badge>
-            ) : (
-              <Badge tone="muted">{t("evaluation.awaitingDecision")}</Badge>
-            )}
-            {!isRejected && !isAdvanced && !isHeld ? (
-              <Badge tone="muted">{t("evaluation.humanReview")}</Badge>
-            ) : null}
-          </div>
-          <h1
-            className={`mt-2 truncate text-2xl font-extrabold tracking-tight sm:text-3xl ${
-              isRejected ? "text-rose-950" : "text-foreground"
-            }`}
-          >
-            {candidate.data?.displayName ?? t("evaluation.title")}
-          </h1>
-          <p className="mt-1 text-sm text-muted">
-            {position.data?.title ?? t("evaluation.candidateSubtitle")}
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
-          <ScoreBadge
-            score={evaluation.data?.overallScore ?? candidate.data?.overallScore ?? null}
-            label={
-              evaluation.data?.overallScore == null && candidate.data?.overallScore == null
-                ? t("score.unknown")
-                : t("evaluation.overallOf100")
-            }
-          />
-          {coveragePct !== null ? (
-            <p className="text-xs text-muted">
-              {t("evaluation.coverage")}: <span className="font-semibold tabular-nums">{coveragePct}%</span>
-              {coveragePct < 80 ? (
-                <span className="ml-1 text-danger">· {t("evaluation.coverageWarningShort")}</span>
-              ) : null}
-            </p>
-          ) : null}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="text-muted hover:text-danger"
-            disabled={deleteCandidate.isPending}
-            onClick={() => {
-              if (!window.confirm(t("candidates.deleteConfirm"))) {
-                return;
-              }
-              deleteCandidate.mutate();
-            }}
-          >
-            {deleteCandidate.isPending ? t("candidates.deleting") : t("candidates.delete")}
-          </Button>
-        </div>
-      </header>
+      <div className="flex flex-wrap items-center gap-2">
+        {isRejected ? (
+          <Badge tone="danger">{t("evaluation.statusRejected")}</Badge>
+        ) : isAdvanced ? (
+          <Badge className="!bg-emerald-100 !text-emerald-800">{t("evaluation.statusAdvanced")}</Badge>
+        ) : isHeld ? (
+          <Badge className="!bg-amber-100 !text-amber-900">{t("evaluation.statusHeld")}</Badge>
+        ) : (
+          <Badge tone="muted">{t("evaluation.awaitingDecision")}</Badge>
+        )}
+        {!isRejected && !isAdvanced && !isHeld ? (
+          <Badge tone="muted">{t("evaluation.humanReview")}</Badge>
+        ) : null}
+      </div>
 
       {hasEvaluation ? (
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">

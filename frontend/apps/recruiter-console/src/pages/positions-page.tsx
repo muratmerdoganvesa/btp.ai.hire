@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
 import { AppShell } from "../components/app-shell";
-import { PageBody } from "../components/page-hero";
+import { PageBody, PageHero } from "../components/page-hero";
 
 export function PositionsPage() {
   const { t } = useTranslation();
@@ -39,17 +39,17 @@ export function PositionsPage() {
 
   return (
     <AppShell>
+      <PageHero
+        kicker={t("nav.sectionRecruiting")}
+        title={t("positions.title")}
+        description={t("positions.listHint")}
+        actions={
+          <Button asChild size="sm" className="!bg-white !text-[#151f66] hover:!bg-white/90" data-tour="tour-position-create">
+            <Link to="/positions/new">{t("positions.create")}</Link>
+          </Button>
+        }
+      />
       <PageBody>
-      <header className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">{t("positions.title")}</h1>
-          <p className="mt-0.5 text-sm text-muted">{t("positions.listHint")}</p>
-        </div>
-        <Button asChild size="sm" data-tour="tour-position-create">
-          <Link to="/positions/new">{t("positions.create")}</Link>
-        </Button>
-      </header>
-
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden rounded-xl border border-border bg-surface">
         <div className="shrink-0 border-b border-border px-3 py-2 sm:px-4">
           <label className="sr-only" htmlFor="positions-search">

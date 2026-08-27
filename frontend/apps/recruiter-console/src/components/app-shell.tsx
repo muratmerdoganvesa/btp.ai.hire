@@ -90,9 +90,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen bg-background text-foreground">
       <ProductTour />
-      <aside className="sticky top-0 hidden h-screen w-[16.5rem] shrink-0 flex-col border-r border-slate-200 bg-[#f8fafc] lg:flex">
+      <aside className="sticky top-0 hidden h-screen w-[16.5rem] shrink-0 flex-col bg-[#f8fafc] lg:flex">
         <BrandBlock />
-        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto border-t border-slate-200/80 px-3 py-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto border-r border-slate-200 px-3 py-4">
           <div>
             <p className="mb-2 px-2 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-slate-400">
               {t("nav.sectionRecruiting")}
@@ -112,7 +112,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </div>
 
-        <div className="border-t border-slate-200 p-3">
+        <div className="border-r border-t border-slate-200 p-3">
           <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
             <div className="flex items-center gap-2.5">
               <InitialsAvatar name={displayName} className="size-9 rounded-full" />

@@ -8,7 +8,7 @@ import { AddCandidateDialog } from "../components/add-candidate-dialog";
 import { AppShell } from "../components/app-shell";
 import { CandidatesTable } from "../components/candidates-table";
 import { CvUploadZone } from "../components/cv-upload-zone";
-import { PageBody } from "../components/page-hero";
+import { PageBody, PageHero } from "../components/page-hero";
 
 type SourceMode = "choose" | "sf";
 type SortMode = "score" | "date" | "coverage";
@@ -105,43 +105,46 @@ export function CandidatesPage() {
 
   return (
     <AppShell>
-      <PageBody>
-      <header className="flex shrink-0 flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted">
-            <Link to="/positions" className="text-brand-6 hover:underline">
-              {t("nav.positions")}
-            </Link>
-            <span aria-hidden="true">/</span>
-            <span>{t("candidates.title")}</span>
-          </div>
-          <h1 className="mt-1 truncate text-xl font-extrabold leading-tight tracking-tight sm:text-2xl">
-            {position.data?.title ?? t("candidates.title")}
-          </h1>
-          <p className="mt-1 text-sm text-muted">{t("candidates.pageHint")}</p>
-          {applySlug ? (
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-              <span className="text-muted">{t("candidates.publicLink")}</span>
-              <a className="font-medium text-brand-6 underline-offset-2 hover:underline" href={`/apply/${applySlug}`}>
-                /apply/{applySlug}
-              </a>
-              <Button type="button" variant="outline" size="sm" onClick={() => void copyApplyLink()}>
-                {linkCopied ? t("candidates.copied") : t("candidates.copyLink")}
-              </Button>
-            </div>
-          ) : null}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" size="sm" onClick={() => setAddOpen(true)}>
-            {t("candidates.addManual")}
-          </Button>
-          {!isEmpty ? (
-            <Button type="button" variant="outline" size="sm" onClick={() => setMode("sf")}>
-              {t("candidates.sfTitle")}
+      <PageHero
+        kicker={position.data?.title ? t("candidates.title") : t("nav.positions")}
+        title={position.data?.title ?? t("candidates.title")}
+        description={t("candidates.pageHint")}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              className="!bg-white !text-[#151f66] hover:!bg-white/90"
+              onClick={() => setAddOpen(true)}
+            >
+              {t("candidates.addManual")}
             </Button>
-          ) : null}
+            {!isEmpty ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="!border-white/40 !bg-white/10 !text-white hover:!bg-white/20 hover:!text-white"
+                onClick={() => setMode("sf")}
+              >
+                {t("candidates.sfTitle")}
+              </Button>
+            ) : null}
+          </div>
+        }
+      />
+      <PageBody>
+      {applySlug ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface px-4 py-3 text-sm">
+          <span className="text-muted">{t("candidates.publicLink")}</span>
+          <a className="font-medium text-brand-6 underline-offset-2 hover:underline" href={`/apply/${applySlug}`}>
+            /apply/{applySlug}
+          </a>
+          <Button type="button" variant="outline" size="sm" onClick={() => void copyApplyLink()}>
+            {linkCopied ? t("candidates.copied") : t("candidates.copyLink")}
+          </Button>
         </div>
-      </header>
+      ) : null}
 
       {showChooser ? (
         <section className="grid shrink-0 gap-3 md:grid-cols-2">
