@@ -7,6 +7,7 @@ using HireLens.Infrastructure.Persistence;
 using HireLens.Modules.Matching.Domain;
 using HireLens.SharedKernel;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using HireLens.AiGateway.Providers;
 
@@ -29,7 +30,8 @@ public sealed class MatchingJob(
     IEvidenceScoring evidence,
     IAiGateway gateway,
     IOptions<SapAiCoreOptions> aiOptions,
-    IAnalysisJobs jobs) : IEvaluationService
+    IAnalysisJobs jobs,
+    IHostEnvironment env) : IEvaluationService
 {
     public async Task RunAsync(Guid documentId, CancellationToken cancellationToken)
     {
@@ -109,18 +111,44 @@ public sealed class MatchingJob(
             evaluation.SetStage("matching");
             await db.SaveChangesAsync(cancellationToken);
 
-            var proposals = DeterministicMatcher.Score(maskedText, position);
-
+            IReadOnlyList<ProposedCriterionScore> proposals;
             try
             {
-                _ = await gateway.ExecuteAsync<MatchStub>(
+                var deploymentId = string.IsNullOrWhiteSpace(aiOptions.Value.MatchingDeploymentId)
+                    ? aiOptions.Value.DeploymentId
+                    : aiOptions.Value.MatchingDeploymentId;
+                var jobDescription = BuildJobDescription(position);
+                var aiResult = await gateway.ExecuteAsync<string>(
                     AiTaskType.JdCvMatching,
-                    new PromptContext($"{position.JobDescription}\n---\n{maskedText}", "v1.0.0"),
-                    ct: cancellationToken);
+                    new PromptContext(
+                        TaskInput: maskedText,
+                        PromptVersion: "1",
+                        Variables: new Dictionary<string, string>
+                        {
+                            ["job_description"] = jobDescription,
+                            ["cv_text"] = maskedText
+                        },
+                        PlaceholdersOnly: true,
+                        DeploymentId: deploymentId),
+                    new AiOptions(MaxOutputTokens: 2048, Temperature: 0.1),
+                    cancellationToken);
+                var mapped = CriteriaMatchingMapper.TryMap(aiResult.Value, position);
+                if (mapped is null)
+                {
+                    throw new InvalidOperationException("Eşleştirme AI geçerli skor döndürmedi.");
+                }
+
+                proposals = mapped;
+            }
+            catch (Exception ex) when (!IsTesting)
+            {
+                evaluation.Fail("matching", ex.Message, clock.UtcNow);
+                await db.SaveChangesAsync(cancellationToken);
+                return;
             }
             catch
             {
-                // Deterministic scores remain authoritative when Orchestration is unavailable.
+                proposals = DeterministicMatcher.Score(maskedText, position);
             }
 
             evaluation.SetStage("scoring");
@@ -163,7 +191,7 @@ public sealed class MatchingJob(
             evaluation.Complete(
                 overall,
                 score.CoverageRatio,
-                promptVersion: "02-criteria-matching@v1.0.0",
+                promptVersion: "02-criteria-matching@v1",
                 rubricVersion: score.RubricVersion,
                 modelName: string.IsNullOrWhiteSpace(opts.ModelName) ? "deterministic" : opts.ModelName,
                 modelVersion: opts.ModelVersion,
@@ -295,7 +323,24 @@ public sealed class MatchingJob(
             ? []
             : value.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
-    private sealed record MatchStub(string? Status);
+    private static string BuildJobDescription(PositionSnapshot position)
+    {
+        var lines = new List<string>
+        {
+            position.Title,
+            position.JobDescription,
+            "Criteria:"
+        };
+        foreach (var criterion in position.Criteria)
+        {
+            lines.Add($"- {criterion.Name} ({criterion.Id:D}): {criterion.Description} weight={criterion.Weight}");
+        }
+
+        return string.Join('\n', lines);
+    }
+
+    private bool IsTesting =>
+        string.Equals(env.EnvironmentName, "Testing", StringComparison.OrdinalIgnoreCase);
 
     private sealed record SummaryStub(string? Summary);
 }

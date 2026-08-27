@@ -30,6 +30,8 @@ public static class AiGatewayRegistration
             options.DeploymentId ??= configuration["AICORE_DEPLOYMENT_ID"]
                 ?? configuration["AiCore:DeploymentId"];
             options.CriteriaExtractionDeploymentId ??= configuration["AICORE_CRITERIA_DEPLOYMENT_ID"];
+            options.CvExtractionDeploymentId ??= configuration["AICORE_CV_EXTRACTION_DEPLOYMENT_ID"];
+            options.MatchingDeploymentId ??= configuration["AICORE_MATCHING_DEPLOYMENT_ID"];
             options.ClientId ??= configuration["AiCore:ClientId"];
             options.ClientSecret ??= configuration["AiCore:ClientSecret"];
             options.AiApiUrl ??= configuration["AiCore:AiApiUrl"];

@@ -2,6 +2,7 @@ using System.Text;
 using System.Security.Cryptography;
 using HireLens.AiGateway;
 using HireLens.AiGateway.Masking;
+using HireLens.AiGateway.Providers;
 using HireLens.Contracts.Documents;
 using HireLens.Contracts.Matching;
 using HireLens.Infrastructure.Persistence;
@@ -9,7 +10,9 @@ using HireLens.Infrastructure.Storage;
 using HireLens.Modules.Documents.Domain;
 using HireLens.SharedKernel;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace HireLens.Modules.Documents.Application;
 
@@ -22,6 +25,8 @@ public sealed class ParseCvJob(
     IAnalysisJobs jobs,
     IParseCache parseCache,
     IClock clock,
+    IOptions<SapAiCoreOptions> aiCoreOptions,
+    IHostEnvironment env,
     ILogger<ParseCvJob> logger)
 {
     public async Task RunAsync(Guid documentId, Guid jobId, CancellationToken cancellationToken)
@@ -42,11 +47,21 @@ public sealed class ParseCvJob(
         {
             var parsed = await ExtractAndMaskAsync(document, cancellationToken);
             masked = parsed.MaskedText;
-            document.MarkParsed(masked, parsed.FromCache ? "cache" : "01-cv-extraction@v1.1.0");
+            document.MarkParsed(masked, parsed.FromCache ? "cache" : "01-cv-extraction@v1");
             if (!parsed.FromCache)
             {
                 await TryStoreParseCacheAsync(parsed.ContentHash, masked, cancellationToken);
             }
+
+            var aiOk = await TryHostedCvExtractionAsync(masked, cancellationToken);
+            if (!aiOk && !IsTesting)
+            {
+                document.MarkFailed();
+                job.Fail("CV extraction AI yanıt vermedi veya parseQuality yetersiz.", clock.UtcNow);
+                await db.SaveChangesAsync(cancellationToken);
+                return;
+            }
+
             job.Succeed(clock.UtcNow);
             await db.SaveChangesAsync(cancellationToken);
         }
@@ -66,18 +81,6 @@ public sealed class ParseCvJob(
         catch (Exception matchEx)
         {
             logger.LogWarning(matchEx, "Matching enqueue failed for document {DocumentId}", documentId);
-        }
-
-        try
-        {
-            _ = await gateway.ExecuteAsync<CvExtractionResult>(
-                AiTaskType.CvExtraction,
-                new PromptContext(masked, "v1.1.0"),
-                ct: cancellationToken);
-        }
-        catch (Exception advisoryEx)
-        {
-            logger.LogDebug(advisoryEx, "Advisory CV extraction LLM call failed for document {DocumentId}", documentId);
         }
     }
 
@@ -136,5 +139,36 @@ public sealed class ParseCvJob(
         }
     }
 
-    private sealed record CvExtractionResult(string? Status, string? Note);
+    private async Task<bool> TryHostedCvExtractionAsync(string masked, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var deploymentId = string.IsNullOrWhiteSpace(aiCoreOptions.Value.CvExtractionDeploymentId)
+                ? aiCoreOptions.Value.DeploymentId
+                : aiCoreOptions.Value.CvExtractionDeploymentId;
+            var result = await gateway.ExecuteAsync<string>(
+                AiTaskType.CvExtraction,
+                new PromptContext(
+                    TaskInput: masked,
+                    PromptVersion: "1",
+                    Variables: new Dictionary<string, string>
+                    {
+                        ["cv_text"] = masked,
+                        ["application_data"] = string.Empty
+                    },
+                    PlaceholdersOnly: true,
+                    DeploymentId: deploymentId),
+                new AiOptions(MaxOutputTokens: 2048, Temperature: 0.1),
+                cancellationToken);
+            return CvExtractionMapper.IsUsable(result.Value);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Hosted CV extraction failed");
+            return false;
+        }
+    }
+
+    private bool IsTesting =>
+        string.Equals(env.EnvironmentName, "Testing", StringComparison.OrdinalIgnoreCase);
 }

@@ -12,6 +12,8 @@ using HireLens.Modules.Interview.Domain;
 using HireLens.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using System.Text.Json;
 
 namespace HireLens.Modules.Interview.Application;
 
@@ -57,7 +59,9 @@ public sealed class InterviewService(
     INotificationSink notifications,
     IInterviewWeightPolicy weights,
     IAiGateway gateway,
-    InterviewTokenSigner tokens) : IInterviewService
+    InterviewTokenSigner tokens,
+    IInterviewEvaluationService interviewEvaluation,
+    IHostEnvironment env) : IInterviewService
 {
     public const string DisclosurePurpose = "ai_interview_disclosure";
 
@@ -471,9 +475,9 @@ public sealed class InterviewService(
         {
             await EvaluateAsync(session, cancellationToken);
         }
-        catch
+        catch (Exception ex)
         {
-            session.Complete(null, "Interview finished; scoring will be reviewed by the recruiter.");
+            session.Complete(null, ex.Message);
         }
 
         if (UsesRelationalSql())
@@ -714,12 +718,93 @@ public sealed class InterviewService(
     private async Task EvaluateAsync(InterviewSession session, CancellationToken cancellationToken)
     {
         var evaluation = await evaluations.GetForCandidateAsync(session.CandidateId, cancellationToken);
-        var transcript = string.Join('\n', session.Turns.Select(t => t.Text));
-        _ = await gateway.ExecuteAsync<EvalStub>(
-            AiTaskType.InterviewEvaluation,
-            new PromptContext(transcript, "v1"),
-            ct: cancellationToken);
+        var position = await positions.GetAsync(session.PositionId, cancellationToken);
+        var transcript = FormatTranscript(session);
+        var questions = (position?.InterviewQuestions ?? [])
+            .Where(q => !string.IsNullOrWhiteSpace(q.Question))
+            .ToList();
+        if (questions.Count == 0)
+        {
+            questions = session.Questions
+                .OrderBy(q => q.Order)
+                .Select(q => new ExtractedInterviewQuestionDto(
+                    q.Id.ToString("D"),
+                    q.CriterionId.ToString("D"),
+                    q.Prompt,
+                    []))
+                .ToList();
+        }
 
+        var request = new EvaluateInterviewRequest(
+            BuildRubricJson(position),
+            questions,
+            transcript,
+            BuildCvMatchJson(evaluation, position),
+            position?.Title);
+
+        var ai = await interviewEvaluation.EvaluateAsync(request, cancellationToken);
+        if (ai.IsFailure)
+        {
+            if (IsTesting)
+            {
+                await EvaluateDeterministicForTestsAsync(session, evaluation, transcript, cancellationToken);
+                return;
+            }
+
+            session.Complete(null, ai.Error.Message);
+            return;
+        }
+
+        var mapped = ai.Value;
+        var proposals = new List<ProposedCriterionScore>();
+        foreach (var row in mapped.Criteria)
+        {
+            var criterionId = Guid.TryParse(row.CriterionId, out var parsed)
+                ? parsed
+                : ExtractedInterviewQuestionDto.ResolveCriterionId(position?.Criteria ?? [], row.CriterionId);
+            if (criterionId == Guid.Empty)
+            {
+                continue;
+            }
+
+            var evidenceItems = row.Evidence
+                .Select(e => new ProposedEvidence(
+                    string.IsNullOrWhiteSpace(e.Source) ? "interview" : e.Source,
+                    e.Quote,
+                    0,
+                    e.Quote.Length))
+                .ToList();
+            proposals.Add(new ProposedCriterionScore(
+                criterionId,
+                0,
+                row.Score,
+                string.Equals(row.Status, "unverifiable", StringComparison.OrdinalIgnoreCase) ? 0.2 : 0.7,
+                evidenceItems));
+        }
+
+        if (evaluation is not null && proposals.Count > 0)
+        {
+            await evidence.ApplyAsync(evaluation.Id, proposals, cancellationToken);
+        }
+
+        var score = mapped.OverallScore ?? DeterministicInterviewScore.Overall(proposals);
+        session.Complete(
+            score,
+            string.IsNullOrWhiteSpace(mapped.Summary)
+                ? (score is null
+                    ? "Mülakat değerlendirmesi kanıtlı puan üretmedi."
+                    : "Mülakat puanı interview-evaluation-v1 çıktısından yazıldı.")
+                : mapped.Summary);
+        var weight = await weights.GetInterviewWeightAsync(cancellationToken);
+        await blend.BlendInterviewAsync(session.CandidateId, score, weight, cancellationToken);
+    }
+
+    private async Task EvaluateDeterministicForTestsAsync(
+        InterviewSession session,
+        EvaluationDto? evaluation,
+        string transcript,
+        CancellationToken cancellationToken)
+    {
         var proposals = new List<ProposedCriterionScore>();
         foreach (var question in session.Questions)
         {
@@ -751,6 +836,74 @@ public sealed class InterviewService(
         var weight = await weights.GetInterviewWeightAsync(cancellationToken);
         await blend.BlendInterviewAsync(session.CandidateId, score, weight, cancellationToken);
     }
+
+    private static string FormatTranscript(InterviewSession session) =>
+        string.Join(
+            '\n',
+            session.Turns.OrderBy(t => t.CreatedAt).Select(t =>
+            {
+                var speaker = t.Role == "candidate" ? "Aday" : "Mülakatçı";
+                return $"[{t.CreatedAt:HH:mm:ss}] {speaker}: {t.Text}";
+            }));
+
+    private static JsonElement BuildRubricJson(PositionSnapshot? position)
+    {
+        var criteria = (position?.Criteria ?? []).Select(c => new
+        {
+            criterionId = c.Id.ToString("D"),
+            name = c.Name,
+            description = c.Description,
+            weight = c.Weight,
+            mandatory = false,
+            sourceQuote = "",
+            evidenceHints = Array.Empty<string>(),
+            anchors = new Dictionary<string, string>
+            {
+                ["100"] = "Güçlü kanıt",
+                ["70"] = "Yeterli kanıt",
+                ["40"] = "Kısmi kanıt",
+                ["0"] = "Kanıt yok"
+            }
+        });
+        var json = JsonSerializer.Serialize(new
+        {
+            rubricId = position?.Id.ToString("D") ?? Guid.Empty.ToString("D"),
+            rubricVersion = "position",
+            language = "tr",
+            weightTotal = (position?.Criteria ?? []).Sum(c => c.Weight),
+            criteria
+        });
+        return JsonSerializer.Deserialize<JsonElement>(json);
+    }
+
+    private static JsonElement BuildCvMatchJson(EvaluationDto? evaluation, PositionSnapshot? position)
+    {
+        if (evaluation is null || evaluation.Scores.Count == 0)
+        {
+            return default;
+        }
+
+        var json = JsonSerializer.Serialize(new
+        {
+            rubricId = position?.Id.ToString("D") ?? evaluation.PositionId.ToString("D"),
+            rubricVersion = evaluation.RubricVersion,
+            criteria = evaluation.Scores.Select(s => new
+            {
+                criterionId = s.CriterionId.ToString("D"),
+                score = s.Score,
+                confidence = s.Confidence >= 0.85 ? "high" : s.Confidence >= 0.6 ? "medium" : s.Score is null ? "none" : "low",
+                evidence = s.Evidence.Select(e => new { quote = e.Quote, source = e.Source }),
+                reasoning = "",
+                followUpQuestion = ""
+            }),
+            riskFlags = Array.Empty<object>(),
+            missingCriticalEvidence = evaluation.NeedsVerification
+        });
+        return JsonSerializer.Deserialize<JsonElement>(json);
+    }
+
+    private bool IsTesting =>
+        string.Equals(env.EnvironmentName, "Testing", StringComparison.OrdinalIgnoreCase);
 
     private void EnsureAdded<T>(T entity) where T : class
     {

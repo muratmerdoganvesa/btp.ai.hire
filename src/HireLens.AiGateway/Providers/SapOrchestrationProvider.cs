@@ -28,6 +28,12 @@ public sealed class SapAiCoreOptions
     /// <summary>Optional dedicated deployment for jd-criteria-extraction-v1.</summary>
     public string? CriteriaExtractionDeploymentId { get; set; }
 
+    /// <summary>Hosted cv-extraction-v1 orchestration deployment.</summary>
+    public string? CvExtractionDeploymentId { get; set; }
+
+    /// <summary>Hosted criteria-matching-v1 orchestration deployment.</summary>
+    public string? MatchingDeploymentId { get; set; }
+
     public string ResourceGroup { get; set; } = "default";
 
     public string ModelName { get; set; } = "anthropic--claude-4.5-haiku";
