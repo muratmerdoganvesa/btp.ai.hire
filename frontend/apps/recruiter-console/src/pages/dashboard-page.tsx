@@ -8,6 +8,7 @@ import { api } from "../api";
 import { isDevAuth } from "../auth-mode";
 import { useAuthStore } from "../auth-store";
 import { AppShell } from "../components/app-shell";
+import { PageHero } from "../components/page-hero";
 import { Pagination } from "../components/pagination";
 import { useTourStore } from "../tour/tour-store";
 
@@ -156,20 +157,27 @@ export function DashboardPage() {
   return (
     <AppShell>
       <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pb-2">
-        <header className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">{workspaceName}</p>
-            <h1 className="mt-1 text-2xl font-extrabold tracking-tight sm:text-[1.75rem]">{t("dashboard.title")}</h1>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => startTour(true)}>
-              {t("tour.start")}
-            </Button>
-            <Button asChild size="sm">
-              <Link to="/positions/new">{t("dashboard.createPosition")}</Link>
-            </Button>
-          </div>
-        </header>
+        <PageHero
+          kicker={workspaceName}
+          title={t("dashboard.title")}
+          description={t("dashboard.subtitle")}
+          actions={
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                onClick={() => startTour(true)}
+              >
+                {t("tour.start")}
+              </Button>
+              <Button asChild size="sm" className="bg-white text-brand-8 hover:bg-brand-0">
+                <Link to="/positions/new">{t("dashboard.createPosition")}</Link>
+              </Button>
+            </>
+          }
+        />
 
         <section className="shrink-0 rounded-2xl border border-brand-2/80 bg-gradient-to-r from-brand-0 via-white to-violet-50 px-4 py-3.5 sm:px-5">
           <p className="text-sm font-extrabold text-brand-8">{t("dashboard.aiBannerTitle")}</p>

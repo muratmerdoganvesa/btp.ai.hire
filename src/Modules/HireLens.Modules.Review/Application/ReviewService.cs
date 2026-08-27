@@ -32,13 +32,6 @@ public sealed class ReviewService(HireLensDbContext db, ITenantContext tenant, I
         return Result.Success(ToDto(created.Value));
     }
 
-    public async Task<Result<IReadOnlyList<DecisionDto>>> ListAsync(Guid candidateId, CancellationToken cancellationToken)
-    {
-        RepositoryGuard.RequireTenant(tenant);
-        var rows = await db.Set<Decision>().Where(d => d.CandidateId == candidateId).ToListAsync(cancellationToken);
-        return Result.Success<IReadOnlyList<DecisionDto>>(rows.Select(ToDto).ToList());
-    }
-
     private static DecisionDto ToDto(Decision decision) =>
         new(decision.Id, decision.CandidateId, decision.Outcome, decision.Rationale, decision.DecidedAt);
 }

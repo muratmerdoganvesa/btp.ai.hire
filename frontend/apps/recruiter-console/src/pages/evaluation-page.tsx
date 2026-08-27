@@ -80,6 +80,7 @@ export function EvaluationPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["decisions", candidateId] });
       await queryClient.invalidateQueries({ queryKey: ["candidate", candidateId] });
+      await queryClient.invalidateQueries({ queryKey: ["candidates-board"] });
     }
   });
 
@@ -156,7 +157,21 @@ export function EvaluationPage() {
     [evaluation.data?.scores]
   );
 
-  const latestDecision = decisions.data?.[0];
+  const latestDecision = useMemo(() => {
+    const list = decisions.data ?? [];
+    if (list.length === 0) {
+      return null;
+    }
+    return [...list].sort(
+      (a, b) => new Date(b.decidedAt).getTime() - new Date(a.decidedAt).getTime()
+    )[0]!;
+  }, [decisions.data]);
+
+  const decisionOutcome = latestDecision?.outcome ?? null;
+  const isRejected = decisionOutcome === "reject";
+  const isAdvanced = decisionOutcome === "advance";
+  const isHeld = decisionOutcome === "hold";
+
   const hasEvaluation = Boolean(evaluation.data);
   const evalMissing =
     evaluation.isError && evaluation.error instanceof ApiError && evaluation.error.status === 404;
@@ -184,21 +199,85 @@ export function EvaluationPage() {
         <span>{candidate.data?.displayName ?? t("evaluation.title")}</span>
       </div>
 
-      <header className="flex flex-col gap-4 rounded-2xl border border-border bg-surface px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      {isRejected ? (
+        <div
+          className="flex flex-col gap-1 rounded-2xl border border-rose-300 bg-rose-50 px-5 py-4 text-rose-950 sm:flex-row sm:items-center sm:justify-between"
+          role="status"
+        >
+          <div>
+            <p className="text-sm font-extrabold tracking-tight">{t("evaluation.rejectedBannerTitle")}</p>
+            <p className="mt-0.5 text-sm text-rose-900/80">
+              {latestDecision?.rationale?.trim()
+                ? latestDecision.rationale
+                : t("evaluation.rejectedBannerBody")}
+            </p>
+            {latestDecision ? (
+              <p className="mt-1 text-xs text-rose-800/70">
+                {t("evaluation.decidedAt", {
+                  date: new Date(latestDecision.decidedAt).toLocaleString()
+                })}
+              </p>
+            ) : null}
+          </div>
+          <span className="shrink-0 self-start rounded-full bg-rose-600 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white">
+            {t("decision.reject")}
+          </span>
+        </div>
+      ) : null}
+
+      {isAdvanced ? (
+        <div
+          className="rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-3 text-emerald-950"
+          role="status"
+        >
+          <p className="text-sm font-extrabold">{t("evaluation.advancedBannerTitle")}</p>
+          {latestDecision?.rationale ? (
+            <p className="mt-0.5 text-sm text-emerald-900/80">{latestDecision.rationale}</p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {isHeld ? (
+        <div
+          className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-3 text-amber-950"
+          role="status"
+        >
+          <p className="text-sm font-extrabold">{t("evaluation.heldBannerTitle")}</p>
+          {latestDecision?.rationale ? (
+            <p className="mt-0.5 text-sm text-amber-900/80">{latestDecision.rationale}</p>
+          ) : null}
+        </div>
+      ) : null}
+
+      <header
+        className={`flex flex-col gap-4 rounded-2xl border px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6 ${
+          isRejected
+            ? "border-rose-200 bg-rose-50/40"
+            : isAdvanced
+              ? "border-emerald-200 bg-emerald-50/30"
+              : "border-border bg-surface"
+        }`}
+      >
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge tone="muted">{t("evaluation.humanReview")}</Badge>
-            {latestDecision ? (
-              <Badge>
-                {outcomeKeys[latestDecision.outcome]
-                  ? t(outcomeKeys[latestDecision.outcome])
-                  : latestDecision.outcome}
-              </Badge>
+            {isRejected ? (
+              <Badge tone="danger">{t("evaluation.statusRejected")}</Badge>
+            ) : isAdvanced ? (
+              <Badge className="!bg-emerald-100 !text-emerald-800">{t("evaluation.statusAdvanced")}</Badge>
+            ) : isHeld ? (
+              <Badge className="!bg-amber-100 !text-amber-900">{t("evaluation.statusHeld")}</Badge>
             ) : (
               <Badge tone="muted">{t("evaluation.awaitingDecision")}</Badge>
             )}
+            {!isRejected && !isAdvanced && !isHeld ? (
+              <Badge tone="muted">{t("evaluation.humanReview")}</Badge>
+            ) : null}
           </div>
-          <h1 className="mt-2 truncate text-2xl font-extrabold tracking-tight sm:text-3xl">
+          <h1
+            className={`mt-2 truncate text-2xl font-extrabold tracking-tight sm:text-3xl ${
+              isRejected ? "text-rose-950" : "text-foreground"
+            }`}
+          >
             {candidate.data?.displayName ?? t("evaluation.title")}
           </h1>
           <p className="mt-1 text-sm text-muted">
