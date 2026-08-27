@@ -65,7 +65,9 @@ public sealed class InterviewEvaluationPlaceholdersTests
         bag[InterviewEvaluationPlaceholders.Transcript].Should().StartWith("[00:03:12]");
         bag[InterviewEvaluationPlaceholders.Transcript].Should().NotStartWith("\"");
         using var rubricDoc = JsonDocument.Parse(bag[InterviewEvaluationPlaceholders.Rubric]);
-        rubricDoc.RootElement.GetProperty("anchors").ValueKind.Should().Be(JsonValueKind.Object);
+        rubricDoc.RootElement.GetProperty("rubricId").GetString().Should().Be("r1");
+        rubricDoc.RootElement.GetProperty("criteria")[0].GetProperty("anchors").ValueKind
+            .Should().Be(JsonValueKind.Object);
         using var questionsDoc = JsonDocument.Parse(bag[InterviewEvaluationPlaceholders.InterviewQuestions]);
         questionsDoc.RootElement[0].GetProperty("questionId").GetString().Should().Be("q1");
         using var matchDoc = JsonDocument.Parse(bag[InterviewEvaluationPlaceholders.CvMatchResult]);
