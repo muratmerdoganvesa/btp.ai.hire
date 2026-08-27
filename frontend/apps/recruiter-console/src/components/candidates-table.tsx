@@ -1,6 +1,6 @@
 import type { Candidate } from "@hirelens/api-client";
 import { Badge, Button, InitialsAvatar, cn } from "@hirelens/ui";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 const actionLabels: Record<string, string> = {
@@ -25,6 +25,7 @@ export function CandidatesTable({
   deletingId?: string | null;
 }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const maxScore = Math.max(0, ...rows.map((row) => row.overallScore ?? 0));
 
   return (
@@ -71,10 +72,13 @@ export function CandidatesTable({
             <li
               key={row.id}
               className={cn(
-                "group relative flex flex-col gap-3 px-4 py-4 transition-colors sm:flex-row sm:items-center sm:gap-4 sm:px-5",
+                "group relative flex cursor-pointer flex-col gap-3 px-4 py-4 transition-colors sm:flex-row sm:items-center sm:gap-4 sm:px-5",
                 selected ? "bg-brand-0/80" : "hover:bg-brand-0/40",
                 isTop && rank === 1 ? "bg-brand-0/35" : null
               )}
+              onClick={() =>
+                void navigate({ to: "/candidates/$candidateId", params: { candidateId: row.id } })
+              }
             >
               <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
                 <RankMark rank={rank} highlighted={isTop} />
@@ -145,7 +149,7 @@ export function CandidatesTable({
                   ) : null}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
                   <Button asChild size="sm">
                     <Link to="/candidates/$candidateId" params={{ candidateId: row.id }}>
                       {t("candidates.open")}
