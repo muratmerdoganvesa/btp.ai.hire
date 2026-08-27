@@ -128,7 +128,7 @@ export class ApiClient {
   }
 
   public async extractCriteria(input: ExtractCriteriaRequest): Promise<ExtractCriteriaResponse> {
-    return this.send<ExtractCriteriaResponse>("/api/jobs/criteria/extract", "POST", input);
+    return this.send<ExtractCriteriaResponse>("/api/positions/criteria/extract", "POST", input);
   }
 
   public async listCandidates(positionId: string): Promise<Candidate[]> {

@@ -10,6 +10,13 @@ public sealed record ProviderCompletion(
     int OutputTokens,
     decimal EstimatedCost);
 
+/// <summary>4xx from AI Core — do not retry via Polly.</summary>
+public sealed class AiCoreNonRetryableException(int statusCode, string message)
+    : InvalidOperationException(message)
+{
+    public int StatusCode { get; } = statusCode;
+}
+
 public interface IAiProvider
 {
     Task<ProviderCompletion> CompleteAsync(

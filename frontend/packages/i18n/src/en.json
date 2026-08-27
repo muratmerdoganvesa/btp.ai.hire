@@ -186,6 +186,7 @@
     "extractEmpty": "No criteria could be extracted; you can enter them manually.",
     "extractFailed": "Service unavailable. You can enter criteria manually.",
     "extractAuthFailed": "Your session is invalid or expired. Sign out, sign in again, then retry.",
+    "extractAiAuthFailed": "AI Core authentication failed. Check the service key and resource group.",
     "extractWarningsIntro": "Warnings (not converted to criteria):",
     "interviewQuestions": "Suggested interview questions",
     "interviewQuestionsHint": "Generated with criteria extraction. Preview only for now — not saved on the position yet.",

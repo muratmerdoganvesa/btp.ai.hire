@@ -50,7 +50,8 @@ public sealed class OrchestrationClient(
 
         var opts = options.Value;
         var binding = tokens.ResolveBinding();
-        var deploymentId = opts.DeploymentId
+        var deploymentId = promptSpec?.DeploymentId
+            ?? opts.DeploymentId
             ?? throw new InvalidOperationException("SapAiCore:DeploymentId is not configured.");
 
         var modelName = string.IsNullOrWhiteSpace(opts.ModelName) ? profile.ModelId : opts.ModelName;
@@ -106,10 +107,17 @@ public sealed class OrchestrationClient(
                 var raw = await response.Content.ReadAsStringAsync(cts.Token);
                 sw.Stop();
 
-                if (response.StatusCode == HttpStatusCode.BadRequest)
+                if (response.StatusCode is HttpStatusCode.BadRequest
+                    or HttpStatusCode.Unauthorized
+                    or HttpStatusCode.Forbidden)
                 {
-                    logger.LogWarning("Orchestration 400 (no retry): {Body}", Truncate(raw));
-                    throw new HttpRequestException($"Orchestration returned 400: {Truncate(raw)}");
+                    logger.LogWarning(
+                        "Orchestration {Status} (no retry): {Body}",
+                        (int)response.StatusCode,
+                        Truncate(raw));
+                    throw new AiCoreNonRetryableException(
+                        (int)response.StatusCode,
+                        $"Orchestration returned {(int)response.StatusCode}: {Truncate(raw)}");
                 }
 
                 if ((int)response.StatusCode == 429 || (int)response.StatusCode >= 500)
@@ -271,4 +279,5 @@ public sealed record OrchestrationPromptSpec(
     JsonElement? ResponseSchema = null,
     string? SchemaName = null,
     IReadOnlyDictionary<string, string>? Defaults = null,
-    bool PlaceholdersOnly = false);
+    bool PlaceholdersOnly = false,
+    string? DeploymentId = null);

@@ -75,14 +75,16 @@ public sealed class AiGateway(
                 SystemPrompt: null,
                 UserPrompt: string.Empty,
                 Placeholders: maskedVariables ?? new Dictionary<string, string>(StringComparer.Ordinal),
-                PlaceholdersOnly: true);
+                PlaceholdersOnly: true,
+                DeploymentId: context.DeploymentId);
         }
         else if (!string.IsNullOrWhiteSpace(context.SystemPrompt) || !string.IsNullOrWhiteSpace(context.UserPrompt))
         {
             promptSpec = new OrchestrationPromptSpec(
                 context.SystemPrompt,
                 context.UserPrompt ?? masked.Text,
-                maskedVariables ?? new Dictionary<string, string>(StringComparer.Ordinal));
+                maskedVariables ?? new Dictionary<string, string>(StringComparer.Ordinal),
+                DeploymentId: context.DeploymentId);
         }
 
         var profile = router.Resolve(taskType, tenantContext.TenantId, options);
@@ -96,7 +98,9 @@ public sealed class AiGateway(
                 async token => await provider.CompleteAsync(masked, profile, token, promptSpec),
                 ct);
         }
-        catch (Exception) when (!string.IsNullOrWhiteSpace(profile.FallbackModelId))
+        catch (Exception ex) when (
+            !string.IsNullOrWhiteSpace(profile.FallbackModelId)
+            && ex is not AiCoreNonRetryableException)
         {
             var fallback = profile with { ModelId = profile.FallbackModelId! };
             completion = await provider.CompleteAsync(masked, fallback, ct, promptSpec);

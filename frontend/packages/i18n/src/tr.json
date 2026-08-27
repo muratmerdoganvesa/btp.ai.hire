@@ -186,6 +186,7 @@
     "extractEmpty": "Kriter çıkarılamadı, elle girebilirsiniz.",
     "extractFailed": "Servis yanıt vermiyor. Kriterleri elle girebilirsiniz.",
     "extractAuthFailed": "Oturum geçersiz veya süresi dolmuş. Çıkış yapıp tekrar giriş yapın, ardından yeniden deneyin.",
+    "extractAiAuthFailed": "AI Core kimliği doğrulanamadı. Servis anahtarını ve resource group ayarını kontrol edin.",
     "extractWarningsIntro": "Uyarılar (kritere çevrilmedi):",
     "interviewQuestions": "Önerilen mülakat soruları",
     "interviewQuestionsHint": "Kriter çıkarmadan üretilir. Şimdilik önizleme; pozisyon kaydına henüz yazılmaz.",

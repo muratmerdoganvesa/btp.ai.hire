@@ -160,7 +160,11 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
           setExtractError(t("positions.extractAuthFailed"));
           return;
         }
-        setExtractError(err.message);
+        if (/AI Core kimliği|Orchestration returned 401|Authentication is required/i.test(err.message)) {
+          setExtractError(t("positions.extractAiAuthFailed"));
+          return;
+        }
+        setExtractError(err.message || t("positions.extractFailed"));
         return;
       }
       setExtractError(t("positions.extractFailed"));

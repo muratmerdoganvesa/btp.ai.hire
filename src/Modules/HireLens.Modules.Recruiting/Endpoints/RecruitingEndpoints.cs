@@ -27,13 +27,19 @@ public static class RecruitingEndpoints
         group.MapDelete("/{id:guid}", async (Guid id, IPositionService svc, CancellationToken ct) =>
             HttpResults.From(await svc.SoftDeleteAsync(id, ct)));
 
+        group.MapPost("/criteria/extract", ExtractCriteria);
+
+        // Alias kept for older clients; prefer /api/positions/criteria/extract.
         var jobs = endpoints.MapGroup("/api/jobs").WithTags("Recruiting").RequireAuthorization();
         jobs.MapGet("/", async (bool? includeStats, IPositionService svc, CancellationToken ct) =>
             HttpResults.From(await svc.ListAsync(includeStats ?? false, ct)));
-        jobs.MapPost("/criteria/extract", async (
+        jobs.MapPost("/criteria/extract", ExtractCriteria);
+        return endpoints;
+
+        static async Task<IResult> ExtractCriteria(
             ExtractCriteriaRequest request,
             ICriteriaExtractionService svc,
-            CancellationToken ct) =>
+            CancellationToken ct)
         {
             var result = await svc.ExtractAsync(request, ct);
             if (result.IsSuccess)
@@ -46,8 +52,9 @@ public static class RecruitingEndpoints
                 return Results.BadRequest(new { error = result.Error.Message });
             }
 
-            return Results.Json(new { error = result.Error.Message }, statusCode: StatusCodes.Status503ServiceUnavailable);
-        });
-        return endpoints;
+            return Results.Json(
+                new { error = result.Error.Message },
+                statusCode: StatusCodes.Status503ServiceUnavailable);
+        }
     }
 }

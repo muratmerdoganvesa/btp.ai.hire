@@ -25,6 +25,9 @@ public sealed class SapAiCoreOptions
 
     public string? DeploymentId { get; set; }
 
+    /// <summary>Optional dedicated deployment for jd-criteria-extraction-v1.</summary>
+    public string? CriteriaExtractionDeploymentId { get; set; }
+
     public string ResourceGroup { get; set; } = "default";
 
     public string ModelName { get; set; } = "anthropic--claude-4.5-haiku";

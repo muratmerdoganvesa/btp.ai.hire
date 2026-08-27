@@ -20,7 +20,8 @@ public sealed record PromptContext(
     /// <summary>
     /// When true, only placeholder_values are sent; the deployment's own prompt template is used.
     /// </summary>
-    bool PlaceholdersOnly = false);
+    bool PlaceholdersOnly = false,
+    string? DeploymentId = null);
 
 public sealed record AiOptions(
     string? ModelOverride = null,
