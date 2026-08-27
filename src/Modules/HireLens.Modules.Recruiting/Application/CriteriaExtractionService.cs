@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Net.Http;
 using HireLens.AiGateway;
-using HireLens.AiGateway.Prompts;
 using HireLens.Contracts.Recruiting;
 using HireLens.SharedKernel;
 using Microsoft.Extensions.Logging;
@@ -16,16 +15,15 @@ public interface ICriteriaExtractionService
 }
 
 /// <summary>
-/// Sends jd_title / jd_text into orchestration (generic deployment gets the local
-/// prompt template; a scenario deployment still receives the same placeholders).
+/// Calls the hosted SAP orchestration. Prompt lives in AI Core; we only send
+/// jd_title / jd_text (and aliases) and map rubric.criteria + interviewQuestions.
 /// </summary>
 public sealed class CriteriaExtractionService(
     IAiGateway gateway,
-    IPromptRegistry prompts,
     ILogger<CriteriaExtractionService> logger) : ICriteriaExtractionService
 {
-    private const string PromptId = "CriteriaExtraction";
-    private const string PromptVersion = "1";
+    private const string OrchestrationId = "jd-criteria-extraction-v1";
+    private const string PromptVersion = "0.0.1";
     private const int MinDescriptionLength = 100;
     private const int MaxDescriptionLength = 20_000;
 
@@ -54,15 +52,6 @@ public sealed class CriteriaExtractionService(
                 Error.Validation("İş tanımı çok uzun."));
         }
 
-        var prompt = prompts.Get(PromptId, PromptVersion);
-        var variables = new Dictionary<string, string>
-        {
-            ["jd_title"] = title,
-            ["jd_text"] = description,
-            ["job_title"] = title,
-            ["job_description"] = description
-        };
-
         var sw = Stopwatch.StartNew();
         try
         {
@@ -70,10 +59,15 @@ public sealed class CriteriaExtractionService(
                 AiTaskType.CriteriaExtraction,
                 new PromptContext(
                     TaskInput: $"{title}\n---\n{description}",
-                    PromptVersion: prompt.Version,
-                    Variables: variables,
-                    SystemPrompt: prompt.SystemPrompt,
-                    UserPrompt: prompt.UserTemplate),
+                    PromptVersion: PromptVersion,
+                    Variables: new Dictionary<string, string>
+                    {
+                        ["jd_title"] = title,
+                        ["jd_text"] = description,
+                        ["job_title"] = title,
+                        ["job_description"] = description
+                    },
+                    PlaceholdersOnly: true),
                 new AiOptions(MaxOutputTokens: 8000, Temperature: 0),
                 cancellationToken);
 
@@ -82,21 +76,22 @@ public sealed class CriteriaExtractionService(
             if (CriteriaExtractionMapper.IsStubContent(aiResult.Value))
             {
                 logger.LogWarning(
-                    "AI call prompt={PromptId}@{PromptVersion} model={Model} status={Status}",
-                    PromptId,
-                    prompt.Version,
+                    "AI call orchestration={Orchestration} promptVersion={PromptVersion} model={Model} status={Status}",
+                    OrchestrationId,
+                    PromptVersion,
                     aiResult.ModelId,
                     "stub");
                 return Result.Failure<ExtractCriteriaResponse>(
-                    Error.Unavailable("Servis yanıt vermiyor. Kriterleri elle girebilirsiniz."));
+                    Error.Unavailable(
+                        "AI Core bağlı değil. AICORE_SERVICE_KEY veya aicore-service-key.json olmadan kriter çıkarılamaz."));
             }
 
             var normalized = CriteriaExtractionMapper.Parse(aiResult.Value);
 
             logger.LogInformation(
-                "AI call prompt={PromptId}@{PromptVersion} model={Model} inputTokens={InputTokens} outputTokens={OutputTokens} latencyMs={LatencyMs} status={Status} criteriaCount={CriteriaCount} interviewCount={InterviewCount} warnings={Warnings}",
-                PromptId,
-                prompt.Version,
+                "AI call orchestration={Orchestration} promptVersion={PromptVersion} model={Model} inputTokens={InputTokens} outputTokens={OutputTokens} latencyMs={LatencyMs} status={Status} criteriaCount={CriteriaCount} interviewCount={InterviewCount} warnings={Warnings}",
+                OrchestrationId,
+                PromptVersion,
                 aiResult.ModelId,
                 aiResult.InputTokens,
                 aiResult.OutputTokens,
@@ -120,26 +115,26 @@ public sealed class CriteriaExtractionService(
             sw.Stop();
             logger.LogWarning(
                 ex,
-                "AI call prompt={PromptId}@{PromptVersion} latencyMs={LatencyMs} status={Status}",
-                PromptId,
+                "AI call orchestration={Orchestration} promptVersion={PromptVersion} latencyMs={LatencyMs} status={Status}",
+                OrchestrationId,
                 PromptVersion,
                 sw.ElapsedMilliseconds,
                 "unavailable");
             return Result.Failure<ExtractCriteriaResponse>(
-                Error.Unavailable("Servis yanıt vermiyor. Kriterleri elle girebilirsiniz."));
+                Error.Unavailable(UserFacing(ex)));
         }
         catch (Exception ex)
         {
             sw.Stop();
             logger.LogError(
                 ex,
-                "AI call prompt={PromptId}@{PromptVersion} latencyMs={LatencyMs} status={Status}",
-                PromptId,
+                "AI call orchestration={Orchestration} promptVersion={PromptVersion} latencyMs={LatencyMs} status={Status}",
+                OrchestrationId,
                 PromptVersion,
                 sw.ElapsedMilliseconds,
                 "error");
             return Result.Failure<ExtractCriteriaResponse>(
-                Error.Unavailable("Servis yanıt vermiyor. Kriterleri elle girebilirsiniz."));
+                Error.Unavailable(UserFacing(ex)));
         }
     }
 
@@ -149,6 +144,17 @@ public sealed class CriteriaExtractionService(
             or TaskCanceledException
             or InvalidOperationException;
 
+    private static string UserFacing(Exception ex)
+    {
+        var detail = ex.Message;
+        if (string.IsNullOrWhiteSpace(detail))
+        {
+            return "Servis yanıt vermiyor. Kriterleri elle girebilirsiniz.";
+        }
+
+        return $"Servis yanıt vermiyor. Kriterleri elle girebilirsiniz. ({Truncate(detail)})";
+    }
+
     private static string Truncate(string? value)
     {
         if (string.IsNullOrEmpty(value))
@@ -156,6 +162,6 @@ public sealed class CriteriaExtractionService(
             return string.Empty;
         }
 
-        return value.Length <= 800 ? value : value[..800] + "…";
+        return value.Length <= 400 ? value : value[..400] + "…";
     }
 }
