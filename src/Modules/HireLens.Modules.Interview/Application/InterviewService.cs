@@ -1,4 +1,3 @@
-using HireLens.AiGateway;
 using HireLens.Contracts.Candidates;
 using HireLens.Contracts.Configuration;
 using HireLens.Contracts.Evidence;
@@ -58,7 +57,6 @@ public sealed class InterviewService(
     IPrivacyConsentPort privacy,
     INotificationSink notifications,
     IInterviewWeightPolicy weights,
-    IAiGateway gateway,
     InterviewTokenSigner tokens,
     IInterviewEvaluationService interviewEvaluation,
     IHostEnvironment env) : IInterviewService

@@ -67,9 +67,9 @@ public static class CvExtractionMapper
         }
     }
 
-    private static string StripFence(string trimmed)
+    private static string StripFence(string? trimmed)
     {
-        trimmed = trimmed.Trim();
+        trimmed = (trimmed ?? string.Empty).Trim();
         if (!trimmed.StartsWith("```", StringComparison.Ordinal))
         {
             return trimmed;
