@@ -1,5 +1,5 @@
 import type { Candidate } from "@hirelens/api-client";
-import { Badge, Button, ScoreBadge, cn } from "@hirelens/ui";
+import { Badge, Button, InitialsAvatar, cn } from "@hirelens/ui";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
@@ -25,97 +25,188 @@ export function CandidatesTable({
   deletingId?: string | null;
 }) {
   const { t } = useTranslation();
+  const maxScore = Math.max(0, ...rows.map((row) => row.overallScore ?? 0));
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-      <table className="w-full min-w-[860px] text-left text-sm">
-        <thead className="border-b border-border bg-brand-0/50 text-[0.7rem] uppercase tracking-wide text-muted">
-          <tr>
-            <th className="px-3 py-2.5 font-bold sm:px-4">{t("candidates.colCandidate")}</th>
-            <th className="px-3 py-2.5 font-bold">{t("candidates.colScore")}</th>
-            <th className="px-3 py-2.5 font-bold">{t("candidates.colCoverage")}</th>
-            <th className="px-3 py-2.5 font-bold">{t("candidates.colAction")}</th>
-            <th className="px-3 py-2.5 font-bold">{t("candidates.colRisk")}</th>
-            <th className="px-3 py-2.5 font-bold">{t("candidates.colStatus")}</th>
-            {onDelete ? (
-              <th className="px-3 py-2.5 text-right font-bold sm:px-4">{t("candidates.colActions")}</th>
-            ) : null}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => {
-            const coverage = row.coverageRatio ?? null;
-            const lowCoverage = coverage !== null && coverage < 0.5;
-            const actionKey = row.recommendedAction ?? "processing";
-            const selected = selectedId === row.id;
-            return (
-              <tr
-                key={row.id}
-                className={cn(
-                  "border-b border-border/70 last:border-0",
-                  selected ? "bg-brand-0/70" : "hover:bg-brand-0/35",
-                  onSelect ? "cursor-pointer" : null
-                )}
-                onClick={() => onSelect?.(row.id)}
-              >
-                <td className="px-3 py-2 sm:px-4">
-                  <Link
-                    to="/candidates/$candidateId"
-                    params={{ candidateId: row.id }}
-                    className="font-semibold text-brand-6 hover:text-brand-7"
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    {row.displayName}
-                  </Link>
-                  <p className="text-xs text-muted">{new Date(row.createdAt).toLocaleDateString()}</p>
-                </td>
-                <td className="px-3 py-2">
-                  <ScoreBadge score={row.overallScore} label={scoreLabel(row.overallScore, t)} />
-                </td>
-                <td className="px-3 py-2 tabular-nums">
-                  {coverage === null ? "—" : `${Math.round(coverage * 100)}%`}
-                  {lowCoverage ? (
-                    <span className="ml-1 text-xs text-muted" title={t("evaluation.coverageWarning")}>
-                      !
-                    </span>
-                  ) : null}
-                </td>
-                <td className="px-3 py-2">
-                  <Badge tone="muted">{t(actionLabels[actionKey] ?? actionLabels.processing)}</Badge>
-                </td>
-                <td className="px-3 py-2 tabular-nums">{row.riskFlagCount ?? 0}</td>
-                <td className="px-3 py-2">
-                  <Badge tone="muted">{row.evaluationStatus ?? row.status}</Badge>
-                </td>
-                {onDelete ? (
-                  <td className="px-3 py-2 sm:px-4">
-                    <div className="flex justify-end">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-8 px-3 text-xs text-danger hover:bg-danger-bg"
-                        disabled={deletingId === row.id}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          if (!window.confirm(t("candidates.deleteConfirm"))) {
-                            return;
-                          }
-                          onDelete(row.id);
-                        }}
-                      >
-                        {deletingId === row.id ? t("candidates.deleting") : t("candidates.delete")}
-                      </Button>
+    <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-5">
+        <div>
+          <h2 className="text-sm font-extrabold tracking-tight text-foreground">{t("candidates.rankingTitle")}</h2>
+          <p className="text-xs text-muted">{t("candidates.rankingHint")}</p>
+        </div>
+        <p className="shrink-0 text-xs font-semibold tabular-nums text-muted">
+          {rows.length} {t("candidates.count")}
+        </p>
+      </div>
+
+      <ol className="divide-y divide-border">
+        {rows.map((row, index) => {
+          const rank = index + 1;
+          const score = row.overallScore;
+          const coverage = row.coverageRatio ?? null;
+          const coveragePct = coverage === null ? null : Math.round(coverage * 100);
+          const actionKey = row.recommendedAction ?? "processing";
+          const selected = selectedId === row.id;
+          const barWidth =
+            score == null || maxScore <= 0 ? 0 : Math.max(6, Math.round((score / maxScore) * 100));
+          const isTop = rank <= 3 && score != null;
+
+          return (
+            <li
+              key={row.id}
+              className={cn(
+                "group relative flex flex-col gap-3 px-4 py-4 transition-colors sm:flex-row sm:items-center sm:gap-4 sm:px-5",
+                selected ? "bg-brand-0/80" : "hover:bg-brand-0/40",
+                isTop && rank === 1 ? "bg-brand-0/35" : null
+              )}
+            >
+              <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+                <RankMark rank={rank} highlighted={isTop} />
+                <InitialsAvatar name={row.displayName} className="size-10 shrink-0 rounded-xl" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link
+                      to="/candidates/$candidateId"
+                      params={{ candidateId: row.id }}
+                      className="truncate text-base font-bold tracking-tight text-foreground hover:text-brand-7"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      {row.displayName}
+                    </Link>
+                    <Badge tone={actionTone(actionKey)}>
+                      {t(actionLabels[actionKey] ?? actionLabels.processing)}
+                    </Badge>
+                    {(row.riskFlagCount ?? 0) > 0 ? (
+                      <span className="text-xs font-semibold text-danger">
+                        {t("candidates.riskHint", { count: row.riskFlagCount })}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="mt-2 max-w-md">
+                    <div className="mb-1 flex items-center justify-between gap-2 text-[0.7rem] text-muted">
+                      <span>{t("candidates.colScore")}</span>
+                      {coveragePct !== null ? (
+                        <span>
+                          {t("candidates.coverageShort", { pct: coveragePct })}
+                          {coveragePct < 50 ? (
+                            <span className="ml-1 text-danger">{t("candidates.lowCoverage")}</span>
+                          ) : null}
+                        </span>
+                      ) : null}
                     </div>
-                  </td>
-                ) : null}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-border/80">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-[width]",
+                          scoreBarClass(score)
+                        )}
+                        style={{ width: `${barWidth}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
+                <div className="text-right">
+                  <p
+                    className={cn(
+                      "text-2xl font-extrabold tabular-nums leading-none tracking-tight",
+                      score == null ? "text-muted" : "text-foreground"
+                    )}
+                  >
+                    {score == null ? "—" : Math.round(score)}
+                  </p>
+                  <p className="mt-1 text-[0.7rem] font-semibold text-muted">
+                    {scoreLabel(score, t)}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button asChild size="sm">
+                    <Link to="/candidates/$candidateId" params={{ candidateId: row.id }}>
+                      {t("candidates.open")}
+                    </Link>
+                  </Button>
+                  {onSelect ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onSelect(row.id)}
+                    >
+                      {t("candidates.uploadCv")}
+                    </Button>
+                  ) : null}
+                  {onDelete ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted hover:text-danger"
+                      disabled={deletingId === row.id}
+                      onClick={() => {
+                        if (!window.confirm(t("candidates.deleteConfirm"))) {
+                          return;
+                        }
+                        onDelete(row.id);
+                      }}
+                    >
+                      {deletingId === row.id ? t("candidates.deleting") : t("candidates.delete")}
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
+}
+
+function RankMark({ rank, highlighted }: { rank: number; highlighted: boolean }) {
+  return (
+    <div
+      className={cn(
+        "flex size-9 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold tabular-nums",
+        highlighted
+          ? rank === 1
+            ? "bg-brand-6 text-white"
+            : "bg-brand-1 text-brand-7"
+          : "bg-brand-0 text-muted"
+      )}
+      aria-label={`#${rank}`}
+    >
+      {rank}
+    </div>
+  );
+}
+
+function actionTone(action: string): "default" | "muted" | "danger" {
+  if (action === "error") {
+    return "danger";
+  }
+  if (action === "shortlist") {
+    return "default";
+  }
+  return "muted";
+}
+
+function scoreBarClass(score: number | null | undefined) {
+  if (score == null) {
+    return "bg-border";
+  }
+  if (score >= 75) {
+    return "bg-score-strong";
+  }
+  if (score >= 60) {
+    return "bg-score-solid";
+  }
+  if (score >= 45) {
+    return "bg-score-partial";
+  }
+  return "bg-score-limited";
 }
 
 function scoreLabel(score: number | null | undefined, t: (key: string) => string) {
@@ -127,6 +218,9 @@ function scoreLabel(score: number | null | undefined, t: (key: string) => string
   }
   if (score >= 60) {
     return t("score.solid");
+  }
+  if (score >= 45) {
+    return t("score.partial");
   }
   return t("score.limited");
 }

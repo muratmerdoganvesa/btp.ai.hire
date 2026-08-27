@@ -10,6 +10,7 @@ import { CandidatesTable } from "../components/candidates-table";
 import { CvUploadZone } from "../components/cv-upload-zone";
 
 type SourceMode = "choose" | "sf";
+type SortMode = "score" | "date" | "coverage";
 
 export function CandidatesPage() {
   const { t } = useTranslation();
@@ -17,7 +18,7 @@ export function CandidatesPage() {
   const queryClient = useQueryClient();
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
-  const [sort, setSort] = useState<"score" | "date" | "coverage">("score");
+  const [sort, setSort] = useState<SortMode>("score");
   const [mode, setMode] = useState<SourceMode>("choose");
   const [linkCopied, setLinkCopied] = useState(false);
   const [sfMessage, setSfMessage] = useState<string | null>(null);
@@ -64,18 +65,17 @@ export function CandidatesPage() {
       if (sort === "coverage") {
         return (b.coverageRatio ?? -1) - (a.coverageRatio ?? -1);
       }
-      return (b.overallScore ?? -1) - (a.overallScore ?? -1);
+      const scoreDiff = (b.overallScore ?? -1) - (a.overallScore ?? -1);
+      if (scoreDiff !== 0) {
+        return scoreDiff;
+      }
+      return (b.coverageRatio ?? -1) - (a.coverageRatio ?? -1);
     });
     const q = filter.trim().toLowerCase();
     if (!q) {
       return rows;
     }
-    return rows.filter(
-      (row) =>
-        row.displayName.toLowerCase().includes(q) ||
-        row.status.toLowerCase().includes(q) ||
-        (row.recommendedAction ?? "").includes(q)
-    );
+    return rows.filter((row) => row.displayName.toLowerCase().includes(q));
   }, [candidates.data, filter, sort]);
 
   const applySlug = position.data?.slug;
@@ -83,6 +83,7 @@ export function CandidatesPage() {
   const selected = list.find((row) => row.id === selectedCandidateId) ?? null;
   const isEmpty = !candidates.isLoading && list.length === 0;
   const showChooser = isEmpty && mode === "choose";
+  const scoredCount = list.filter((row) => row.overallScore != null).length;
 
   const copyApplyLink = async () => {
     if (!applyHref) {
@@ -95,9 +96,15 @@ export function CandidatesPage() {
 
   const clearSelection = () => setSelectedCandidateId(null);
 
+  const sortOptions: { id: SortMode; label: string }[] = [
+    { id: "score", label: t("candidates.sortScore") },
+    { id: "coverage", label: t("candidates.sortCoverage") },
+    { id: "date", label: t("candidates.sortDate") }
+  ];
+
   return (
     <AppShell>
-      <header className="flex shrink-0 flex-col gap-3 border-b border-border pb-3 sm:flex-row sm:items-center sm:justify-between">
+      <header className="flex shrink-0 flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted">
             <Link to="/positions" className="text-brand-6 hover:underline">
@@ -109,6 +116,7 @@ export function CandidatesPage() {
           <h1 className="mt-1 truncate text-xl font-extrabold leading-tight tracking-tight sm:text-2xl">
             {position.data?.title ?? t("candidates.title")}
           </h1>
+          <p className="mt-1 text-sm text-muted">{t("candidates.pageHint")}</p>
           {applySlug ? (
             <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
               <span className="text-muted">{t("candidates.publicLink")}</span>
@@ -122,9 +130,6 @@ export function CandidatesPage() {
           ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm tabular-nums text-muted">
-            {list.length} {t("candidates.count")}
-          </p>
           <Button type="button" size="sm" onClick={() => setAddOpen(true)}>
             {t("candidates.addManual")}
           </Button>
@@ -135,8 +140,6 @@ export function CandidatesPage() {
           ) : null}
         </div>
       </header>
-
-      <p className="shrink-0 text-xs text-muted">{t("candidates.rankingDisclaimer")}</p>
 
       {showChooser ? (
         <section className="grid shrink-0 gap-3 md:grid-cols-2">
@@ -176,12 +179,10 @@ export function CandidatesPage() {
       ) : null}
 
       {selected ? (
-        <section className="flex shrink-0 flex-col gap-3 rounded-xl border border-border bg-surface p-4 sm:max-w-xl">
+        <section className="flex shrink-0 flex-col gap-3 rounded-2xl border border-brand-4/50 bg-brand-0/40 p-4 sm:max-w-xl">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                {t("candidates.uploadFor", { name: selected.displayName })}
-              </p>
+              <p className="text-sm font-extrabold">{t("candidates.uploadFor", { name: selected.displayName })}</p>
               <p className="text-sm text-muted">{t("candidates.uploadEditHint")}</p>
             </div>
             <Button type="button" variant="outline" size="sm" onClick={clearSelection}>
@@ -194,10 +195,6 @@ export function CandidatesPage() {
             onCompleted={() => void queryClient.invalidateQueries({ queryKey: ["candidates", positionId] })}
           />
         </section>
-      ) : !isEmpty ? (
-        <p className="shrink-0 rounded-lg border border-dashed border-border px-4 py-3 text-sm text-muted">
-          {t("candidates.selectHint")}
-        </p>
       ) : null}
 
       {sfMessage ? (
@@ -213,37 +210,67 @@ export function CandidatesPage() {
       ) : null}
 
       {!isEmpty ? (
-        <section className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
-            <input
-              value={filter}
-              placeholder={t("candidates.filterPlaceholder")}
-              onChange={(event) => setFilter(event.target.value)}
-              className="h-9 min-w-[12rem] flex-1 rounded-lg border border-border bg-surface px-3 text-sm outline-none placeholder:text-muted focus-visible:border-brand-5 focus-visible:ring-2 focus-visible:ring-brand-6/15 sm:max-w-xs"
-            />
-            <select
-              className="h-9 rounded-lg border border-border bg-surface px-3 text-sm outline-none focus-visible:border-brand-5 focus-visible:ring-2 focus-visible:ring-brand-6/15"
-              value={sort}
-              onChange={(event) => setSort(event.target.value as typeof sort)}
-              aria-label={t("candidates.sort")}
-            >
-              <option value="score">{t("candidates.sortScore")}</option>
-              <option value="date">{t("candidates.sortDate")}</option>
-              <option value="coverage">{t("candidates.sortCoverage")}</option>
-            </select>
+        <section className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
+          <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold text-foreground">
+                {t("candidates.scoredSummary", { scored: scoredCount, total: list.length })}
+              </p>
+              <span className="text-xs text-muted">{t("candidates.rankingDisclaimer")}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="sr-only" htmlFor="candidate-search">
+                {t("candidates.filter")}
+              </label>
+              <input
+                id="candidate-search"
+                value={filter}
+                placeholder={t("candidates.filterPlaceholder")}
+                onChange={(event) => setFilter(event.target.value)}
+                className="h-9 min-w-[10rem] flex-1 rounded-xl border border-border bg-surface px-3 text-sm outline-none placeholder:text-muted focus-visible:border-brand-5 focus-visible:ring-2 focus-visible:ring-brand-6/15 sm:max-w-[14rem]"
+              />
+              <div className="flex rounded-xl border border-border bg-surface p-0.5" role="group" aria-label={t("candidates.sort")}>
+                {sortOptions.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setSort(option.id)}
+                    className={cn(
+                      "h-8 rounded-lg px-3 text-xs font-bold transition-colors",
+                      sort === option.id
+                        ? "bg-brand-6 text-white"
+                        : "text-muted hover:bg-brand-0 hover:text-foreground"
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
+
           <div className="min-h-0 flex-1 overflow-auto">
-            <CandidatesTable
-              rows={list}
-              selectedId={selectedCandidateId}
-              onSelect={(id) => setSelectedCandidateId(id)}
-              deletingId={removeCandidate.isPending ? removeCandidate.variables ?? null : null}
-              onDelete={(id) => removeCandidate.mutate(id)}
-            />
+            {candidates.isLoading ? (
+              <p className="rounded-2xl border border-dashed border-border px-4 py-12 text-center text-sm text-muted">
+                {t("positions.loading")}
+              </p>
+            ) : list.length === 0 ? (
+              <p className="rounded-2xl border border-dashed border-border px-4 py-12 text-center text-sm text-muted">
+                {t("candidates.filterEmpty")}
+              </p>
+            ) : (
+              <CandidatesTable
+                rows={list}
+                selectedId={selectedCandidateId}
+                onSelect={(id) => setSelectedCandidateId(id)}
+                deletingId={removeCandidate.isPending ? removeCandidate.variables ?? null : null}
+                onDelete={(id) => removeCandidate.mutate(id)}
+              />
+            )}
           </div>
         </section>
       ) : mode === "choose" ? (
-        <p className="rounded-xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted">
+        <p className="rounded-2xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted">
           {t("candidates.empty")}
         </p>
       ) : null}
@@ -280,7 +307,7 @@ function SourcePanel({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 rounded-xl border bg-surface p-4",
+        "flex flex-col gap-3 rounded-2xl border bg-surface p-4",
         emphasize ? "border-brand-4 shadow-sm" : "border-border"
       )}
     >
