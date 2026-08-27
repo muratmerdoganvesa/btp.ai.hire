@@ -34,6 +34,8 @@ public interface IInterviewService
     Task<Result<InterviewSessionDto>> AnswerAsync(string token, InterviewAnswerRequest request, CancellationToken cancellationToken);
 
     Task<Result<InterviewSessionDto>> GetForCandidateAsync(Guid candidateId, CancellationToken cancellationToken);
+
+    Task<Result> SoftDeleteForCandidateAsync(Guid candidateId, CancellationToken cancellationToken);
 }
 
 public sealed class InterviewService(
@@ -387,6 +389,27 @@ public sealed class InterviewService(
             .OrderBy(f => f.CapturedAt)
             .ToListAsync(cancellationToken);
         return Result.Success(ToDto(session, frames));
+    }
+
+    public async Task<Result> SoftDeleteForCandidateAsync(Guid candidateId, CancellationToken cancellationToken)
+    {
+        RepositoryGuard.RequireTenant(tenant);
+        var sessions = await db.Set<InterviewSession>()
+            .Where(s => s.CandidateId == candidateId)
+            .ToListAsync(cancellationToken);
+        if (sessions.Count == 0)
+        {
+            return Result.Failure(Error.NotFound("Interview was not found."));
+        }
+
+        var now = clock.UtcNow;
+        foreach (var session in sessions)
+        {
+            session.SoftDelete(now);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return Result.Success();
     }
 
     private string BuildInviteUrl(string token)

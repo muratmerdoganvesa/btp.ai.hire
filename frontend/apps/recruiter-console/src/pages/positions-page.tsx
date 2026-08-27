@@ -1,5 +1,5 @@
 import { Button } from "@hirelens/ui";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -8,8 +8,19 @@ import { AppShell } from "../components/app-shell";
 
 export function PositionsPage() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const positions = useQuery({ queryKey: ["positions"], queryFn: () => api.listPositions(true) });
+
+  const remove = useMutation({
+    mutationFn: (id: string) => api.deletePosition(id),
+    onMutate: (id) => setDeletingId(id),
+    onSettled: () => setDeletingId(null),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["positions"] });
+    }
+  });
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -59,7 +70,7 @@ export function PositionsPage() {
                 <th className="px-3 py-2.5 font-bold">{t("positions.colCriteria")}</th>
                 <th className="px-3 py-2.5 font-bold">{t("positions.colCandidates")}</th>
                 <th className="px-3 py-2.5 font-bold">{t("positions.colCreated")}</th>
-                <th className="w-48 px-3 py-2.5 text-right font-bold sm:px-4">{t("positions.colActions")}</th>
+                <th className="w-56 px-3 py-2.5 text-right font-bold sm:px-4">{t("positions.colActions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -106,6 +117,21 @@ export function PositionsPage() {
                         >
                           {t("positions.open")}
                         </Link>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 px-3 text-xs text-danger hover:bg-danger-bg"
+                          disabled={deletingId === position.id}
+                          onClick={() => {
+                            if (!window.confirm(t("positions.deleteConfirm"))) {
+                              return;
+                            }
+                            remove.mutate(position.id);
+                          }}
+                        >
+                          {deletingId === position.id ? t("positions.deleting") : t("positions.delete")}
+                        </Button>
                       </div>
                     </td>
                   </tr>

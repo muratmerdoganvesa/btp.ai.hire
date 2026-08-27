@@ -13,7 +13,9 @@ public sealed class PositionConfiguration : IEntityTypeConfiguration<Position>
         builder.Property(p => p.Title).HasMaxLength(200).IsRequired();
         builder.Property(p => p.JobDescription).IsRequired();
         builder.Property(p => p.Slug).HasMaxLength(220).IsRequired();
+        builder.Property(p => p.IsDeleted).IsRequired();
         builder.HasIndex(p => new { p.TenantId, p.Slug }).IsUnique();
+        builder.HasIndex(p => new { p.TenantId, p.IsDeleted });
         builder.HasMany(p => p.Criteria).WithOne().HasForeignKey(c => c.PositionId).OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(p => p.Criteria).HasField("_criteria").AutoInclude();
     }

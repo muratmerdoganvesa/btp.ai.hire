@@ -1,7 +1,7 @@
 import { ApiError } from "@hirelens/api-client";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, ScoreBadge } from "@hirelens/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useParams } from "@tanstack/react-router";
+import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
@@ -20,6 +20,7 @@ import { SourceHighlighter } from "../components/source-highlighter";
 
 export function EvaluationPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { candidateId } = useParams({ from: "/candidates/$candidateId" });
   const queryClient = useQueryClient();
   const [quote, setQuote] = useState<string | null>(null);
@@ -101,6 +102,29 @@ export function EvaluationPage() {
     onError: () => setInviteError(t("errors.generic"))
   });
 
+  const deleteInterview = useMutation({
+    mutationFn: () => api.deleteInterview(candidateId),
+    onSuccess: async () => {
+      setInviteUrl(null);
+      setInviteExpiresAt(null);
+      await queryClient.invalidateQueries({ queryKey: ["interview", candidateId] });
+    }
+  });
+
+  const deleteCandidate = useMutation({
+    mutationFn: () => api.deleteCandidate(candidateId),
+    onSuccess: async () => {
+      const positionId = evaluation.data?.positionId ?? candidate.data?.positionId;
+      await queryClient.invalidateQueries({ queryKey: ["candidates"] });
+      await queryClient.invalidateQueries({ queryKey: ["positions"] });
+      if (positionId) {
+        await navigate({ to: "/positions/$positionId", params: { positionId } });
+        return;
+      }
+      await navigate({ to: "/positions" });
+    }
+  });
+
   const copyInvite = async () => {
     if (!inviteUrl) {
       return;
@@ -175,15 +199,31 @@ export function EvaluationPage() {
               </p>
             ) : null}
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full sm:w-auto"
-            disabled={invite.isPending || !hasEvaluation}
-            onClick={() => invite.mutate()}
-          >
-            {invite.isPending ? t("interview.inviting") : t("interview.invite")}
-          </Button>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto"
+              disabled={invite.isPending || !hasEvaluation}
+              onClick={() => invite.mutate()}
+            >
+              {invite.isPending ? t("interview.inviting") : t("interview.invite")}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full text-danger hover:bg-danger-bg sm:w-auto"
+              disabled={deleteCandidate.isPending}
+              onClick={() => {
+                if (!window.confirm(t("candidates.deleteConfirm"))) {
+                  return;
+                }
+                deleteCandidate.mutate();
+              }}
+            >
+              {deleteCandidate.isPending ? t("candidates.deleting") : t("candidates.delete")}
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -223,6 +263,25 @@ export function EvaluationPage() {
               ) : (
                 <p className="mt-2 text-sm text-muted">{t("interview.existingSession", { status: interview.data?.status })}</p>
               )}
+              {interview.data ? (
+                <div className="mt-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-danger hover:bg-danger-bg"
+                    disabled={deleteInterview.isPending}
+                    onClick={() => {
+                      if (!window.confirm(t("interview.deleteConfirm"))) {
+                        return;
+                      }
+                      deleteInterview.mutate();
+                    }}
+                  >
+                    {deleteInterview.isPending ? t("interview.deleting") : t("interview.delete")}
+                  </Button>
+                </div>
+              ) : null}
             </div>
           ) : null}
 

@@ -35,6 +35,11 @@ public static class CandidateEndpoints
             .WithTags("Candidates")
             .RequireAuthorization();
 
+        endpoints.MapDelete("/api/candidates/{id:guid}", async (Guid id, ICandidateService svc, CancellationToken ct) =>
+            HttpResults.From(await svc.SoftDeleteAsync(id, ct)))
+            .WithTags("Candidates")
+            .RequireAuthorization();
+
         return endpoints;
     }
 }

@@ -2,7 +2,7 @@ using HireLens.SharedKernel;
 
 namespace HireLens.Modules.Interview.Domain;
 
-public sealed class InterviewSession : ITenantEntity
+public sealed class InterviewSession : ITenantEntity, ISoftDelete
 {
     private readonly List<InterviewQuestion> _questions = [];
     private readonly List<InterviewTurn> _turns = [];
@@ -38,11 +38,32 @@ public sealed class InterviewSession : ITenantEntity
 
     public DateTimeOffset CreatedAt { get; private set; }
 
+    public bool IsDeleted { get; private set; }
+
+    public DateTimeOffset? DeletedAt { get; private set; }
+
     public IReadOnlyCollection<InterviewQuestion> Questions => _questions;
 
     public IReadOnlyCollection<InterviewTurn> Turns => _turns;
 
     public void BindToken(string tokenHash) => TokenHash = Guard.NotNullOrWhiteSpace(tokenHash, nameof(tokenHash));
+
+    public Result SoftDelete(DateTimeOffset deletedAt)
+    {
+        if (IsDeleted)
+        {
+            return Result.Success();
+        }
+
+        IsDeleted = true;
+        DeletedAt = deletedAt;
+        if (Status is not "completed" and not "cancelled")
+        {
+            Status = "cancelled";
+        }
+
+        return Result.Success();
+    }
 
     public static InterviewSession Invite(
         Guid tenantId,

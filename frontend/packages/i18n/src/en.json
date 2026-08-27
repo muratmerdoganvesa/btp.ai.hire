@@ -179,7 +179,10 @@
     "addCriterion": "Add criterion",
     "weightsHint": "Weights must sum to 100.",
     "submit": "Save",
-    "open": "Candidates"
+    "open": "Candidates",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this position? Related candidates and interviews will be hidden.",
+    "deleting": "Deleting…"
   },
   "candidates": {
     "title": "Candidates",
@@ -241,7 +244,11 @@
     "manualBody": "Select a candidate in the list; the CV updates that record.",
     "manualAction": "Open CV upload",
     "uploadFor": "Upload CV — {{name}}",
-    "backToSources": "Back to sources"
+    "backToSources": "Back to sources",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this candidate? Related interview records will be hidden.",
+    "deleting": "Deleting…",
+    "colActions": "Actions"
   },
   "upload": {
     "title": "Upload CV",
@@ -331,6 +338,9 @@
     "linkCopied": "Copied",
     "expires": "Expires",
     "existingSession": "Existing session: {{status}}",
+    "delete": "Delete interview",
+    "deleteConfirm": "Delete this interview record?",
+    "deleting": "Deleting…",
     "prep": "Preparation",
     "expect": "What to expect",
     "duration": "Estimated time",

@@ -44,6 +44,17 @@ export function CandidatesPage() {
     onError: () => setSfMessage(t("candidates.sfError"))
   });
 
+  const removeCandidate = useMutation({
+    mutationFn: (id: string) => api.deleteCandidate(id),
+    onSuccess: async (_data, id) => {
+      if (selectedCandidateId === id) {
+        setSelectedCandidateId(null);
+      }
+      await queryClient.invalidateQueries({ queryKey: ["candidates", positionId] });
+      await queryClient.invalidateQueries({ queryKey: ["positions"] });
+    }
+  });
+
   const list = useMemo(() => {
     const rows = [...(candidates.data ?? [])];
     rows.sort((a, b) => {
@@ -226,6 +237,8 @@ export function CandidatesPage() {
               rows={list}
               selectedId={selectedCandidateId}
               onSelect={(id) => setSelectedCandidateId(id)}
+              deletingId={removeCandidate.isPending ? removeCandidate.variables ?? null : null}
+              onDelete={(id) => removeCandidate.mutate(id)}
             />
           </div>
         </section>

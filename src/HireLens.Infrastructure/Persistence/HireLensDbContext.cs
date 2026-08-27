@@ -38,8 +38,11 @@ public sealed class HireLensDbContext(
                 continue;
             }
 
+            var soft = typeof(ISoftDelete).IsAssignableFrom(entityType.ClrType);
             var method = typeof(HireLensDbContext)
-                .GetMethod(nameof(SetTenantFilter), BindingFlags.Instance | BindingFlags.NonPublic)!
+                .GetMethod(
+                    soft ? nameof(SetSoftDeleteTenantFilter) : nameof(SetTenantFilter),
+                    BindingFlags.Instance | BindingFlags.NonPublic)!
                 .MakeGenericMethod(entityType.ClrType);
 
             method.Invoke(this, [modelBuilder]);
@@ -56,6 +59,15 @@ public sealed class HireLensDbContext(
         // Unresolved tenants keep TenantId = Guid.Empty, so the filter matches nothing.
         Expression<Func<TEntity, bool>> filter = entity =>
             entity.TenantId == tenantContext.TenantId;
+
+        modelBuilder.Entity<TEntity>().HasQueryFilter(filter);
+    }
+
+    private void SetSoftDeleteTenantFilter<TEntity>(ModelBuilder modelBuilder)
+        where TEntity : class, ITenantEntity, ISoftDelete
+    {
+        Expression<Func<TEntity, bool>> filter = entity =>
+            entity.TenantId == tenantContext.TenantId && !entity.IsDeleted;
 
         modelBuilder.Entity<TEntity>().HasQueryFilter(filter);
     }

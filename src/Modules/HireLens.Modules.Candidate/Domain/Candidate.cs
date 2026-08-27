@@ -2,7 +2,7 @@ using HireLens.SharedKernel;
 
 namespace HireLens.Modules.Candidate.Domain;
 
-public sealed class Candidate : ITenantEntity
+public sealed class Candidate : ITenantEntity, ISoftDelete
 {
     private Candidate()
     {
@@ -21,6 +21,10 @@ public sealed class Candidate : ITenantEntity
     public string Status { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }
+
+    public bool IsDeleted { get; private set; }
+
+    public DateTimeOffset? DeletedAt { get; private set; }
 
     public static Result<Candidate> Create(Guid tenantId, Guid positionId, string displayName, DateTimeOffset createdAt)
     {
@@ -45,4 +49,16 @@ public sealed class Candidate : ITenantEntity
     public void MarkReady() => Status = "ready";
 
     public void MarkDecided() => Status = "decided";
+
+    public Result SoftDelete(DateTimeOffset deletedAt)
+    {
+        if (IsDeleted)
+        {
+            return Result.Success();
+        }
+
+        IsDeleted = true;
+        DeletedAt = deletedAt;
+        return Result.Success();
+    }
 }

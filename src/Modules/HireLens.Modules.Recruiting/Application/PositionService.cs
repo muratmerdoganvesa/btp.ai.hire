@@ -15,6 +15,8 @@ public interface IPositionService
     Task<Result<PositionDto>> CreateAsync(UpsertPositionRequest request, CancellationToken cancellationToken);
 
     Task<Result<PositionDto>> UpdateAsync(Guid id, UpsertPositionRequest request, CancellationToken cancellationToken);
+
+    Task<Result> SoftDeleteAsync(Guid id, CancellationToken cancellationToken);
 }
 
 public sealed class PositionService(
@@ -90,6 +92,43 @@ public sealed class PositionService(
 
         await db.SaveChangesAsync(cancellationToken);
         return Result.Success(ToDto(row));
+    }
+
+    public async Task<Result> SoftDeleteAsync(Guid id, CancellationToken cancellationToken)
+    {
+        RepositoryGuard.RequireTenant(tenant);
+        var row = await db.Set<Position>().SingleOrDefaultAsync(p => p.Id == id, cancellationToken);
+        if (row is null)
+        {
+            return Result.Failure(Error.NotFound("Position was not found."));
+        }
+
+        var now = clock.UtcNow;
+        row.SoftDelete(now);
+
+        if (!db.Database.IsInMemory())
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                """
+                UPDATE "Candidates"
+                SET "IsDeleted" = TRUE, "DeletedAt" = {0}
+                WHERE "TenantId" = {1} AND "PositionId" = {2} AND ("IsDeleted" = FALSE OR "IsDeleted" IS NULL)
+                """,
+                [now, tenant.TenantId, id],
+                cancellationToken);
+
+            await db.Database.ExecuteSqlRawAsync(
+                """
+                UPDATE "InterviewSessions"
+                SET "IsDeleted" = TRUE, "DeletedAt" = {0}, "Status" = CASE WHEN "Status" IN ('completed', 'cancelled') THEN "Status" ELSE 'cancelled' END
+                WHERE "TenantId" = {1} AND "PositionId" = {2} AND ("IsDeleted" = FALSE OR "IsDeleted" IS NULL)
+                """,
+                [now, tenant.TenantId, id],
+                cancellationToken);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return Result.Success();
     }
 
     async Task<PositionSnapshot?> IPositionReadPort.GetAsync(Guid positionId, CancellationToken cancellationToken)

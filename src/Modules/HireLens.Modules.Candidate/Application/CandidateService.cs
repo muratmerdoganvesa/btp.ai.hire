@@ -12,6 +12,8 @@ public interface ICandidateService
     Task<Result<CandidateDto>> GetAsync(Guid id, CancellationToken cancellationToken);
 
     Task<Result<CandidateDto>> CreateAsync(Guid positionId, CreateCandidateRequest request, CancellationToken cancellationToken);
+
+    Task<Result> SoftDeleteAsync(Guid id, CancellationToken cancellationToken);
 }
 
 public sealed class CandidateService(
@@ -60,6 +62,34 @@ public sealed class CandidateService(
         db.Set<Domain.Candidate>().Add(created.Value);
         await db.SaveChangesAsync(cancellationToken);
         return Result.Success(ToDto(created.Value, null));
+    }
+
+    public async Task<Result> SoftDeleteAsync(Guid id, CancellationToken cancellationToken)
+    {
+        RepositoryGuard.RequireTenant(tenant);
+        var row = await db.Set<Domain.Candidate>().SingleOrDefaultAsync(c => c.Id == id, cancellationToken);
+        if (row is null)
+        {
+            return Result.Failure(Error.NotFound("Candidate was not found."));
+        }
+
+        var now = clock.UtcNow;
+        row.SoftDelete(now);
+
+        if (!db.Database.IsInMemory())
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                """
+                UPDATE "InterviewSessions"
+                SET "IsDeleted" = TRUE, "DeletedAt" = {0}, "Status" = CASE WHEN "Status" IN ('completed', 'cancelled') THEN "Status" ELSE 'cancelled' END
+                WHERE "TenantId" = {1} AND "CandidateId" = {2} AND ("IsDeleted" = FALSE OR "IsDeleted" IS NULL)
+                """,
+                [now, tenant.TenantId, id],
+                cancellationToken);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return Result.Success();
     }
 
     async Task<CandidateSnapshot?> ICandidateReadPort.GetAsync(Guid candidateId, CancellationToken cancellationToken)

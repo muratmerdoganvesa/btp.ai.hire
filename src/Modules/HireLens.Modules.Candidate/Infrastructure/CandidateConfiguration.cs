@@ -11,6 +11,8 @@ public sealed class CandidateConfiguration : IEntityTypeConfiguration<Domain.Can
         builder.HasKey(c => c.Id);
         builder.Property(c => c.DisplayName).HasMaxLength(200).IsRequired();
         builder.Property(c => c.Status).HasMaxLength(32).IsRequired();
+        builder.Property(c => c.IsDeleted).IsRequired();
         builder.HasIndex(c => new { c.TenantId, c.PositionId });
+        builder.HasIndex(c => new { c.TenantId, c.IsDeleted });
     }
 }

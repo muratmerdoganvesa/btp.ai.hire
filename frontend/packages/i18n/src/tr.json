@@ -179,7 +179,10 @@
     "addCriterion": "Kriter ekle",
     "weightsHint": "Ağırlıkların toplamı 100 olmalıdır.",
     "submit": "Kaydet",
-    "open": "Adaylar"
+    "open": "Adaylar",
+    "delete": "Sil",
+    "deleteConfirm": "Bu pozisyonu silmek istediğinize emin misiniz? Bağlı adaylar ve mülakatlar da gizlenir.",
+    "deleting": "Siliniyor…"
   },
   "candidates": {
     "title": "Adaylar",
@@ -241,7 +244,11 @@
     "manualBody": "Listeden aday seçin; CV bu kayıt üzerinde güncellenir.",
     "manualAction": "CV yüklemeyi aç",
     "uploadFor": "CV yükle — {{name}}",
-    "backToSources": "Kaynak seçimine dön"
+    "backToSources": "Kaynak seçimine dön",
+    "delete": "Sil",
+    "deleteConfirm": "Bu adayı silmek istediğinize emin misiniz? Bağlı mülakat kaydı da gizlenir.",
+    "deleting": "Siliniyor…",
+    "colActions": "İşlemler"
   },
   "upload": {
     "title": "CV yükle",
@@ -331,6 +338,9 @@
     "linkCopied": "Kopyalandı",
     "expires": "Son geçerlilik",
     "existingSession": "Mevcut oturum: {{status}}",
+    "delete": "Mülakatı sil",
+    "deleteConfirm": "Bu mülakat kaydını silmek istediğinize emin misiniz?",
+    "deleting": "Siliniyor…",
     "prep": "Hazırlık",
     "expect": "Ne bekleniyor",
     "duration": "Tahmini süre",

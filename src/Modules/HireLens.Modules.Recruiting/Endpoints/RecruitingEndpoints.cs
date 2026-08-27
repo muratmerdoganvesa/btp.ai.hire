@@ -24,6 +24,8 @@ public static class RecruitingEndpoints
         });
         group.MapPut("/{id:guid}", async (Guid id, UpsertPositionRequest request, IPositionService svc, CancellationToken ct) =>
             HttpResults.From(await svc.UpdateAsync(id, request, ct)));
+        group.MapDelete("/{id:guid}", async (Guid id, IPositionService svc, CancellationToken ct) =>
+            HttpResults.From(await svc.SoftDeleteAsync(id, ct)));
 
         var jobs = endpoints.MapGroup("/api/jobs").WithTags("Recruiting").RequireAuthorization();
         jobs.MapGet("/", async (bool? includeStats, IPositionService svc, CancellationToken ct) =>

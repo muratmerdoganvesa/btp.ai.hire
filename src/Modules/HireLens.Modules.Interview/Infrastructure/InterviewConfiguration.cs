@@ -13,6 +13,8 @@ public sealed class InterviewSessionConfiguration : IEntityTypeConfiguration<Int
         builder.Property(s => s.Status).HasMaxLength(32).IsRequired();
         builder.Property(s => s.TokenHash).HasMaxLength(128).IsRequired();
         builder.Property(s => s.VideoMeetingUrl).HasMaxLength(1000);
+        builder.Property(s => s.IsDeleted).IsRequired();
+        builder.HasIndex(s => new { s.TenantId, s.IsDeleted });
         builder.HasMany(s => s.Questions).WithOne().HasForeignKey(q => q.SessionId).OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(s => s.Turns).WithOne().HasForeignKey(t => t.SessionId).OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(s => s.Questions).HasField("_questions").AutoInclude();

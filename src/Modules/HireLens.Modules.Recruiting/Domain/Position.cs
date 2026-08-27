@@ -3,7 +3,7 @@ using HireLens.SharedKernel;
 
 namespace HireLens.Modules.Recruiting.Domain;
 
-public sealed class Position : ITenantEntity
+public sealed class Position : ITenantEntity, ISoftDelete
 {
     private readonly List<PositionCriterion> _criteria = [];
 
@@ -24,6 +24,10 @@ public sealed class Position : ITenantEntity
     public string Slug { get; private set; } = string.Empty;
 
     public DateTimeOffset CreatedAt { get; private set; }
+
+    public bool IsDeleted { get; private set; }
+
+    public DateTimeOffset? DeletedAt { get; private set; }
 
     public IReadOnlyCollection<PositionCriterion> Criteria => _criteria;
 
@@ -128,6 +132,18 @@ public sealed class Position : ITenantEntity
         {
             Slug = BuildSlug(Title, Id);
         }
+    }
+
+    public Result SoftDelete(DateTimeOffset deletedAt)
+    {
+        if (IsDeleted)
+        {
+            return Result.Success();
+        }
+
+        IsDeleted = true;
+        DeletedAt = deletedAt;
+        return Result.Success();
     }
 
     internal static Result ValidateWeights(IReadOnlyList<int> weights)

@@ -49,7 +49,9 @@ public static class SchemaBootstrap
                     "Title" NVARCHAR(200) NOT NULL,
                     "JobDescription" NCLOB NOT NULL,
                     "Slug" NVARCHAR(220) DEFAULT '' NOT NULL,
-                    "CreatedAt" NVARCHAR(48) NOT NULL
+                    "CreatedAt" NVARCHAR(48) NOT NULL,
+                    "IsDeleted" BOOLEAN DEFAULT FALSE NOT NULL,
+                    "DeletedAt" NVARCHAR(48) NULL
                 )
                 """,
                 cancellationToken);
@@ -128,7 +130,9 @@ public static class SchemaBootstrap
                 "PositionId" NVARCHAR(36) NOT NULL,
                 "DisplayName" NVARCHAR(200) NOT NULL,
                 "Status" NVARCHAR(32) NOT NULL,
-                "CreatedAt" NVARCHAR(48) NOT NULL
+                "CreatedAt" NVARCHAR(48) NOT NULL,
+                "IsDeleted" BOOLEAN DEFAULT FALSE NOT NULL,
+                "DeletedAt" NVARCHAR(48) NULL
             )
             """,
             cancellationToken);
@@ -648,7 +652,9 @@ public static class SchemaBootstrap
                     "Summary" NCLOB NULL,
                     "VideoMeetingUrl" NVARCHAR(1000) NULL,
                     "ExpiresAt" NVARCHAR(48) NOT NULL,
-                    "CreatedAt" NVARCHAR(48) NOT NULL
+                    "CreatedAt" NVARCHAR(48) NOT NULL,
+                    "IsDeleted" BOOLEAN DEFAULT FALSE NOT NULL,
+                    "DeletedAt" NVARCHAR(48) NULL
                 )
                 """,
                 cancellationToken);
@@ -793,7 +799,63 @@ public static class SchemaBootstrap
             logger,
             """ALTER TABLE "InterviewQuestions" ADD ("QuestionOrder" INT DEFAULT 0 NOT NULL)""",
             cancellationToken);
+        await EnsureSoftDeleteColumnsAsync(db, logger, cancellationToken);
         logger.LogInformation("Interview session columns ensured.");
+    }
+
+    public static async Task EnsureSoftDeleteColumnsAsync(
+        HireLensDbContext db,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        if (db.Database.IsInMemory())
+        {
+            return;
+        }
+
+        if (await TableExistsAsync(db, "POSITIONS", cancellationToken))
+        {
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """ALTER TABLE "Positions" ADD ("IsDeleted" BOOLEAN DEFAULT FALSE NOT NULL)""",
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """ALTER TABLE "Positions" ADD ("DeletedAt" NVARCHAR(48) NULL)""",
+                cancellationToken);
+        }
+
+        if (await TableExistsAsync(db, "CANDIDATES", cancellationToken))
+        {
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """ALTER TABLE "Candidates" ADD ("IsDeleted" BOOLEAN DEFAULT FALSE NOT NULL)""",
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """ALTER TABLE "Candidates" ADD ("DeletedAt" NVARCHAR(48) NULL)""",
+                cancellationToken);
+        }
+
+        if (await TableExistsAsync(db, "INTERVIEWSESSIONS", cancellationToken))
+        {
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """ALTER TABLE "InterviewSessions" ADD ("IsDeleted" BOOLEAN DEFAULT FALSE NOT NULL)""",
+                cancellationToken);
+            await ExecuteIgnoreDuplicateAsync(
+                db,
+                logger,
+                """ALTER TABLE "InterviewSessions" ADD ("DeletedAt" NVARCHAR(48) NULL)""",
+                cancellationToken);
+        }
+
+        logger.LogInformation("Soft-delete columns ensured on Positions, Candidates, InterviewSessions.");
     }
 
     private static async Task ExecuteIgnoreDuplicateAsync(

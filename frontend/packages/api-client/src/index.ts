@@ -71,6 +71,10 @@ export class ApiClient {
     return this.send<Position>(`/api/positions/${id}`, "PUT", input);
   }
 
+  public async deletePosition(id: string): Promise<void> {
+    await this.send<unknown>(`/api/positions/${id}`, "DELETE");
+  }
+
   public async extractCriteria(input: ExtractCriteriaRequest): Promise<ExtractCriteriaResponse> {
     return this.send<ExtractCriteriaResponse>("/api/jobs/criteria/extract", "POST", input);
   }
@@ -81,6 +85,10 @@ export class ApiClient {
 
   public async getCandidate(id: string): Promise<Candidate> {
     return this.get<Candidate>(`/api/candidates/${id}`);
+  }
+
+  public async deleteCandidate(id: string): Promise<void> {
+    await this.send<unknown>(`/api/candidates/${id}`, "DELETE");
   }
 
   public async createCandidate(positionId: string, displayName: string): Promise<Candidate> {
@@ -199,6 +207,10 @@ export class ApiClient {
     }[];
   }> {
     return this.get(`/api/candidates/${candidateId}/interview`);
+  }
+
+  public async deleteInterview(candidateId: string): Promise<void> {
+    await this.send<unknown>(`/api/candidates/${candidateId}/interview`, "DELETE");
   }
 
   public async getInterviewPrep(token: string): Promise<{

@@ -29,6 +29,13 @@ public static class InterviewEndpoints
             .WithTags("Interview")
             .RequireAuthorization();
 
+        endpoints.MapDelete("/api/candidates/{candidateId:guid}/interview", async (
+            Guid candidateId,
+            IInterviewService interviews,
+            CancellationToken ct) => HttpResults.From(await interviews.SoftDeleteForCandidateAsync(candidateId, ct)))
+            .WithTags("Interview")
+            .RequireAuthorization();
+
         var pub = endpoints.MapGroup("/api/interviews/public/{token}").WithTags("Interview").AllowAnonymous();
         pub.MapGet("/prep", async (string token, IInterviewService interviews, CancellationToken ct) =>
             HttpResults.From(await interviews.PrepAsync(token, ct)));

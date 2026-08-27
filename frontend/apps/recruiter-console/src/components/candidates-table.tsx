@@ -1,5 +1,5 @@
 import type { Candidate } from "@hirelens/api-client";
-import { Badge, ScoreBadge, cn } from "@hirelens/ui";
+import { Badge, Button, ScoreBadge, cn } from "@hirelens/ui";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
@@ -14,17 +14,21 @@ const actionLabels: Record<string, string> = {
 export function CandidatesTable({
   rows,
   selectedId,
-  onSelect
+  onSelect,
+  onDelete,
+  deletingId
 }: {
   rows: Candidate[];
   selectedId?: string | null;
   onSelect?: (id: string) => void;
+  onDelete?: (id: string) => void;
+  deletingId?: string | null;
 }) {
   const { t } = useTranslation();
 
   return (
     <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-      <table className="w-full min-w-[760px] text-left text-sm">
+      <table className="w-full min-w-[860px] text-left text-sm">
         <thead className="border-b border-border bg-brand-0/50 text-[0.7rem] uppercase tracking-wide text-muted">
           <tr>
             <th className="px-3 py-2.5 font-bold sm:px-4">{t("candidates.colCandidate")}</th>
@@ -33,6 +37,9 @@ export function CandidatesTable({
             <th className="px-3 py-2.5 font-bold">{t("candidates.colAction")}</th>
             <th className="px-3 py-2.5 font-bold">{t("candidates.colRisk")}</th>
             <th className="px-3 py-2.5 font-bold">{t("candidates.colStatus")}</th>
+            {onDelete ? (
+              <th className="px-3 py-2.5 text-right font-bold sm:px-4">{t("candidates.colActions")}</th>
+            ) : null}
           </tr>
         </thead>
         <tbody>
@@ -80,6 +87,28 @@ export function CandidatesTable({
                 <td className="px-3 py-2">
                   <Badge tone="muted">{row.evaluationStatus ?? row.status}</Badge>
                 </td>
+                {onDelete ? (
+                  <td className="px-3 py-2 sm:px-4">
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-3 text-xs text-danger hover:bg-danger-bg"
+                        disabled={deletingId === row.id}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (!window.confirm(t("candidates.deleteConfirm"))) {
+                            return;
+                          }
+                          onDelete(row.id);
+                        }}
+                      >
+                        {deletingId === row.id ? t("candidates.deleting") : t("candidates.delete")}
+                      </Button>
+                    </div>
+                  </td>
+                ) : null}
               </tr>
             );
           })}
