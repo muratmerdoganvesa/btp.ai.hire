@@ -159,7 +159,6 @@ export function DashboardPage() {
       <PageHero
         kicker={workspaceName}
         title={t("dashboard.title")}
-        description={t("dashboard.subtitle")}
         actions={
           <>
             <Button

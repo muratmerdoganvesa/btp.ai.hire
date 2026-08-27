@@ -1,5 +1,5 @@
 import type { CandidateBoardItem } from "@hirelens/api-client";
-import { Badge, cn } from "@hirelens/ui";
+import { Badge, Button, cn } from "@hirelens/ui";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";

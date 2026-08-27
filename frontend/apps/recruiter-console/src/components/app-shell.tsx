@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { isDevAuth, logout as endSession } from "../auth-mode";
 import { useAuthStore } from "../auth-store";
 import { ProductTour } from "../tour/product-tour";
+import { brandSurfaceStyle } from "./page-hero";
 
 const roleKeys: Record<string, string> = {
   Recruiter: "login.roles.Recruiter",
@@ -91,8 +92,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <ProductTour />
       <aside className="sticky top-0 hidden h-screen w-[16.5rem] shrink-0 flex-col border-r border-slate-200 bg-[#f8fafc] lg:flex">
         <BrandBlock />
-
-        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-3 py-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto border-t border-slate-200/80 px-3 py-4">
           <div>
             <p className="mb-2 px-2 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-slate-400">
               {t("nav.sectionRecruiting")}
@@ -167,25 +167,33 @@ function BrandBlock({ compact = false }: { compact?: boolean }) {
   const { t } = useTranslation();
   if (compact) {
     return (
-      <Link to="/" className="hl-brand-surface flex items-center gap-2 rounded-xl px-3 py-2">
-        <span className="flex size-8 items-center justify-center rounded-lg bg-white/15 text-sm font-extrabold">
+      <Link
+        to="/"
+        style={brandSurfaceStyle}
+        className="flex items-center gap-2 rounded-xl px-3 py-2"
+      >
+        <span className="flex size-8 items-center justify-center rounded-lg bg-white/15 text-sm font-extrabold text-white">
           HL
         </span>
-        <span className="text-sm font-extrabold tracking-tight">HireLens</span>
+        <span className="text-sm font-extrabold tracking-tight text-white">HireLens</span>
       </Link>
     );
   }
 
   return (
-    <Link to="/" className="hl-brand-surface relative block overflow-hidden px-5 pb-5 pt-6">
+    <Link
+      to="/"
+      style={brandSurfaceStyle}
+      className="relative flex min-h-[5.75rem] items-center overflow-hidden px-5 py-4"
+    >
       <div className="pointer-events-none absolute -right-6 -top-8 size-28 rounded-full bg-white/10" />
       <div className="pointer-events-none absolute -bottom-10 -left-4 size-24 rounded-full bg-[#3d52e0]/30" />
       <div className="relative flex items-center gap-3">
-        <span className="flex size-11 items-center justify-center rounded-2xl bg-white/15 text-base font-extrabold tracking-tight ring-1 ring-white/25">
+        <span className="flex size-11 items-center justify-center rounded-2xl bg-white/15 text-base font-extrabold tracking-tight text-white ring-1 ring-white/25">
           HL
         </span>
         <div>
-          <p className="text-lg font-extrabold tracking-tight">HireLens</p>
+          <p className="text-lg font-extrabold tracking-tight text-white">HireLens</p>
           <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-white/70">
             {t("nav.workspace")}
           </p>
