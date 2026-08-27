@@ -2,7 +2,7 @@ import { ApiError } from "@hirelens/api-client";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, ScoreBadge } from "@hirelens/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
 import { AppShell } from "../components/app-shell";
@@ -18,6 +18,12 @@ import { InterviewTranscript } from "../components/interview-transcript";
 import { InterviewFramesGallery } from "../components/interview-frames-gallery";
 import { SourceHighlighter } from "../components/source-highlighter";
 
+const outcomeKeys: Record<string, string> = {
+  advance: "decision.advance",
+  hold: "decision.hold",
+  reject: "decision.reject"
+};
+
 export function EvaluationPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -28,6 +34,7 @@ export function EvaluationPage() {
   const [inviteExpiresAt, setInviteExpiresAt] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const [interviewOpen, setInterviewOpen] = useState(false);
 
   const candidate = useQuery({
     queryKey: ["candidate", candidateId],
@@ -49,9 +56,9 @@ export function EvaluationPage() {
     enabled: Boolean(evaluation.data?.id)
   });
   const position = useQuery({
-    queryKey: ["position", evaluation.data?.positionId],
-    queryFn: () => api.getPosition(evaluation.data!.positionId),
-    enabled: Boolean(evaluation.data?.positionId)
+    queryKey: ["position", evaluation.data?.positionId ?? candidate.data?.positionId],
+    queryFn: () => api.getPosition((evaluation.data?.positionId ?? candidate.data!.positionId)!),
+    enabled: Boolean(evaluation.data?.positionId ?? candidate.data?.positionId)
   });
   const decisions = useQuery({
     queryKey: ["decisions", candidateId],
@@ -97,6 +104,7 @@ export function EvaluationPage() {
       setInviteUrl(absolute);
       setInviteExpiresAt(result.expiresAt);
       setInviteError(null);
+      setInterviewOpen(true);
       await queryClient.invalidateQueries({ queryKey: ["interview", candidateId] });
     },
     onError: () => setInviteError(t("errors.generic"))
@@ -142,15 +150,24 @@ export function EvaluationPage() {
     .flatMap((score) => score.evidence.map((item) => item.quote))
     .join("\n");
 
+  const criterionLabels = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const row of evaluation.data?.scores ?? []) {
+      map[row.criterionId] = row.criterionName;
+    }
+    return map;
+  }, [evaluation.data?.scores]);
+
   const latestDecision = decisions.data?.[0];
   const hasEvaluation = Boolean(evaluation.data);
   const evalMissing =
     evaluation.isError && evaluation.error instanceof ApiError && evaluation.error.status === 404;
+  const coveragePct = evaluation.data ? Math.round(evaluation.data.coverageRatio * 100) : null;
 
   return (
     <AppShell>
       <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
-        <Link to="/positions" className="font-medium text-brand hover:text-brand-7">
+        <Link to="/positions" className="font-medium text-brand-6 hover:underline">
           {t("nav.positions")}
         </Link>
         {position.data ? (
@@ -159,7 +176,7 @@ export function EvaluationPage() {
             <Link
               to="/positions/$positionId"
               params={{ positionId: position.data.id }}
-              className="font-medium text-brand hover:text-brand-7"
+              className="font-medium text-brand-6 hover:underline"
             >
               {position.data.title}
             </Link>
@@ -169,218 +186,243 @@ export function EvaluationPage() {
         <span>{candidate.data?.displayName ?? t("evaluation.title")}</span>
       </div>
 
-      <header className="flex flex-col gap-5 rounded-2xl border border-border bg-surface p-6 shadow-card sm:flex-row sm:items-start sm:justify-between sm:gap-6 sm:p-7">
+      <header className="flex flex-col gap-4 rounded-2xl border border-border bg-surface px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone="muted">{t("evaluation.humanReview")}</Badge>
-            {latestDecision ? <Badge>{latestDecision.outcome}</Badge> : null}
-            {evaluation.data?.status ? <Badge tone="muted">{evaluation.data.status}</Badge> : null}
+            {latestDecision ? (
+              <Badge>
+                {outcomeKeys[latestDecision.outcome]
+                  ? t(outcomeKeys[latestDecision.outcome])
+                  : latestDecision.outcome}
+              </Badge>
+            ) : (
+              <Badge tone="muted">{t("evaluation.awaitingDecision")}</Badge>
+            )}
           </div>
-          <h1 className="mt-3 text-3xl font-extrabold tracking-tight">
+          <h1 className="mt-2 truncate text-2xl font-extrabold tracking-tight sm:text-3xl">
             {candidate.data?.displayName ?? t("evaluation.title")}
           </h1>
           <p className="mt-1 text-sm text-muted">
             {position.data?.title ?? t("evaluation.candidateSubtitle")}
           </p>
         </div>
-        <div className="flex w-full shrink-0 flex-col gap-3 sm:w-auto sm:items-end">
-          <div className="flex flex-col items-end gap-1">
-            <ScoreBadge
-              score={evaluation.data?.overallScore ?? candidate.data?.overallScore ?? null}
-              label={
-                evaluation.data?.overallScore == null && candidate.data?.overallScore == null
-                  ? t("score.unknown")
-                  : t("evaluation.overallOf100")
+        <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+          <ScoreBadge
+            score={evaluation.data?.overallScore ?? candidate.data?.overallScore ?? null}
+            label={
+              evaluation.data?.overallScore == null && candidate.data?.overallScore == null
+                ? t("score.unknown")
+                : t("evaluation.overallOf100")
+            }
+          />
+          {coveragePct !== null ? (
+            <p className="text-xs text-muted">
+              {t("evaluation.coverage")}: <span className="font-semibold tabular-nums">{coveragePct}%</span>
+              {coveragePct < 80 ? (
+                <span className="ml-1 text-danger">· {t("evaluation.coverageWarningShort")}</span>
+              ) : null}
+            </p>
+          ) : null}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-muted hover:text-danger"
+            disabled={deleteCandidate.isPending}
+            onClick={() => {
+              if (!window.confirm(t("candidates.deleteConfirm"))) {
+                return;
               }
-            />
-            {evaluation.data && evaluation.data.coverageRatio < 0.8 ? (
-              <p className="max-w-xs text-right text-xs text-muted" title={t("evaluation.coverageWarning")}>
-                ⚠ {t("evaluation.coverageWarning")}
-              </p>
-            ) : null}
-          </div>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full sm:w-auto"
-              disabled={invite.isPending || !hasEvaluation}
-              onClick={() => invite.mutate()}
-            >
-              {invite.isPending ? t("interview.inviting") : t("interview.invite")}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full text-danger hover:bg-danger-bg sm:w-auto"
-              disabled={deleteCandidate.isPending}
-              onClick={() => {
-                if (!window.confirm(t("candidates.deleteConfirm"))) {
-                  return;
-                }
-                deleteCandidate.mutate();
-              }}
-            >
-              {deleteCandidate.isPending ? t("candidates.deleting") : t("candidates.delete")}
-            </Button>
-          </div>
+              deleteCandidate.mutate();
+            }}
+          >
+            {deleteCandidate.isPending ? t("candidates.deleting") : t("candidates.delete")}
+          </Button>
         </div>
       </header>
 
-      <Card className="border-brand-3/40 bg-gradient-to-br from-surface via-surface to-brand-0/70">
-        <CardHeader>
-          <CardTitle className="font-display text-xl">{t("interview.inviteCardTitle")}</CardTitle>
-          <p className="text-sm text-muted">{t("interview.inviteCardHint")}</p>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <p className="text-sm leading-relaxed text-muted">{t("interview.inviteCardBody")}</p>
-
-          {(inviteUrl || interview.data) ? (
-            <div className="rounded-xl border border-border bg-white/80 px-4 py-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-foreground">{t("interview.invited")}</p>
-                {inviteExpiresAt || interview.data?.expiresAt ? (
-                  <p className="text-xs text-muted">
-                    {t("interview.expires")}:{" "}
-                    {new Date(inviteExpiresAt ?? interview.data!.expiresAt!).toLocaleString()}
-                  </p>
-                ) : null}
-              </div>
-              {inviteUrl ? (
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <a
-                    className="max-w-full truncate text-sm font-medium text-brand-6 underline-offset-2 hover:underline"
-                    href={inviteUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {inviteUrl}
-                  </a>
-                  <Button type="button" variant="outline" size="sm" onClick={() => void copyInvite()}>
-                    {copied ? t("interview.linkCopied") : t("interview.copyLink")}
-                  </Button>
-                </div>
-              ) : (
-                <p className="mt-2 text-sm text-muted">{t("interview.existingSession", { status: interview.data?.status })}</p>
-              )}
-              {interview.data ? (
-                <div className="mt-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="text-danger hover:bg-danger-bg"
-                    disabled={deleteInterview.isPending}
-                    onClick={() => {
-                      if (!window.confirm(t("interview.deleteConfirm"))) {
-                        return;
-                      }
-                      deleteInterview.mutate();
-                    }}
-                  >
-                    {deleteInterview.isPending ? t("interview.deleting") : t("interview.delete")}
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-
-          {inviteError ? (
-            <p className="text-sm text-danger" role="alert">
-              {inviteError}
-            </p>
-          ) : null}
-        </CardContent>
-      </Card>
-
       {hasEvaluation ? (
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,22rem)]">
-          <div className="flex flex-col gap-6">
-            <ScoreBreakdownTable scores={evaluation.data!.scores} onSelect={setQuote} />
-            <div className="grid gap-6 lg:grid-cols-2">
-              <EvidencePanel scores={evaluation.data!.scores} onSelect={(selected) => setQuote(selected)} />
-              <SourceHighlighter text={sourceText} quote={quote} />
-            </div>
-          </div>
-
-          <aside className="flex flex-col gap-4 xl:sticky xl:top-24 xl:self-start">
-            <ScoreFormulaPanel evaluation={evaluation.data!} />
-
-            <Card className="border-border/80 bg-surface/95">
-              <CardHeader>
-                <CardTitle className="font-display text-xl">{t("evaluation.aiSummary")}</CardTitle>
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
+          <div className="flex min-w-0 flex-col gap-5">
+            <Card className="border-border/80">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-extrabold tracking-tight">
+                  {t("evaluation.aiSummary")}
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm leading-6 text-foreground">
+                <p className="text-sm leading-7 text-foreground">
                   {evaluation.data!.summary?.trim() || t("evaluation.noScore")}
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="border-border/80 bg-surface/95">
-              <CardHeader>
-                <CardTitle className="font-display text-xl">{t("evaluation.followUps")}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {(evaluation.data!.followUps ?? []).length === 0 ? (
-                  <p className="text-sm text-muted">{t("evaluation.noFollowUps")}</p>
-                ) : (
+            <ScoreBreakdownTable scores={evaluation.data!.scores} onSelect={setQuote} />
+
+            {(evaluation.data!.followUps ?? []).length > 0 ? (
+              <Card className="border-border/80">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base font-extrabold tracking-tight">
+                    {t("evaluation.followUps")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <ul className="flex flex-col gap-2">
                     {evaluation.data!.followUps.map((item) => (
                       <li
                         key={item}
-                        className="rounded-lg border border-border/70 bg-brand-1/40 px-3 py-2 text-sm leading-6"
+                        className="rounded-xl border border-border/70 bg-brand-0/50 px-3 py-2.5 text-sm leading-6"
                       >
                         {item}
                       </li>
                     ))}
                   </ul>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            ) : null}
 
-            <RiskFlagList flags={[...(evaluation.data!.needsVerification ?? [])]} />
+            {sourceText ? (
+              <div className="grid gap-5 lg:grid-cols-2">
+                <EvidencePanel scores={evaluation.data!.scores} onSelect={(selected) => setQuote(selected)} />
+                <SourceHighlighter text={sourceText} quote={quote} />
+              </div>
+            ) : null}
 
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("evaluation.recruiterActions")}</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-3">
-                <Button
-                  type="button"
-                  disabled={decide.isPending}
-                  onClick={() =>
-                    void decide.mutateAsync({
-                      outcome: "advance",
-                      rationale: t("decision.shortlistRationale")
-                    })
-                  }
-                >
-                  {t("decision.shortlist")}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={invite.isPending || !hasEvaluation}
-                  onClick={() => invite.mutate()}
-                >
-                  {t("decision.moreInterview")}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={decide.isPending}
-                  onClick={() =>
-                    void decide.mutateAsync({
-                      outcome: "hold",
-                      rationale: t("decision.holdRationale")
-                    })
-                  }
-                >
-                  {t("decision.hold")}
-                </Button>
-              </CardContent>
-            </Card>
+            <details
+              className="rounded-2xl border border-border bg-surface open:pb-4"
+              open={interviewOpen}
+              onToggle={(event) => setInterviewOpen((event.target as HTMLDetailsElement).open)}
+            >
+              <summary className="cursor-pointer list-none px-5 py-4 text-sm font-extrabold tracking-tight marker:content-none [&::-webkit-details-marker]:hidden">
+                <span className="flex items-center justify-between gap-3">
+                  <span>{t("interview.inviteCardTitle")}</span>
+                  <span className="text-xs font-semibold text-brand-6">{t("evaluation.toggleInterview")}</span>
+                </span>
+                <p className="mt-1 font-normal text-muted">{t("interview.inviteCardHint")}</p>
+              </summary>
+              <div className="flex flex-col gap-4 border-t border-border px-5 pt-4">
+                <p className="text-sm leading-relaxed text-muted">{t("interview.inviteCardBody")}</p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={invite.isPending}
+                    onClick={() => invite.mutate()}
+                  >
+                    {invite.isPending ? t("interview.inviting") : t("interview.invite")}
+                  </Button>
+                </div>
+                {(inviteUrl || interview.data) ? (
+                  <div className="rounded-xl border border-border bg-brand-0/40 px-4 py-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-semibold">{t("interview.invited")}</p>
+                      {inviteExpiresAt || interview.data?.expiresAt ? (
+                        <p className="text-xs text-muted">
+                          {t("interview.expires")}:{" "}
+                          {new Date(inviteExpiresAt ?? interview.data!.expiresAt!).toLocaleString()}
+                        </p>
+                      ) : null}
+                    </div>
+                    {inviteUrl ? (
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <a
+                          className="max-w-full truncate text-sm font-medium text-brand-6 underline-offset-2 hover:underline"
+                          href={inviteUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {inviteUrl}
+                        </a>
+                        <Button type="button" variant="outline" size="sm" onClick={() => void copyInvite()}>
+                          {copied ? t("interview.linkCopied") : t("interview.copyLink")}
+                        </Button>
+                      </div>
+                    ) : interview.data ? (
+                      <p className="mt-2 text-sm text-muted">
+                        {t("interview.existingSession", {
+                          status: interviewStatusLabel(interview.data.status, t)
+                        })}
+                      </p>
+                    ) : null}
+                    {interview.data ? (
+                      <div className="mt-3">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="text-danger hover:bg-danger-bg"
+                          disabled={deleteInterview.isPending}
+                          onClick={() => {
+                            if (!window.confirm(t("interview.deleteConfirm"))) {
+                              return;
+                            }
+                            deleteInterview.mutate();
+                          }}
+                        >
+                          {deleteInterview.isPending ? t("interview.deleting") : t("interview.delete")}
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+                {inviteError ? (
+                  <p className="text-sm text-danger" role="alert">
+                    {inviteError}
+                  </p>
+                ) : null}
+              </div>
+            </details>
+
+            {interview.data ? (
+              <div className="grid gap-5 lg:grid-cols-2">
+                <AiDisclosureBanner />
+                <GapCard gaps={interview.data.questions.map((question) => question.prompt)} />
+                <InterviewTranscript turns={interview.data.turns} />
+                <InterviewFramesGallery frames={interview.data.frames ?? []} />
+                {interview.data.summary ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">{t("interview.title")}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-sm leading-6">{interview.data.summary}</CardContent>
+                  </Card>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          <aside className="flex flex-col gap-4 xl:sticky xl:top-24 xl:self-start">
+            <DecisionPanel
+              busy={decide.isPending}
+              inviteBusy={invite.isPending}
+              onInviteInterview={() => {
+                setInterviewOpen(true);
+                invite.mutate();
+              }}
+              onSubmit={async (input) => {
+                await decide.mutateAsync(input);
+              }}
+            />
+            <ScoreFormulaPanel evaluation={evaluation.data!} />
+            <RiskFlagList
+              flags={[...(evaluation.data!.needsVerification ?? [])]}
+              labelById={criterionLabels}
+            />
+            {audit.data ? (
+              <EvaluationAuditPanel audit={audit.data} decisions={decisions.data ?? []} />
+            ) : (
+              <Card className="border-border/80">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base font-extrabold tracking-tight">
+                    {t("evaluation.audit")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted">{t("evaluation.noAudit")}</p>
+                </CardContent>
+              </Card>
+            )}
           </aside>
         </div>
       ) : (
@@ -403,35 +445,17 @@ export function EvaluationPage() {
           </CardContent>
         </Card>
       )}
-
-      {interview.data ? (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <AiDisclosureBanner />
-          <GapCard gaps={interview.data.questions.map((question) => question.prompt)} />
-          <InterviewTranscript turns={interview.data.turns} />
-          <InterviewFramesGallery frames={interview.data.frames ?? []} />
-          {interview.data.summary ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("interview.title")}</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm leading-6">{interview.data.summary}</CardContent>
-            </Card>
-          ) : null}
-        </div>
-      ) : null}
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <DecisionPanel
-          onSubmit={async (input) => {
-            await decide.mutateAsync(input);
-          }}
-          busy={decide.isPending}
-        />
-        {audit.data ? (
-          <EvaluationAuditPanel audit={audit.data} decisions={decisions.data ?? []} />
-        ) : null}
-      </div>
     </AppShell>
   );
+}
+
+function interviewStatusLabel(status: string, t: (key: string) => string): string {
+  const map: Record<string, string> = {
+    invited: "interview.statusInvited",
+    started: "interview.statusStarted",
+    completed: "interview.statusCompleted",
+    cancelled: "interview.statusCancelled",
+    paused: "interview.statusPaused"
+  };
+  return map[status] ? t(map[status]) : status;
 }
