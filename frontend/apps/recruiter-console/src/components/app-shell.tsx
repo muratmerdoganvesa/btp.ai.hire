@@ -38,9 +38,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen bg-background text-foreground">
       <ProductTour />
-      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-border bg-surface px-4 py-7 lg:flex">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-border bg-white px-4 py-7 lg:flex">
         <Brand />
-        <nav className="mt-10 flex flex-col gap-1" aria-label={t("nav.main")}>
+        <p className="mt-6 px-2 text-[0.65rem] font-bold uppercase tracking-[0.14em] text-muted">
+          {t("nav.sectionRecruiting")}
+        </p>
+        <nav className="mt-2 flex flex-col gap-1" aria-label={t("nav.main")}>
           {items.map((item) => {
             const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
             return (
@@ -50,7 +53,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 data-tour={item.tour}
                 className={cn(
                   "rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors",
-                  active ? "hl-nav-active" : "text-muted hover:bg-brand-0 hover:text-foreground"
+                  active ? "hl-nav-active shadow-sm" : "text-muted hover:bg-brand-0 hover:text-foreground"
                 )}
               >
                 {item.label}
@@ -58,15 +61,15 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-        <div className="mt-auto border-t border-border px-1 pt-5">
+        <div className="mt-auto rounded-2xl border border-border bg-brand-0/60 p-3">
           <div className="flex items-center gap-2.5">
-            <InitialsAvatar name={displayName} className="size-8 rounded-full" />
+            <InitialsAvatar name={displayName} className="size-9 rounded-full" />
             <div className="min-w-0">
               <p className="truncate text-sm font-bold">{displayName}</p>
               <p className="truncate text-xs text-muted">{roleLabel}</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" className="mt-3 w-full" onClick={logout}>
+          <Button variant="outline" size="sm" className="mt-3 w-full bg-white" onClick={logout}>
             {t("dashboard.logout")}
           </Button>
         </div>
@@ -113,7 +116,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </nav>
           ) : null}
         </header>
-        <main className="hl-rise flex min-h-0 w-full min-w-0 flex-1 flex-col gap-4 overflow-hidden px-4 py-4 sm:px-5 sm:py-5 lg:px-7">
+        <main className="hl-rise flex min-h-0 w-full min-w-0 flex-1 flex-col gap-4 overflow-hidden bg-[linear-gradient(180deg,#eef1fb_0%,var(--hl-bg)_28%)] px-4 py-4 sm:px-5 sm:py-5 lg:px-7">
           {children}
         </main>
       </div>
