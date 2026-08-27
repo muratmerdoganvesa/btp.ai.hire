@@ -181,10 +181,9 @@ public sealed class OrchestrationClient(
         // Hosted orchestration already has the prompt; only fill input variables.
         if (promptSpec?.PlaceholdersOnly == true)
         {
-            return new Dictionary<string, object?>
-            {
-                [placeholderKey] = placeholders
-            };
+            var hosted = new Dictionary<string, object?>();
+            WritePlaceholderBags(hosted, placeholderKey, placeholders);
+            return hosted;
         }
 
         var systemContent = promptSpec?.SystemPrompt ?? string.Empty;
@@ -236,56 +235,30 @@ public sealed class OrchestrationClient(
             }
         };
 
-        return new Dictionary<string, object?>
+        var body = new Dictionary<string, object?>
         {
-            ["config"] = new Dictionary<string, object?> { ["modules"] = modules },
-            [placeholderKey] = placeholders
+            ["config"] = new Dictionary<string, object?> { ["modules"] = modules }
         };
+        WritePlaceholderBags(body, placeholderKey, placeholders);
+        return body;
     }
 
-    private static (string Content, int PromptTokens, int CompletionTokens) ExtractContent(string raw)
+    private static void WritePlaceholderBags(
+        Dictionary<string, object?> body,
+        string placeholderKey,
+        IReadOnlyDictionary<string, string> placeholders)
     {
-        using var document = JsonDocument.Parse(raw);
-        var root = document.RootElement;
-
-        string? content = null;
-        if (root.TryGetProperty("orchestration_result", out var orch)
-            && orch.TryGetProperty("choices", out var choices)
-            && choices.GetArrayLength() > 0)
+        body["placeholder_values"] = placeholders;
+        body["input_params"] = placeholders;
+        if (!placeholderKey.Equals("placeholder_values", StringComparison.Ordinal)
+            && !placeholderKey.Equals("input_params", StringComparison.Ordinal))
         {
-            content = choices[0].GetProperty("message").GetProperty("content").GetString();
+            body[placeholderKey] = placeholders;
         }
-
-        if (content is null
-            && root.TryGetProperty("module_results", out var modules)
-            && modules.TryGetProperty("llm", out var llm)
-            && llm.TryGetProperty("choices", out var llmChoices)
-            && llmChoices.GetArrayLength() > 0)
-        {
-            content = llmChoices[0].GetProperty("message").GetProperty("content").GetString();
-        }
-
-        content ??= raw;
-
-        // content may itself be a JSON string — second deserialize stays with the caller
-        var promptTokens = 0;
-        var completionTokens = 0;
-        if (root.TryGetProperty("orchestration_result", out var orch2)
-            && orch2.TryGetProperty("usage", out var usage))
-        {
-            if (usage.TryGetProperty("prompt_tokens", out var pt))
-            {
-                promptTokens = pt.GetInt32();
-            }
-
-            if (usage.TryGetProperty("completion_tokens", out var ct))
-            {
-                completionTokens = ct.GetInt32();
-            }
-        }
-
-        return (content, promptTokens, completionTokens);
     }
+
+    private static (string Content, int PromptTokens, int CompletionTokens) ExtractContent(string raw) =>
+        OrchestrationContentExtractor.Extract(raw);
 
     private static string Truncate(string value) =>
         value.Length <= 500 ? value : value[..500] + "…";
