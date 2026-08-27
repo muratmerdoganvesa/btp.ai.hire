@@ -39,7 +39,6 @@ public sealed class PublicApplicationService(
 {
     public const string ApplicationConsentPurpose = "candidate_application_v1";
     public const string ConsentTextVersion = "2026-08-01";
-    private const long MaxBytes = 10 * 1024 * 1024;
 
     public async Task<Result<PublicJobDto>> GetJobAsync(string slug, CancellationToken cancellationToken)
     {
@@ -79,9 +78,10 @@ public sealed class PublicApplicationService(
             return Result.Failure<PublicApplicationResponse>(Error.Validation("CV file is required."));
         }
 
-        if (cv.Length > MaxBytes)
+        if (cv.Length > CvUploadLimits.MaxBytes)
         {
-            return Result.Failure<PublicApplicationResponse>(Error.Validation("CV must be 10 MB or smaller."));
+            return Result.Failure<PublicApplicationResponse>(
+                Error.Validation($"CV en fazla {CvUploadLimits.MaxMegabytes} MB olabilir."));
         }
 
         var position = await ResolvePositionAsync(request.Slug, cancellationToken);
@@ -162,9 +162,16 @@ public sealed class PublicApplicationService(
         IFormFile cv,
         CancellationToken cancellationToken)
     {
-        if (cv.Length <= 0 || cv.Length > MaxBytes)
+        if (cv.Length <= 0)
         {
-            return Result.Failure<PublicApplicationResponse>(Error.Validation("CV must be between 1 byte and 10 MB."));
+            return Result.Failure<PublicApplicationResponse>(Error.Validation(
+                "CV dosyası boş görünüyor (0 byte). OneDrive'da çevrimiçi-yalnızca dosyayı önce diske indirin."));
+        }
+
+        if (cv.Length > CvUploadLimits.MaxBytes)
+        {
+            return Result.Failure<PublicApplicationResponse>(
+                Error.Validation($"CV en fazla {CvUploadLimits.MaxMegabytes} MB olabilir."));
         }
 
         var candidateId = await ResolveCandidateIdAsync(reference, cancellationToken);

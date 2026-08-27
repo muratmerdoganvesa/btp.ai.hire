@@ -1,5 +1,11 @@
 namespace HireLens.Contracts.Documents;
 
+public static class CvUploadLimits
+{
+    public const int MaxMegabytes = 25;
+    public const long MaxBytes = MaxMegabytes * 1024L * 1024L;
+}
+
 public sealed record UploadSessionRequest(string FileName, string ContentType, long SizeBytes);
 
 public sealed record UploadSessionDto(Guid DocumentId, string UploadUrl, string Method);

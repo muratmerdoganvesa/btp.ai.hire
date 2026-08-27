@@ -1,3 +1,4 @@
+using HireLens.Contracts.Documents;
 using HireLens.SharedKernel;
 
 namespace HireLens.Modules.Documents.Domain;
@@ -50,9 +51,16 @@ public sealed class CvDocument : ITenantEntity
             return Result.Failure<CvDocument>(Error.Validation("Only PDF, DOCX, and plain-text CVs are accepted."));
         }
 
-        if (sizeBytes <= 0 || sizeBytes > 10 * 1024 * 1024)
+        if (sizeBytes <= 0)
         {
-            return Result.Failure<CvDocument>(Error.Validation("CV must be between 1 byte and 10 MB."));
+            return Result.Failure<CvDocument>(Error.Validation(
+                "CV dosyası boş görünüyor (0 byte). OneDrive'da çevrimiçi-yalnızca dosyayı önce diske indirin."));
+        }
+
+        if (sizeBytes > CvUploadLimits.MaxBytes)
+        {
+            return Result.Failure<CvDocument>(Error.Validation(
+                $"CV en fazla {CvUploadLimits.MaxMegabytes} MB olabilir."));
         }
 
         var id = Guid.NewGuid();

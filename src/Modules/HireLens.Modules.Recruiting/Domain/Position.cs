@@ -31,6 +31,8 @@ public sealed class Position : ITenantEntity, ISoftDelete
 
     public string? InterviewQuestionsJson { get; private set; }
 
+    public string? ExtractionNotesJson { get; private set; }
+
     public IReadOnlyCollection<PositionCriterion> Criteria => _criteria;
 
     public static Result<Position> Create(
