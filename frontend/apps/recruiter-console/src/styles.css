@@ -62,3 +62,12 @@ body {
     0 0 0 9999px rgb(18 19 26 / 0.45),
     0 0 0 3px var(--hl-brand-6);
 }
+
+/* Always-dark brand chrome (matches HireLens sidebar logo; ignores theme inversion). */
+.hl-brand-surface {
+  background:
+    radial-gradient(circle at 92% -10%, rgb(255 255 255 / 0.14), transparent 42%),
+    radial-gradient(circle at 8% 120%, rgb(61 82 224 / 0.35), transparent 45%),
+    linear-gradient(145deg, #151f66 0%, #1c2a8a 48%, #2436b0 100%);
+  color: #ffffff;
+}

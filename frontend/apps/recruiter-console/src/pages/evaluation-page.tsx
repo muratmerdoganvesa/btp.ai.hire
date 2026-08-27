@@ -15,12 +15,6 @@ import { InterviewTranscript } from "../components/interview-transcript";
 import { RiskFlagList } from "../components/risk-flag-list";
 import { ScoreBreakdownTable } from "../components/score-breakdown-table";
 
-const outcomeKeys: Record<string, string> = {
-  advance: "decision.advance",
-  hold: "decision.hold",
-  reject: "decision.reject"
-};
-
 export function EvaluationPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();

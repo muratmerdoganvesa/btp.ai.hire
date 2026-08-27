@@ -6,6 +6,7 @@ import { CandidatesPage } from "./pages/candidates-page";
 import { DashboardPage } from "./pages/dashboard-page";
 import { EvaluationPage } from "./pages/evaluation-page";
 import { LoginPage } from "./pages/login-page";
+import { PipelinePage } from "./pages/pipeline-page";
 import { SessionErrorPage } from "./pages/session-error-page";
 import { PositionsPage } from "./pages/positions-page";
 import { PositionCreatePage, PositionEditPage } from "./pages/position-form-page";
@@ -92,6 +93,13 @@ const candidatesBoardRoute = createRoute({
   component: CandidatesBoardPage
 });
 
+const pipelineRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/pipeline",
+  beforeLoad: requireSession,
+  component: PipelinePage
+});
+
 const applyJobRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/apply/$slug",
@@ -143,6 +151,7 @@ const routeTree = rootRoute.addChildren([
   positionEditRoute,
   positionDetailRoute,
   candidatesBoardRoute,
+  pipelineRoute,
   evaluationRoute,
   applyJobRoute,
   applyConsentRoute,

@@ -304,6 +304,17 @@
     "deleting": "Siliniyor…",
     "colActions": "İşlemler"
   },
+  "pipeline": {
+    "title": "Pipeline",
+    "subtitle": "Başvuruları aşamalara göre görün. Aynı kişi birden fazla pozisyonda olabilir.",
+    "search": "Ara",
+    "searchPlaceholder": "Aday veya ilan ara…",
+    "filterJob": "İlan",
+    "allJobs": "Tüm ilanlar",
+    "empty": "Pipeline boş. Aday ekleyip CV skorlayın.",
+    "columnEmpty": "Bu aşamada aday yok",
+    "multiApply": "{{count}} başvuru"
+  },
   "candidatesBoard": {
     "title": "Adaylar",
     "subtitle": "Tüm başvurular ve pipeline. Aynı kişi birden fazla pozisyona başvurmuş olabilir.",

@@ -18,7 +18,7 @@ type NavItem = {
   labelKey: string;
   tour?: string;
   /** How to decide active state */
-  match: "exact" | "positions" | "candidates" | "create";
+  match: "exact" | "positions" | "candidates" | "create" | "pipeline";
   icon: NavIconName;
 };
 
@@ -32,8 +32,8 @@ const primaryNav: NavItem[] = [
 ];
 
 const processNav: NavItem[] = [
-  { id: "pipeline", to: "/candidates", labelKey: "nav.pipeline", match: "candidates", icon: "pipeline" },
-  { id: "interview", to: "/candidates", labelKey: "nav.aiInterview", match: "candidates", icon: "interview" },
+  { id: "pipeline", to: "/pipeline", labelKey: "nav.pipeline", match: "pipeline", icon: "pipeline" },
+  { id: "interview", to: "/pipeline", labelKey: "nav.aiInterview", match: "pipeline", icon: "interview" },
   { id: "reports", to: "/", labelKey: "nav.reports", match: "exact", icon: "reports" }
 ];
 
@@ -167,7 +167,7 @@ function BrandBlock({ compact = false }: { compact?: boolean }) {
   const { t } = useTranslation();
   if (compact) {
     return (
-      <Link to="/" className="flex items-center gap-2 rounded-xl bg-brand-9 px-3 py-2 text-white">
+      <Link to="/" className="hl-brand-surface flex items-center gap-2 rounded-xl px-3 py-2">
         <span className="flex size-8 items-center justify-center rounded-lg bg-white/15 text-sm font-extrabold">
           HL
         </span>
@@ -177,19 +177,16 @@ function BrandBlock({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <Link
-      to="/"
-      className="relative block overflow-hidden bg-gradient-to-br from-brand-9 via-brand-8 to-brand-7 px-5 pb-5 pt-6 text-white"
-    >
+    <Link to="/" className="hl-brand-surface relative block overflow-hidden px-5 pb-5 pt-6">
       <div className="pointer-events-none absolute -right-6 -top-8 size-28 rounded-full bg-white/10" />
-      <div className="pointer-events-none absolute -bottom-10 -left-4 size-24 rounded-full bg-brand-5/30" />
+      <div className="pointer-events-none absolute -bottom-10 -left-4 size-24 rounded-full bg-[#3d52e0]/30" />
       <div className="relative flex items-center gap-3">
         <span className="flex size-11 items-center justify-center rounded-2xl bg-white/15 text-base font-extrabold tracking-tight ring-1 ring-white/25">
           HL
         </span>
         <div>
           <p className="text-lg font-extrabold tracking-tight">HireLens</p>
-          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-brand-2">
+          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-white/70">
             {t("nav.workspace")}
           </p>
         </div>
@@ -201,6 +198,9 @@ function BrandBlock({ compact = false }: { compact?: boolean }) {
 function resolveActiveId(pathname: string): string | null {
   if (pathname === "/positions/new") {
     return "create";
+  }
+  if (pathname === "/pipeline") {
+    return "pipeline";
   }
   if (pathname === "/candidates" || pathname.startsWith("/candidates/")) {
     return "candidates";

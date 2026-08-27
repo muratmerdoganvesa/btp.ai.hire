@@ -304,6 +304,17 @@
     "deleting": "Deleting…",
     "colActions": "Actions"
   },
+  "pipeline": {
+    "title": "Pipeline",
+    "subtitle": "See applications by stage. The same person may appear in multiple roles.",
+    "search": "Search",
+    "searchPlaceholder": "Search candidate or job…",
+    "filterJob": "Job",
+    "allJobs": "All jobs",
+    "empty": "Pipeline is empty. Add candidates and score CVs.",
+    "columnEmpty": "No candidates in this stage",
+    "multiApply": "{{count}} applications"
+  },
   "candidatesBoard": {
     "title": "Candidates",
     "subtitle": "All applications and pipeline. The same person may apply to multiple roles.",
