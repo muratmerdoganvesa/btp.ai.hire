@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { api } from "../api";
 import { AppShell } from "../components/app-shell";
 import { Field, TextArea, TextInput } from "../components/field";
+import { PageBody } from "../components/page-hero";
 
 type CriterionRow = { name: string; description: string; weight: number };
 
@@ -204,7 +205,9 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
   if (isEditing && existing.isLoading) {
     return (
       <AppShell>
-        <p className="text-sm text-muted">{t("positions.loading")}</p>
+        <PageBody>
+          <p className="text-sm text-muted">{t("positions.loading")}</p>
+        </PageBody>
       </AppShell>
     );
   }
@@ -213,6 +216,7 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
 
   return (
     <AppShell>
+      <PageBody>
       <header className="flex shrink-0 flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.12em] text-muted">{t("positions.title")}</p>
@@ -394,6 +398,7 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
           </div>
         </div>
       </div>
+      </PageBody>
     </AppShell>
   );
 }

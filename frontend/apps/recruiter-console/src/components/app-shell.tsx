@@ -155,7 +155,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           ) : null}
         </header>
-        <main className="hl-rise flex min-h-0 w-full min-w-0 flex-1 flex-col gap-4 overflow-hidden bg-[linear-gradient(180deg,#eef1fb_0%,var(--hl-bg)_28%)] px-4 py-4 sm:px-5 sm:py-5 lg:px-7">
+        <main className="hl-rise flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden bg-[linear-gradient(180deg,#eef1fb_0%,var(--hl-bg)_28%)]">
           {children}
         </main>
       </div>

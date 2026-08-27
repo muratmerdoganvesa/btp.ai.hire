@@ -18,9 +18,7 @@ export function PageHero({
   return (
     <header
       className={cn(
-        "hl-brand-surface relative shrink-0 overflow-hidden px-5 py-5 sm:px-6 sm:py-6",
-        /* Bleed into AppShell main padding so the band sits flush at the top edge. */
-        "-mx-4 -mt-4 rounded-none border-b border-white/10 sm:-mx-5 sm:-mt-5 lg:-mx-7",
+        "hl-brand-surface relative shrink-0 overflow-hidden border-b border-white/10 px-5 py-5 sm:px-6 sm:py-6 lg:px-7",
         className
       )}
     >
@@ -41,5 +39,19 @@ export function PageHero({
         {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
       </div>
     </header>
+  );
+}
+
+/** Scrollable page body under PageHero (keeps hero pinned / unclipped). */
+export function PageBody({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div
+      className={cn(
+        "flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5 lg:px-7",
+        className
+      )}
+    >
+      {children}
+    </div>
   );
 }

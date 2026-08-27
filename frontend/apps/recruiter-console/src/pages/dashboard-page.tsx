@@ -8,7 +8,7 @@ import { api } from "../api";
 import { isDevAuth } from "../auth-mode";
 import { useAuthStore } from "../auth-store";
 import { AppShell } from "../components/app-shell";
-import { PageHero } from "../components/page-hero";
+import { PageBody, PageHero } from "../components/page-hero";
 import { Pagination } from "../components/pagination";
 import { useTourStore } from "../tour/tour-store";
 
@@ -156,29 +156,29 @@ export function DashboardPage() {
 
   return (
     <AppShell>
-      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pb-2">
-        <PageHero
-          kicker={workspaceName}
-          title={t("dashboard.title")}
-          description={t("dashboard.subtitle")}
-          actions={
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="border-white/40 bg-white/10 text-white hover:bg-white/20 hover:text-white"
-                onClick={() => startTour(true)}
-              >
-                {t("tour.start")}
-              </Button>
-              <Button asChild size="sm" className="bg-white text-[#151f66] hover:bg-white/90">
-                <Link to="/positions/new">{t("dashboard.createPosition")}</Link>
-              </Button>
-            </>
-          }
-        />
+      <PageHero
+        kicker={workspaceName}
+        title={t("dashboard.title")}
+        description={t("dashboard.subtitle")}
+        actions={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="!border-white/40 !bg-white/10 !text-white hover:!bg-white/20 hover:!text-white"
+              onClick={() => startTour(true)}
+            >
+              {t("tour.start")}
+            </Button>
+            <Button asChild size="sm" className="!bg-white !text-[#151f66] hover:!bg-white/90">
+              <Link to="/positions/new">{t("dashboard.createPosition")}</Link>
+            </Button>
+          </>
+        }
+      />
 
+      <PageBody className="pb-2">
         <section className="shrink-0 rounded-2xl border border-brand-2/80 bg-gradient-to-r from-brand-0 via-white to-violet-50 px-4 py-3.5 sm:px-5">
           <p className="text-sm font-extrabold text-brand-8">{t("dashboard.aiBannerTitle")}</p>
           <p className="mt-1 text-sm leading-relaxed text-muted">{t("dashboard.aiBannerBody")}</p>
@@ -415,7 +415,7 @@ export function DashboardPage() {
             )}
           </div>
         </section>
-      </div>
+      </PageBody>
     </AppShell>
   );
 }

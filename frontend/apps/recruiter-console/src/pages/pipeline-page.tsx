@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
 import { AppShell } from "../components/app-shell";
-import { PageHero } from "../components/page-hero";
+import { PageBody, PageHero } from "../components/page-hero";
 
 const stageOrder = [
   "new",
@@ -88,13 +88,13 @@ export function PipelinePage() {
 
   return (
     <AppShell>
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
-        <PageHero
-          kicker={t("nav.sectionProcess")}
-          title={t("pipeline.title")}
-          description={t("pipeline.subtitle")}
-        />
+      <PageHero
+        kicker={t("nav.sectionProcess")}
+        title={t("pipeline.title")}
+        description={t("pipeline.subtitle")}
+      />
 
+      <PageBody className="gap-4 overflow-hidden pb-2">
         <section className="flex shrink-0 flex-col gap-3 rounded-2xl border border-border bg-surface p-4 shadow-card sm:flex-row sm:items-end">
           <div className="min-w-0 flex-1">
             <label className="text-xs font-bold uppercase tracking-wide text-muted" htmlFor="pipeline-search">
@@ -172,7 +172,7 @@ export function PipelinePage() {
             </div>
           </div>
         )}
-      </div>
+      </PageBody>
     </AppShell>
   );
 }

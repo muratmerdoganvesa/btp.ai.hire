@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
 import { AppShell } from "../components/app-shell";
+import { PageBody } from "../components/page-hero";
 
 export function PositionsPage() {
   const { t } = useTranslation();
@@ -38,6 +39,7 @@ export function PositionsPage() {
 
   return (
     <AppShell>
+      <PageBody>
       <header className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl">{t("positions.title")}</h1>
@@ -141,6 +143,7 @@ export function PositionsPage() {
           </table>
         </div>
       </div>
+      </PageBody>
     </AppShell>
   );
 }

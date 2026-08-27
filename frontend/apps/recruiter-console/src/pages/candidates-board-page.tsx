@@ -1,11 +1,12 @@
 import type { CandidateBoardItem } from "@hirelens/api-client";
-import { Badge, Button, cn } from "@hirelens/ui";
+import { Badge, cn } from "@hirelens/ui";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
 import { AppShell } from "../components/app-shell";
+import { PageBody, PageHero } from "../components/page-hero";
 
 type StageFilter = "all" | string;
 
@@ -101,17 +102,17 @@ export function CandidatesBoardPage() {
 
   return (
     <AppShell>
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-2">
-        <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-extrabold tracking-tight">{t("candidatesBoard.title")}</h1>
-            <p className="mt-1 text-sm text-muted">{t("candidatesBoard.subtitle")}</p>
-          </div>
-          <p className="text-sm tabular-nums text-muted">
+      <PageHero
+        title={t("candidatesBoard.title")}
+        description={t("candidatesBoard.subtitle")}
+        actions={
+          <p className="text-sm tabular-nums text-white/80">
             {filtered.length} / {rows.length} {t("candidatesBoard.count")}
           </p>
-        </header>
+        }
+      />
 
+      <PageBody className="gap-4 pb-2">
         <section className="rounded-2xl border border-border bg-surface p-4 shadow-card">
           <label className="block text-xs font-bold uppercase tracking-wide text-muted" htmlFor="candidates-search">
             {t("candidatesBoard.search")}
@@ -202,7 +203,7 @@ export function CandidatesBoardPage() {
             </div>
           )}
         </section>
-      </div>
+      </PageBody>
     </AppShell>
   );
 }

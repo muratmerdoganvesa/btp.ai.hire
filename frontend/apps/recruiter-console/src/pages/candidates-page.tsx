@@ -8,6 +8,7 @@ import { AddCandidateDialog } from "../components/add-candidate-dialog";
 import { AppShell } from "../components/app-shell";
 import { CandidatesTable } from "../components/candidates-table";
 import { CvUploadZone } from "../components/cv-upload-zone";
+import { PageBody } from "../components/page-hero";
 
 type SourceMode = "choose" | "sf";
 type SortMode = "score" | "date" | "coverage";
@@ -104,6 +105,7 @@ export function CandidatesPage() {
 
   return (
     <AppShell>
+      <PageBody>
       <header className="flex shrink-0 flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted">
@@ -285,6 +287,7 @@ export function CandidatesPage() {
           setMode("choose");
         }}
       />
+      </PageBody>
     </AppShell>
   );
 }

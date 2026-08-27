@@ -12,6 +12,7 @@ import { EvaluationAuditPanel } from "../components/evaluation-audit-panel";
 import { GapCard } from "../components/gap-card";
 import { InterviewFramesGallery } from "../components/interview-frames-gallery";
 import { InterviewTranscript } from "../components/interview-transcript";
+import { PageBody } from "../components/page-hero";
 import { RiskFlagList } from "../components/risk-flag-list";
 import { ScoreBreakdownTable } from "../components/score-breakdown-table";
 
@@ -173,6 +174,7 @@ export function EvaluationPage() {
 
   return (
     <AppShell>
+      <PageBody>
       <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
         <Link to="/positions" className="font-medium text-brand-6 hover:underline">
           {t("nav.positions")}
@@ -498,6 +500,7 @@ export function EvaluationPage() {
           </CardContent>
         </Card>
       )}
+      </PageBody>
     </AppShell>
   );
 }
