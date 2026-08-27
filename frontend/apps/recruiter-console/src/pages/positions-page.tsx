@@ -71,7 +71,7 @@ export function PositionsPage() {
                 <th className="px-3 py-2.5 font-bold">{t("positions.colCriteria")}</th>
                 <th className="px-3 py-2.5 font-bold">{t("positions.colCandidates")}</th>
                 <th className="px-3 py-2.5 font-bold">{t("positions.colCreated")}</th>
-                <th className="w-56 px-3 py-2.5 text-right font-bold sm:px-4">{t("positions.colActions")}</th>
+                <th className="w-72 px-3 py-2.5 text-right font-bold sm:px-4">{t("positions.colActions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -110,6 +110,13 @@ export function PositionsPage() {
                           className="inline-flex h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-lg border border-border bg-white px-3 text-xs font-semibold text-foreground transition-colors hover:bg-brand-0"
                         >
                           {t("positions.editAction")}
+                        </Link>
+                        <Link
+                          to="/positions/$positionId/questions"
+                          params={{ positionId: position.id }}
+                          className="inline-flex h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-lg border border-border bg-white px-3 text-xs font-semibold text-foreground transition-colors hover:bg-brand-0"
+                        >
+                          {t("positions.questionsAction")}
                         </Link>
                         <Link
                           to="/positions/$positionId"

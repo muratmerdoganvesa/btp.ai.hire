@@ -7,7 +7,6 @@ import { api } from "../api";
 import { AddCandidateDialog } from "../components/add-candidate-dialog";
 import { CandidatesTable } from "../components/candidates-table";
 import { CvUploadZone } from "../components/cv-upload-zone";
-import { InterviewQuestionsPanel } from "../components/interview-questions-panel";
 import { PageBody, PageHero } from "../components/page-hero";
 
 type SourceMode = "choose" | "sf";
@@ -145,8 +144,6 @@ export function CandidatesPage() {
           </Button>
         </div>
       ) : null}
-
-      <InterviewQuestionsPanel questions={position.data?.interviewQuestions} empty />
 
       {showChooser ? (
         <section className="grid shrink-0 gap-3 md:grid-cols-2">
