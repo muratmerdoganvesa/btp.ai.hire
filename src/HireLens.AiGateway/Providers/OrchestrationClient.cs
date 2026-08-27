@@ -196,6 +196,10 @@ public sealed class OrchestrationClient(
 
         var systemContent = promptSpec?.SystemPrompt ?? string.Empty;
         var userContent = promptSpec?.UserPrompt ?? prompt.Text;
+        placeholders = OrchestrationPlaceholderFilter.ForTemplate(
+            systemContent + "\n" + userContent,
+            placeholders,
+            promptSpec?.Defaults);
 
         var template = new List<OrchestrationMessage>();
         if (!string.IsNullOrWhiteSpace(systemContent))
@@ -207,9 +211,18 @@ public sealed class OrchestrationClient(
 
         var promptNode = new Dictionary<string, object?>
         {
-            ["template"] = template,
-            ["defaults"] = promptSpec?.Defaults ?? new Dictionary<string, string> { ["application_data"] = "yok" }
+            ["template"] = template
         };
+        if (promptSpec?.Defaults is { Count: > 0 })
+        {
+            var usedDefaults = OrchestrationPlaceholderFilter.ForTemplate(
+                systemContent + "\n" + userContent,
+                promptSpec.Defaults);
+            if (usedDefaults.Count > 0)
+            {
+                promptNode["defaults"] = usedDefaults;
+            }
+        }
 
         if (promptSpec?.ResponseSchema is not null)
         {

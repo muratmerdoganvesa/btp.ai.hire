@@ -58,9 +58,7 @@ public sealed class CriteriaExtractionService(
         var variables = new Dictionary<string, string>
         {
             ["jd_title"] = title,
-            ["jd_text"] = description,
-            ["job_title"] = title,
-            ["job_description"] = description
+            ["jd_text"] = description
         };
 
         var deploymentId = string.IsNullOrWhiteSpace(aiCoreOptions.Value.CriteriaExtractionDeploymentId)

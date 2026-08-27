@@ -89,9 +89,7 @@ public sealed class AiCoreLiveTests
             Placeholders: new Dictionary<string, string>
             {
                 ["jd_title"] = "Backend .NET Geliştirici",
-                ["jd_text"] = SampleJd,
-                ["job_title"] = "Backend .NET Geliştirici",
-                ["job_description"] = SampleJd
+                ["jd_text"] = SampleJd
             },
             DeploymentId: "dbec6f896a57c947");
 
