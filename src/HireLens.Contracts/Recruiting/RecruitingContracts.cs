@@ -61,7 +61,9 @@ public sealed record UpsertPositionRequest(
     string Title,
     string JobDescription,
     IReadOnlyList<UpsertCriterionRequest> Criteria,
-    IReadOnlyList<ExtractedInterviewQuestionDto>? InterviewQuestions = null);
+    IReadOnlyList<ExtractedInterviewQuestionDto>? InterviewQuestions = null,
+    IReadOnlyList<UnmeasurablePhraseDto>? Unmeasurable = null,
+    IReadOnlyList<FlaggedPhraseDto>? FlaggedPhrases = null);
 
 public sealed record UpsertCriterionRequest(string Name, string Description, int Weight);
 

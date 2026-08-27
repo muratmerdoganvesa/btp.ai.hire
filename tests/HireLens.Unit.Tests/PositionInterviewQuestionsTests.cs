@@ -39,4 +39,15 @@ public sealed class PositionInterviewQuestionsTests
         ExtractedInterviewQuestionDto.ResolveCriterionId(criteria, "sql").Should().Be(sql);
         ExtractedInterviewQuestionDto.ResolveCriterionId(criteria, "unknown").Should().Be(csharp);
     }
+
+    [Fact]
+    public void Roundtrips_unmeasurable_phrases()
+    {
+        var json = PositionExtractionNotes.Serialize(
+            [new UnmeasurablePhraseDto("takım oyuncusu", "ölçülemez")],
+            [new FlaggedPhraseDto("genç", "age", "ayrımcı")]);
+        var notes = PositionExtractionNotes.Deserialize(json);
+        notes.Unmeasurable.Should().ContainSingle(x => x.Phrase == "takım oyuncusu");
+        notes.FlaggedPhrases.Should().ContainSingle(x => x.Phrase == "genç");
+    }
 }

@@ -83,6 +83,8 @@ export interface components {
       slug?: string | null;
       stats?: components["schemas"]["PositionStats"] | null;
       interviewQuestions?: components["schemas"]["ExtractedInterviewQuestion"][];
+      unmeasurable?: components["schemas"]["UnmeasurablePhrase"][];
+      flaggedPhrases?: components["schemas"]["FlaggedPhrase"][];
     };
     PositionStats: {
       totalCandidates: number;
@@ -117,6 +119,8 @@ export interface components {
       jobDescription: string;
       criteria: { name: string; description: string; weight: number }[];
       interviewQuestions?: components["schemas"]["ExtractedInterviewQuestion"][];
+      unmeasurable?: components["schemas"]["UnmeasurablePhrase"][];
+      flaggedPhrases?: components["schemas"]["FlaggedPhrase"][];
     };
     ExtractCriteriaRequest: {
       jobTitle: string;

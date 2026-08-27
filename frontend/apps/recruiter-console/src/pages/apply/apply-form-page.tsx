@@ -8,7 +8,7 @@ import { ApplyShell } from "./apply-shell";
 
 export const publicApi = new PublicApi("");
 const CONSENT_VERSION = "2026-08-01";
-const MAX_BYTES = 10 * 1024 * 1024;
+const MAX_BYTES = 25 * 1024 * 1024;
 
 export function ApplyFormPage() {
   const { t } = useTranslation();

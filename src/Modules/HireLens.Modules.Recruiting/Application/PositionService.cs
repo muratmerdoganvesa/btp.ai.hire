@@ -66,6 +66,8 @@ public sealed class PositionService(
 
         db.Set<Position>().Add(created.Value);
         created.Value.SetInterviewQuestionsJson(PositionInterviewQuestions.Serialize(request.InterviewQuestions));
+        created.Value.SetExtractionNotesJson(
+            PositionExtractionNotes.Serialize(request.Unmeasurable, request.FlaggedPhrases));
         await db.SaveChangesAsync(cancellationToken);
         return Result.Success(ToDto(created.Value));
     }
@@ -92,6 +94,8 @@ public sealed class PositionService(
         }
 
         row.SetInterviewQuestionsJson(PositionInterviewQuestions.Serialize(request.InterviewQuestions));
+        row.SetExtractionNotesJson(
+            PositionExtractionNotes.Serialize(request.Unmeasurable, request.FlaggedPhrases));
         await db.SaveChangesAsync(cancellationToken);
         return Result.Success(ToDto(row));
     }
@@ -146,8 +150,10 @@ public sealed class PositionService(
                 result.Value.InterviewQuestions);
     }
 
-    private static PositionDto ToDto(Position position, PositionStatsDto? stats = null) =>
-        new(
+    private static PositionDto ToDto(Position position, PositionStatsDto? stats = null)
+    {
+        var notes = PositionExtractionNotes.Deserialize(position.ExtractionNotesJson);
+        return new(
             position.Id,
             position.Title,
             position.JobDescription,
@@ -157,5 +163,7 @@ public sealed class PositionService(
                 ? Position.BuildSlug(position.Title, position.Id)
                 : position.Slug,
             stats,
-            PositionInterviewQuestions.Deserialize(position.InterviewQuestionsJson));
-}
+            PositionInterviewQuestions.Deserialize(position.InterviewQuestionsJson),
+            notes.Unmeasurable,
+            notes.FlaggedPhrases);
+    }

@@ -53,7 +53,8 @@ public static class SchemaBootstrap
                     "CreatedAt" NVARCHAR(48) NOT NULL,
                     "IsDeleted" BOOLEAN DEFAULT FALSE NOT NULL,
                     "DeletedAt" NVARCHAR(48) NULL,
-                    "InterviewQuestionsJson" NCLOB NULL
+                    "InterviewQuestionsJson" NCLOB NULL,
+                    "ExtractionNotesJson" NCLOB NULL
                 )
                 """,
                 cancellationToken);
@@ -199,6 +200,11 @@ public static class SchemaBootstrap
             db,
             logger,
             """ALTER TABLE "Positions" ADD ("InterviewQuestionsJson" NCLOB NULL)""",
+            cancellationToken);
+        await ExecuteIgnoreDuplicateAsync(
+            db,
+            logger,
+            """ALTER TABLE "Positions" ADD ("ExtractionNotesJson" NCLOB NULL)""",
             cancellationToken);
         logger.LogInformation("Position interview questions column ensured.");
     }

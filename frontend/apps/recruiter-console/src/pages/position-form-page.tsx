@@ -78,6 +78,8 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
         whatToListenFor: item.whatToListenFor ?? []
       }))
     );
+    setUnmeasurable(existing.data.unmeasurable ?? []);
+    setFlaggedPhrases(existing.data.flaggedPhrases ?? []);
   }, [existing.data]);
 
   const weightSum = useMemo(() => criteria.reduce((sum, row) => sum + (Number(row.weight) || 0), 0), [criteria]);
@@ -196,6 +198,16 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
             criterionId: item.criterionId ?? "",
             question: item.question.trim(),
             whatToListenFor: item.whatToListenFor ?? []
+          })),
+        unmeasurable: unmeasurable
+          .filter((item) => item.phrase.trim().length > 0)
+          .map((item) => ({ phrase: item.phrase.trim(), reason: item.reason ?? "" })),
+        flaggedPhrases: flaggedPhrases
+          .filter((item) => item.phrase.trim().length > 0)
+          .map((item) => ({
+            phrase: item.phrase.trim(),
+            category: item.category ?? "",
+            reason: item.reason ?? ""
           }))
       };
       return isEditing && positionId ? api.updatePosition(positionId, payload) : api.createPosition(payload);
