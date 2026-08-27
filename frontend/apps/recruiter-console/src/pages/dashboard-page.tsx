@@ -167,12 +167,12 @@ export function DashboardPage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                className="border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                className="border-white/40 bg-white/10 text-white hover:bg-white/20 hover:text-white"
                 onClick={() => startTour(true)}
               >
                 {t("tour.start")}
               </Button>
-              <Button asChild size="sm" className="bg-white text-brand-8 hover:bg-brand-0">
+              <Button asChild size="sm" className="bg-white text-[#151f66] hover:bg-white/90">
                 <Link to="/positions/new">{t("dashboard.createPosition")}</Link>
               </Button>
             </>
