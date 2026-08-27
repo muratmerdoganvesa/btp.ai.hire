@@ -135,22 +135,25 @@ public static class CriteriaMatchingMapper
 
     private static List<MatchCriterionAi> ReadCriteria(string? content)
     {
-        var normalized = Normalize(content ?? string.Empty);
-        try
+        var prepared = StripFence((content ?? string.Empty).Trim());
+        foreach (var candidate in JsonCandidates(prepared))
         {
-            using var doc = JsonDocument.Parse(normalized);
-            var array = FindCriteriaArray(UnwrapRoot(doc.RootElement));
-            if (array is not null)
+            try
             {
-                return ReadCriteriaArray(array.Value);
+                using var doc = JsonDocument.Parse(candidate);
+                var array = FindCriteriaArray(UnwrapRoot(doc.RootElement));
+                if (array is not null)
+                {
+                    return ReadCriteriaArray(array.Value);
+                }
+            }
+            catch (JsonException)
+            {
+                /* try next candidate / sliced array */
             }
         }
-        catch (JsonException)
-        {
-            /* truncated output — try the criteria array in isolation */
-        }
 
-        if (TrySliceCriteriaArray(normalized, out var sliced))
+        if (TrySliceCriteriaArray(prepared, out var sliced))
         {
             try
             {
@@ -312,18 +315,22 @@ public static class CriteriaMatchingMapper
         return null;
     }
 
-    private static string Normalize(string content)
+    private static IEnumerable<string> JsonCandidates(string prepared)
     {
-        var trimmed = StripFence(content.Trim());
-        var start = trimmed.IndexOf('{');
-        var end = trimmed.LastIndexOf('}');
+        yield return prepared;
+        var start = prepared.IndexOf('{');
+        var end = prepared.LastIndexOf('}');
         if (start >= 0 && end > start)
         {
-            trimmed = trimmed[start..(end + 1)];
+            var sliced = prepared[start..(end + 1)];
+            if (sliced != prepared)
+            {
+                yield return sliced;
+            }
         }
-
-        return trimmed;
     }
+
+    private static string Normalize(string content) => StripFence(content.Trim());
 
     private static bool TrySliceCriteriaArray(string json, out string arrayJson)
     {
