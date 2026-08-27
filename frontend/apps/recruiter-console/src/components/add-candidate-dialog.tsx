@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
+import { uploadCandidateCv } from "./cv-upload-zone";
 import { Field, TextInput } from "./field";
 
 export function AddCandidateDialog({
@@ -22,20 +23,48 @@ export function AddCandidateDialog({
   const descId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [displayName, setDisplayName] = useState("");
+  const [cvFile, setCvFile] = useState<File | null>(null);
+  const [phase, setPhase] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const create = useMutation({
-    mutationFn: () => api.createCandidate(positionId, displayName.trim()),
+    mutationFn: async () => {
+      if (!cvFile) {
+        throw new Error(t("candidates.cvRequired"));
+      }
+      setPhase(null);
+      const candidate = await api.createCandidate(positionId, displayName.trim());
+      try {
+        await uploadCandidateCv(positionId, candidate.id, cvFile, (p) => {
+          if (p === "upload") setPhase(t("upload.phaseUpload"));
+          else if (p === "parse") setPhase(t("upload.phaseParse"));
+          else if (p.startsWith("match")) setPhase(`${t("upload.phaseMatch")} (${p.split(":")[1] ?? ""})`);
+          else setPhase(t("upload.phaseMatch"));
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "";
+        if (/scanned|could not be extracted|text could not/i.test(message)) {
+          throw new Error(t("upload.scanned"));
+        }
+        if (err instanceof ApiError && message) {
+          throw new Error(`${t("errors.generic")} (${message.replace(/^http_\d+:/, "")})`);
+        }
+        throw err instanceof Error ? err : new Error(t("errors.generic"));
+      }
+      return candidate;
+    },
     onSuccess: (candidate) => {
+      setPhase(null);
       onCreated(candidate.id);
       onClose();
     },
     onError: (err) => {
+      setPhase(null);
       if (err instanceof ApiError) {
         setError(err.message);
         return;
       }
-      setError(t("errors.generic"));
+      setError(err instanceof Error ? err.message : t("errors.generic"));
     }
   });
 
@@ -44,6 +73,8 @@ export function AddCandidateDialog({
       return;
     }
     setDisplayName("");
+    setCvFile(null);
+    setPhase(null);
     setError(null);
     const timer = window.setTimeout(() => inputRef.current?.focus(), 40);
     return () => window.clearTimeout(timer);
@@ -66,7 +97,7 @@ export function AddCandidateDialog({
     return null;
   }
 
-  const canSubmit = displayName.trim().length > 0 && !create.isPending;
+  const canSubmit = displayName.trim().length > 0 && Boolean(cvFile) && !create.isPending;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="presentation">
@@ -87,7 +118,7 @@ export function AddCandidateDialog({
         aria-labelledby={titleId}
         aria-describedby={descId}
         className={cn(
-          "relative z-10 flex w-full max-w-md flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-[0_24px_64px_-24px_rgba(15,23,42,0.45)]"
+          "relative z-10 flex w-full max-w-lg flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-[0_24px_64px_-24px_rgba(15,23,42,0.45)]"
         )}
       >
         <header className="border-b border-border px-5 py-4">
@@ -114,14 +145,41 @@ export function AddCandidateDialog({
                 setError(null);
                 setDisplayName(event.target.value);
               }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && canSubmit) {
-                  event.preventDefault();
-                  create.mutate();
-                }
-              }}
             />
           </Field>
+
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-semibold text-foreground">{t("upload.title")}</span>
+            <label
+              className={cn(
+                "flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-4 py-6 text-center transition-colors",
+                create.isPending
+                  ? "cursor-not-allowed border-border bg-muted/20 opacity-70"
+                  : "border-border bg-brand-1/40 hover:border-brand-4"
+              )}
+            >
+              <span className="text-sm font-medium">
+                {cvFile ? cvFile.name : t("candidates.cvRequired")}
+              </span>
+              <span className="mt-1 text-xs text-muted">{t("upload.hint")}</span>
+              <input
+                type="file"
+                className="sr-only"
+                disabled={create.isPending}
+                accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                onChange={(event) => {
+                  setError(null);
+                  setCvFile(event.target.files?.[0] ?? null);
+                }}
+              />
+            </label>
+          </div>
+
+          {phase ? (
+            <p className="text-sm text-muted" role="status">
+              {phase}
+            </p>
+          ) : null}
           {error ? (
             <p className="text-sm font-medium text-danger" role="alert">
               {error}
@@ -134,7 +192,7 @@ export function AddCandidateDialog({
             {t("candidates.dialogCancel")}
           </Button>
           <Button type="button" size="sm" disabled={!canSubmit} onClick={() => create.mutate()}>
-            {create.isPending ? t("candidates.adding") : t("candidates.addManualSubmit")}
+            {create.isPending ? t("candidates.creatingWithCv") : t("candidates.createWithCv")}
           </Button>
         </footer>
       </div>
