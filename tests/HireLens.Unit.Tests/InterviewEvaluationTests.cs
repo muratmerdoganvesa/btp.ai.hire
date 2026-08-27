@@ -64,11 +64,12 @@ public sealed class InterviewEvaluationPlaceholdersTests
         bag[InterviewEvaluationPlaceholders.JobTitle].Should().Be("Backend");
         bag[InterviewEvaluationPlaceholders.Transcript].Should().StartWith("[00:03:12]");
         bag[InterviewEvaluationPlaceholders.Transcript].Should().NotStartWith("\"");
-        bag[InterviewEvaluationPlaceholders.Rubric].Should().Contain("\"anchors\"");
-        bag[InterviewEvaluationPlaceholders.InterviewQuestions].Should().Contain("\"questionId\":\"q1\"");
-        bag[InterviewEvaluationPlaceholders.CvMatchResult].Should().Contain("\"rubricId\":\"r1\"");
-        JsonDocument.Parse(bag[InterviewEvaluationPlaceholders.Rubric]).Should().NotBeNull();
-        JsonDocument.Parse(bag[InterviewEvaluationPlaceholders.InterviewQuestions]).Should().NotBeNull();
+        using var rubricDoc = JsonDocument.Parse(bag[InterviewEvaluationPlaceholders.Rubric]);
+        rubricDoc.RootElement.GetProperty("anchors").ValueKind.Should().Be(JsonValueKind.Object);
+        using var questionsDoc = JsonDocument.Parse(bag[InterviewEvaluationPlaceholders.InterviewQuestions]);
+        questionsDoc.RootElement[0].GetProperty("questionId").GetString().Should().Be("q1");
+        using var matchDoc = JsonDocument.Parse(bag[InterviewEvaluationPlaceholders.CvMatchResult]);
+        matchDoc.RootElement.GetProperty("rubricId").GetString().Should().Be("r1");
     }
 
     [Fact]

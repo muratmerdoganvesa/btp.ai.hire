@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace HireLens.Contracts.Recruiting;
 
 public sealed record PositionCriterionDto(Guid Id, string Name, string Description, int Weight);
@@ -10,6 +12,7 @@ public sealed record PositionDto(
     DateTimeOffset CreatedAt,
     string? Slug = null,
     PositionStatsDto? Stats = null,
+    [property: JsonPropertyName("interviewQuestions")]
     IReadOnlyList<ExtractedInterviewQuestionDto>? InterviewQuestions = null,
     IReadOnlyList<UnmeasurablePhraseDto>? Unmeasurable = null,
     IReadOnlyList<FlaggedPhraseDto>? FlaggedPhrases = null);
@@ -61,6 +64,7 @@ public sealed record UpsertPositionRequest(
     string Title,
     string JobDescription,
     IReadOnlyList<UpsertCriterionRequest> Criteria,
+    [property: JsonPropertyName("interviewQuestions")]
     IReadOnlyList<ExtractedInterviewQuestionDto>? InterviewQuestions = null,
     IReadOnlyList<UnmeasurablePhraseDto>? Unmeasurable = null,
     IReadOnlyList<FlaggedPhraseDto>? FlaggedPhrases = null);

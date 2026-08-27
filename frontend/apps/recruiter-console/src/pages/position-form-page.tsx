@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
 import { Field, TextArea, TextInput } from "../components/field";
+import { InterviewQuestionsPanel } from "../components/interview-questions-panel";
 import { PageBody, PageHero } from "../components/page-hero";
 
 type CriterionRow = { name: string; description: string; weight: number; mandatory?: boolean };
@@ -41,7 +42,7 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
   const isEditing = mode === "edit";
 
   const existing = useQuery({
-    queryKey: ["positions", positionId],
+    queryKey: ["position", positionId],
     queryFn: () => api.getPosition(positionId!),
     enabled: isEditing && Boolean(positionId)
   });
@@ -56,6 +57,7 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
   const [interviewQuestions, setInterviewQuestions] = useState<ExtractedInterviewQuestion[]>([]);
   const [extractWarnings, setExtractWarnings] = useState<string[]>([]);
   const [flaggedDismissed, setFlaggedDismissed] = useState(false);
+  const [persistNote, setPersistNote] = useState<string | null>(null);
 
   useEffect(() => {
     if (!existing.data) {
@@ -145,23 +147,54 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
         jobTitle: title.trim(),
         jobDescription: jobDescription.trim()
       }),
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
       setExtractError(null);
-      setCriteria(
-        response.criteria.map((item) => ({
-          name: item.label,
-          description: item.description,
-          weight: item.weight,
-          mandatory: item.mandatory
-        }))
-      );
-      setFlaggedPhrases(response.flaggedPhrases ?? []);
-      setUnmeasurable(response.unmeasurable ?? []);
-      setInterviewQuestions(response.interviewQuestions ?? []);
+      setPersistNote(null);
+      const nextCriteria = response.criteria.map((item) => ({
+        name: item.label,
+        description: item.description,
+        weight: item.weight,
+        mandatory: item.mandatory
+      }));
+      const nextQuestions = (response.interviewQuestions ?? []).map((item) => ({
+        questionId: item.questionId ?? "",
+        criterionId: item.criterionId ?? "",
+        question: item.question,
+        whatToListenFor: item.whatToListenFor ?? []
+      }));
+      const nextUnmeasurable = response.unmeasurable ?? [];
+      const nextFlagged = response.flaggedPhrases ?? [];
+      setCriteria(nextCriteria);
+      setFlaggedPhrases(nextFlagged);
+      setUnmeasurable(nextUnmeasurable);
+      setInterviewQuestions(nextQuestions);
       setExtractWarnings(response.warnings ?? []);
       setFlaggedDismissed(false);
       if (response.criteria.length === 0) {
         setExtractError(t("positions.extractEmpty"));
+        return;
+      }
+
+      if (isEditing && positionId) {
+        try {
+          await api.updatePosition(positionId, {
+            title: title.trim(),
+            jobDescription: jobDescription.trim(),
+            criteria: nextCriteria.map((row) => ({
+              name: row.name.trim(),
+              description: row.description.trim() || row.name.trim(),
+              weight: Number(row.weight)
+            })),
+            interviewQuestions: nextQuestions.filter((item) => item.question.trim().length > 0),
+            unmeasurable: nextUnmeasurable,
+            flaggedPhrases: nextFlagged
+          });
+          await queryClient.invalidateQueries({ queryKey: ["positions"] });
+          await queryClient.invalidateQueries({ queryKey: ["position", positionId] });
+          setPersistNote(t("positions.interviewQuestionsPersisted"));
+        } catch {
+          /* still in the form; user can click Update */
+        }
       }
     },
     onError: (err) => {
@@ -214,6 +247,7 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["positions"] });
+      await queryClient.invalidateQueries({ queryKey: ["position"] });
       await navigate({ to: "/positions" });
     },
     onError: (err) => {
@@ -429,34 +463,9 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
             <p className="text-xs text-muted">{t("positions.weightsHint")}</p>
           </section>
 
-          {interviewQuestions.length > 0 ? (
-            <section className="flex flex-col gap-3">
-              <div>
-                <h3 className="text-sm font-bold">{t("positions.interviewQuestions")}</h3>
-                <p className="mt-1 text-xs text-muted">{t("positions.interviewQuestionsHint")}</p>
-              </div>
-              <ol className="space-y-3">
-                {interviewQuestions.map((item, index) => (
-                  <li
-                    key={item.questionId || `${item.criterionId}-${index}`}
-                    className="rounded-xl border border-border bg-brand-0/30 px-4 py-3"
-                  >
-                    <p className="text-sm font-semibold text-foreground">
-                      {index + 1}. {item.question}
-                    </p>
-                    {item.whatToListenFor.length > 0 ? (
-                      <ul className="mt-2 list-disc space-y-0.5 pl-5 text-xs text-muted">
-                        {item.whatToListenFor.map((hint, hintIndex) => (
-                          <li key={`${item.questionId}-hint-${hintIndex}`}>{hint}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </li>
-                ))}
-              </ol>
-            </section>
-          ) : null}
+          <InterviewQuestionsPanel questions={interviewQuestions} empty />
 
+          {persistNote ? <p className="text-sm font-medium text-success-fg">{persistNote}</p> : null}
           {extractError ? <p className="text-sm font-medium text-danger">{extractError}</p> : null}
           {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
 

@@ -10,6 +10,7 @@ import { DecisionPanel } from "../components/decision-panel";
 import { EvaluationAuditPanel } from "../components/evaluation-audit-panel";
 import { GapCard } from "../components/gap-card";
 import { InterviewFramesGallery } from "../components/interview-frames-gallery";
+import { InterviewQuestionsPanel } from "../components/interview-questions-panel";
 import { InterviewTranscript } from "../components/interview-transcript";
 import { PageBody, PageHero } from "../components/page-hero";
 import { RiskFlagList } from "../components/risk-flag-list";
@@ -299,6 +300,8 @@ export function EvaluationPage() {
           <Badge tone="muted">{t("evaluation.humanReview")}</Badge>
         ) : null}
       </div>
+
+      <InterviewQuestionsPanel questions={position.data?.interviewQuestions} empty />
 
       {hasEvaluation ? (
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
