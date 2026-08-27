@@ -276,16 +276,46 @@ jobs:
           OWNER="$(printf '%s' "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
           DOCKER_USER="$(printf '%s' "${GHCR_USER}" | tr '[:upper:]' '[:lower:]' | tr -d '\r\n')"
           sed "s#ghcr.io/OWNER/#ghcr.io/${OWNER}/#g" deploy/manifest.yml > /tmp/manifest.yml
-          # Preserve HANA_CONNECTION / AI Core across recreate (set via cf set-env; not in repo).
-          HANA_CONN="$(./cf env hirelens-api 2>/dev/null | awk '/^HANA_CONNECTION:/{sub(/^HANA_CONNECTION:[[:space:]]*/,""); print; exit}' || true)"
-          AICORE_KEY="$(./cf env hirelens-api 2>/dev/null | awk '/^AICORE_SERVICE_KEY:/{sub(/^AICORE_SERVICE_KEY:[[:space:]]*/,""); print; exit}' || true)"
-          AICORE_DEP="$(./cf env hirelens-api 2>/dev/null | awk '/^AICORE_DEPLOYMENT_ID:/{sub(/^AICORE_DEPLOYMENT_ID:[[:space:]]*/,""); print; exit}' || true)"
-          AICORE_RG="$(./cf env hirelens-api 2>/dev/null | awk '/^AICORE_RESOURCE_GROUP:/{sub(/^AICORE_RESOURCE_GROUP:[[:space:]]*/,""); print; exit}' || true)"
+          # Preserve user-provided env via v3 API. `cf env | awk` only keeps the first
+          # line, which turns a pretty-printed AICORE_SERVICE_KEY into `{`.
+          cf_user_env() {
+            local app="$1"
+            local name="$2"
+            local guid
+            guid="$(./cf app "${app}" --guid 2>/dev/null || true)"
+            if [ -z "${guid}" ]; then
+              printf '%s' ""
+              return 0
+            fi
+            ./cf curl "/v3/apps/${guid}/environment_variables" 2>/dev/null | python3 -c 'import json,sys
+name=sys.argv[1]
+try:
+    data=json.loads(sys.stdin.read() or "")
+except Exception:
+    sys.exit(0)
+sys.stdout.write((data.get("var") or {}).get(name) or "")
+' "${name}"
+          }
+          aicore_json_ok() {
+            python3 -c 'import json,sys
+raw=sys.stdin.read().strip()
+obj=json.loads(raw)
+assert isinstance(obj, dict) and obj.get("clientid") and obj.get("clientsecret")
+urls=obj.get("serviceurls") or {}
+assert isinstance(urls, dict) and urls.get("AI_API_URL")
+' 2>/dev/null
+          }
+          HANA_CONN="$(cf_user_env hirelens-api HANA_CONNECTION)"
+          AICORE_KEY="$(cf_user_env hirelens-api AICORE_SERVICE_KEY)"
+          AICORE_DEP="$(cf_user_env hirelens-api AICORE_DEPLOYMENT_ID)"
+          AICORE_RG="$(cf_user_env hirelens-api AICORE_RESOURCE_GROUP)"
+          AICORE_CRIT="$(cf_user_env hirelens-api AICORE_CRITERIA_DEPLOYMENT_ID)"
           if [ -z "${HANA_CONN}" ] && [ -n "${HANA_CONNECTION_SECRET}" ]; then
             echo "HANA_CONNECTION missing on app; restoring from GitHub secret."
             HANA_CONN="${HANA_CONNECTION_SECRET}"
           fi
-          if [ -z "${AICORE_KEY}" ] && [ -n "${AICORE_SERVICE_KEY_SECRET}" ]; then
+          if ! printf '%s' "${AICORE_KEY}" | aicore_json_ok; then
+            echo "AICORE_SERVICE_KEY on app is missing/invalid; using GitHub secret fallback."
             AICORE_KEY="${AICORE_SERVICE_KEY_SECRET}"
           fi
           if [ -z "${AICORE_DEP}" ] && [ -n "${AICORE_DEPLOYMENT_ID_SECRET}" ]; then
@@ -334,6 +364,11 @@ jobs:
           if [ -n "${AICORE_DEP}" ]; then
             ./cf set-env hirelens-api AICORE_DEPLOYMENT_ID "${AICORE_DEP}"
             ./cf set-env hirelens-worker AICORE_DEPLOYMENT_ID "${AICORE_DEP}"
+          fi
+          if [ -n "${AICORE_CRIT}" ]; then
+            ./cf set-env hirelens-api AICORE_CRITERIA_DEPLOYMENT_ID "${AICORE_CRIT}"
+          else
+            ./cf set-env hirelens-api AICORE_CRITERIA_DEPLOYMENT_ID "dbec6f896a57c947"
           fi
           if [ -n "${AICORE_RG}" ]; then
             ./cf set-env hirelens-api AICORE_RESOURCE_GROUP "${AICORE_RG}"

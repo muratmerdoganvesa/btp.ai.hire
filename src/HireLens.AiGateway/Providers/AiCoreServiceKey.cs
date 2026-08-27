@@ -97,7 +97,8 @@ public static class AiCoreServiceKey
         if (!IsValidBindingJson(trimmed))
         {
             throw new InvalidOperationException(
-                "AICORE_SERVICE_KEY parse edilemedi. clientid, clientsecret, url ve serviceurls.AI_API_URL gerekli.");
+                "AICORE_SERVICE_KEY parse edilemedi. clientid, clientsecret, url ve serviceurls.AI_API_URL gerekli. "
+                + "CI `cf env | awk` JSON'u tek `{` karakterine kesmiş olabilir; GitHub secret AICORE_SERVICE_KEY veya scripts/cf-set-aicore-key.py kullanın.");
         }
 
         return trimmed;
