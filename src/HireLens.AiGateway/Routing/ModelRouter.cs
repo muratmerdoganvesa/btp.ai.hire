@@ -47,7 +47,16 @@ public sealed class ModelRouter(IOptions<AiGatewayOptions> options)
 
         if (options.Value.Profiles.TryGetValue(taskKey, out var profile))
         {
-            return profile;
+            if (requestOptions is null)
+            {
+                return profile;
+            }
+
+            return new ModelProfile(
+                profile.ModelId,
+                profile.FallbackModelId,
+                requestOptions.MaxOutputTokens,
+                requestOptions.Temperature);
         }
 
         throw new InvalidOperationException(

@@ -45,6 +45,59 @@ public sealed class CriteriaMatchingMapperTests
     }
 
     [Fact]
+    public void Maps_fenced_json_with_name_and_string_evidence()
+    {
+        var csharp = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var position = new PositionSnapshot(
+            Guid.NewGuid(),
+            "Backend",
+            "C#",
+            [new PositionCriterionDto(csharp, "C#", "Language", 100)]);
+
+        const string json = """
+            Here is the match:
+            ```json
+            {
+              "rubricId": "r1",
+              "criteria": [
+                {
+                  "criterion_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                  "name": "C#",
+                  "score": "90",
+                  "confidence": "high",
+                  "evidence": ["6 years C# / ASP.NET Core"]
+                }
+              ]
+            }
+            ```
+            """;
+
+        var mapped = CriteriaMatchingMapper.TryMap(json, position);
+        mapped.Should().NotBeNull();
+        mapped![0].Score.Should().Be(90);
+        mapped[0].Evidence.Should().ContainSingle(e => e.Quote.Contains("C#"));
+    }
+
+    [Fact]
+    public void Maps_truncated_json_if_criteria_array_is_complete()
+    {
+        var csharp = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var position = new PositionSnapshot(
+            Guid.NewGuid(),
+            "Backend",
+            "C#",
+            [new PositionCriterionDto(csharp, "C#", "Language", 100)]);
+
+        const string json = """
+            {"rubricId":"r1","criteria":[{"criterionId":"C#","score":70,"confidence":"medium","evidence":[{"quote":"C# APIs","source":"cv"}]}],"riskFlags":[{"code":"incomp
+            """;
+
+        var mapped = CriteriaMatchingMapper.TryMap(json, position);
+        mapped.Should().NotBeNull();
+        mapped![0].Score.Should().Be(70);
+    }
+
+    [Fact]
     public void Stub_payload_is_not_mapped()
     {
         var position = new PositionSnapshot(

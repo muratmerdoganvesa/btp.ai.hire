@@ -10,6 +10,7 @@ using HireLens.Modules.Matching.Domain;
 using HireLens.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
 
@@ -34,7 +35,8 @@ public sealed class MatchingJob(
     IPromptRegistry prompts,
     IOptions<SapAiCoreOptions> aiOptions,
     IAnalysisJobs jobs,
-    IHostEnvironment env) : IEvaluationService
+    IHostEnvironment env,
+    ILogger<MatchingJob> logger) : IEvaluationService
 {
     public async Task RunAsync(Guid documentId, CancellationToken cancellationToken)
     {
@@ -130,11 +132,14 @@ public sealed class MatchingJob(
                         SystemPrompt: prompt.SystemPrompt,
                         UserPrompt: prompt.UserTemplate,
                         DeploymentId: deploymentId),
-                    new AiOptions(MaxOutputTokens: 2048, Temperature: 0.1),
+                    new AiOptions(MaxOutputTokens: 8000, Temperature: 0.1),
                     cancellationToken);
                 var mapped = CriteriaMatchingMapper.TryMap(aiResult.Value, position);
                 if (mapped is null)
                 {
+                    logger.LogWarning(
+                        "Matching AI JSON could not be mapped. Preview={Preview}",
+                        Truncate(aiResult.Value));
                     throw new InvalidOperationException("Eşleştirme AI geçerli skor döndürmedi.");
                 }
 
@@ -364,6 +369,16 @@ public sealed class MatchingJob(
 
     private bool IsTesting =>
         string.Equals(env.EnvironmentName, "Testing", StringComparison.OrdinalIgnoreCase);
+
+    private static string Truncate(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "(empty)";
+        }
+
+        return value.Length <= 800 ? value : value[..800] + "…";
+    }
 
     private sealed record SummaryStub(string? Summary);
 }

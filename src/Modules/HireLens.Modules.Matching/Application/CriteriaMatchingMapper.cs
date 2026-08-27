@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using HireLens.AiGateway.Providers;
 using HireLens.Contracts.Evidence;
 using HireLens.Contracts.Recruiting;
@@ -12,12 +11,6 @@ namespace HireLens.Modules.Matching.Application;
 /// </summary>
 public static class CriteriaMatchingMapper
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        NumberHandling = JsonNumberHandling.AllowReadingFromString
-    };
-
     public static bool IsStubContent(string? content)
     {
         if (string.IsNullOrWhiteSpace(content))
@@ -27,29 +20,29 @@ public static class CriteriaMatchingMapper
 
         try
         {
-            using var doc = JsonDocument.Parse(StripFence(content));
-            var root = doc.RootElement;
-            var note = root.TryGetProperty("note", out var n) ? n.GetString() : null;
-            var status = root.TryGetProperty("status", out var s) ? s.GetString() : null;
+            using var doc = JsonDocument.Parse(Normalize(content));
+            var root = UnwrapRoot(doc.RootElement);
+            var note = ReadString(root, "note");
+            var status = ReadString(root, "status");
             return string.Equals(note, "stub-provider", StringComparison.OrdinalIgnoreCase)
                 || (string.Equals(status, "unknown", StringComparison.OrdinalIgnoreCase)
-                    && !root.TryGetProperty("criteria", out _));
+                    && FindCriteriaArray(root) is null);
         }
         catch (JsonException)
         {
-            return true;
+            return false;
         }
     }
 
     public static IReadOnlyList<ProposedCriterionScore>? TryMap(string? content, PositionSnapshot position)
     {
-        if (IsStubContent(content) || position.Criteria.Count == 0)
+        if (position.Criteria.Count == 0 || IsStubContent(content))
         {
             return null;
         }
 
-        var payload = Deserialize(content);
-        if (payload?.Criteria is null || payload.Criteria.Count == 0)
+        var rows = ReadCriteria(content);
+        if (rows.Count == 0)
         {
             return null;
         }
@@ -57,7 +50,7 @@ public static class CriteriaMatchingMapper
         var proposals = new List<ProposedCriterionScore>();
         foreach (var criterion in position.Criteria)
         {
-            var row = payload.Criteria.FirstOrDefault(c => Matches(c.CriterionId, criterion));
+            var row = rows.FirstOrDefault(c => Matches(c, criterion));
             if (row is null)
             {
                 proposals.Add(new ProposedCriterionScore(criterion.Id, criterion.Weight, null, 0.2, []));
@@ -90,14 +83,25 @@ public static class CriteriaMatchingMapper
         return proposals;
     }
 
-    private static bool Matches(string? criterionId, PositionCriterionDto criterion)
+    private static bool Matches(MatchCriterionAi row, PositionCriterionDto criterion)
     {
-        if (string.IsNullOrWhiteSpace(criterionId))
+        return MatchesId(row.CriterionId, criterion)
+            || MatchesId(row.Name, criterion);
+    }
+
+    private static bool MatchesId(string? value, PositionCriterionDto criterion)
+    {
+        if (string.IsNullOrWhiteSpace(value))
         {
             return false;
         }
 
-        var needle = criterionId.Trim();
+        var needle = value.Trim();
+        if (Guid.TryParse(needle, out var guid) && guid == criterion.Id)
+        {
+            return true;
+        }
+
         return string.Equals(criterion.Id.ToString(), needle, StringComparison.OrdinalIgnoreCase)
             || string.Equals(criterion.Name, needle, StringComparison.OrdinalIgnoreCase)
             || criterion.Name.Contains(needle, StringComparison.OrdinalIgnoreCase)
@@ -129,81 +133,355 @@ public static class CriteriaMatchingMapper
         return 0.6;
     }
 
-    private static MatchPayload? Deserialize(string? content)
+    private static List<MatchCriterionAi> ReadCriteria(string? content)
     {
-        var trimmed = StripFence(content!.Trim());
-        trimmed = Unwrap(trimmed);
+        var normalized = Normalize(content ?? string.Empty);
         try
         {
-            return JsonSerializer.Deserialize<MatchPayload>(trimmed, JsonOptions);
+            using var doc = JsonDocument.Parse(normalized);
+            var array = FindCriteriaArray(UnwrapRoot(doc.RootElement));
+            if (array is not null)
+            {
+                return ReadCriteriaArray(array.Value);
+            }
         }
         catch (JsonException)
         {
-            return null;
+            /* truncated output — try the criteria array in isolation */
         }
+
+        if (TrySliceCriteriaArray(normalized, out var sliced))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(sliced);
+                return ReadCriteriaArray(doc.RootElement);
+            }
+            catch (JsonException)
+            {
+                return [];
+            }
+        }
+
+        return [];
     }
 
-    private static string Unwrap(string json)
+    private static List<MatchCriterionAi> ReadCriteriaArray(JsonElement array)
     {
-        try
+        var rows = new List<MatchCriterionAi>();
+        if (array.ValueKind != JsonValueKind.Array)
         {
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-            if (root.TryGetProperty("criteria", out _))
+            return rows;
+        }
+
+        foreach (var item in array.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object)
             {
-                return json;
+                continue;
             }
 
-            if (root.TryGetProperty("orchestration_result", out _)
-                || root.TryGetProperty("module_results", out _))
+            rows.Add(new MatchCriterionAi
             {
-                var extracted = OrchestrationContentExtractor.Extract(json).Content;
-                if (!string.IsNullOrWhiteSpace(extracted) && extracted != json)
+                CriterionId = ReadString(item, "criterionId", "criterion_id", "id"),
+                Name = ReadString(item, "name", "label", "title"),
+                Score = ReadNumber(item, "score", "points"),
+                Confidence = ReadString(item, "confidence"),
+                Evidence = ReadEvidence(item)
+            });
+        }
+
+        return rows;
+    }
+
+    private static List<MatchEvidenceAi> ReadEvidence(JsonElement row)
+    {
+        if (!TryGetProperty(row, out var evidence, "evidence", "quotes"))
+        {
+            return [];
+        }
+
+        var items = new List<MatchEvidenceAi>();
+        if (evidence.ValueKind == JsonValueKind.String)
+        {
+            var quote = evidence.GetString();
+            if (!string.IsNullOrWhiteSpace(quote))
+            {
+                items.Add(new MatchEvidenceAi { Quote = quote, Source = "cv" });
+            }
+
+            return items;
+        }
+
+        if (evidence.ValueKind != JsonValueKind.Array)
+        {
+            return items;
+        }
+
+        foreach (var part in evidence.EnumerateArray())
+        {
+            if (part.ValueKind == JsonValueKind.String)
+            {
+                var quote = part.GetString();
+                if (!string.IsNullOrWhiteSpace(quote))
                 {
-                    return StripFence(extracted.Trim());
+                    items.Add(new MatchEvidenceAi { Quote = quote, Source = "cv" });
+                }
+
+                continue;
+            }
+
+            if (part.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            var text = ReadString(part, "quote", "text", "excerpt", "span");
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                continue;
+            }
+
+            items.Add(new MatchEvidenceAi
+            {
+                Quote = text,
+                Source = ReadString(part, "source") ?? "cv",
+                StartOffset = ReadInt(part, "startOffset", "start_offset"),
+                EndOffset = ReadInt(part, "endOffset", "end_offset")
+            });
+        }
+
+        return items;
+    }
+
+    private static JsonElement UnwrapRoot(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object)
+        {
+            return root;
+        }
+
+        if (root.TryGetProperty("orchestration_result", out _)
+            || root.TryGetProperty("module_results", out _))
+        {
+            var extracted = OrchestrationContentExtractor.Extract(root.GetRawText()).Content;
+            if (!string.IsNullOrWhiteSpace(extracted))
+            {
+                try
+                {
+                    using var inner = JsonDocument.Parse(Normalize(extracted));
+                    return inner.RootElement.Clone();
+                }
+                catch (JsonException)
+                {
+                    return root;
                 }
             }
         }
-        catch (JsonException)
+
+        return root;
+    }
+
+    private static JsonElement? FindCriteriaArray(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object)
         {
-            /* keep original */
+            return null;
         }
 
-        return json;
+        if (TryGetProperty(root, out var direct, "criteria", "criterionScores", "criterion_scores", "scores")
+            && direct.ValueKind == JsonValueKind.Array
+            && direct.GetArrayLength() > 0)
+        {
+            return direct;
+        }
+
+        foreach (var name in new[] { "result", "data", "match", "matching", "payload" })
+        {
+            if (root.TryGetProperty(name, out var nested)
+                && nested.ValueKind == JsonValueKind.Object)
+            {
+                var found = FindCriteriaArray(nested);
+                if (found is not null)
+                {
+                    return found;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static string Normalize(string content)
+    {
+        var trimmed = StripFence(content.Trim());
+        var start = trimmed.IndexOf('{');
+        var end = trimmed.LastIndexOf('}');
+        if (start >= 0 && end > start)
+        {
+            trimmed = trimmed[start..(end + 1)];
+        }
+
+        return trimmed;
+    }
+
+    private static bool TrySliceCriteriaArray(string json, out string arrayJson)
+    {
+        arrayJson = string.Empty;
+        var key = json.IndexOf("\"criteria\"", StringComparison.OrdinalIgnoreCase);
+        if (key < 0)
+        {
+            key = json.IndexOf("\"criterion_scores\"", StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (key < 0)
+        {
+            return false;
+        }
+
+        var bracket = json.IndexOf('[', key);
+        if (bracket < 0)
+        {
+            return false;
+        }
+
+        var depth = 0;
+        var inString = false;
+        var escape = false;
+        for (var i = bracket; i < json.Length; i++)
+        {
+            var c = json[i];
+            if (inString)
+            {
+                if (escape)
+                {
+                    escape = false;
+                }
+                else if (c == '\\')
+                {
+                    escape = true;
+                }
+                else if (c == '"')
+                {
+                    inString = false;
+                }
+
+                continue;
+            }
+
+            if (c == '"')
+            {
+                inString = true;
+                continue;
+            }
+
+            if (c == '[')
+            {
+                depth++;
+            }
+            else if (c == ']')
+            {
+                depth--;
+                if (depth == 0)
+                {
+                    arrayJson = json[bracket..(i + 1)];
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static string StripFence(string trimmed)
     {
-        if (!trimmed.StartsWith("```", StringComparison.Ordinal))
+        var fenceStart = trimmed.IndexOf("```", StringComparison.Ordinal);
+        if (fenceStart < 0)
         {
             return trimmed;
         }
 
-        var firstNewline = trimmed.IndexOf('\n');
-        if (firstNewline > 0)
+        var after = trimmed[(fenceStart + 3)..];
+        var newline = after.IndexOf('\n');
+        if (newline >= 0)
         {
-            trimmed = trimmed[(firstNewline + 1)..];
+            after = after[(newline + 1)..];
         }
 
-        var fence = trimmed.LastIndexOf("```", StringComparison.Ordinal);
-        if (fence >= 0)
+        var fenceEnd = after.LastIndexOf("```", StringComparison.Ordinal);
+        if (fenceEnd >= 0)
         {
-            trimmed = trimmed[..fence];
+            after = after[..fenceEnd];
         }
 
-        return trimmed.Trim();
+        return after.Trim();
     }
 
-    private sealed class MatchPayload
+    private static bool TryGetProperty(JsonElement obj, out JsonElement value, params string[] names)
     {
-        public List<MatchCriterionAi>? Criteria { get; set; }
+        foreach (var name in names)
+        {
+            if (obj.TryGetProperty(name, out value))
+            {
+                return true;
+            }
 
-        public string? RecommendedAction { get; set; }
+            foreach (var property in obj.EnumerateObject())
+            {
+                if (string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = property.Value;
+                    return true;
+                }
+            }
+        }
+
+        value = default;
+        return false;
+    }
+
+    private static string? ReadString(JsonElement obj, params string[] names)
+    {
+        if (!TryGetProperty(obj, out var value, names) || value.ValueKind == JsonValueKind.Null)
+        {
+            return null;
+        }
+
+        return value.ValueKind == JsonValueKind.String ? value.GetString() : value.ToString();
+    }
+
+    private static double? ReadNumber(JsonElement obj, params string[] names)
+    {
+        if (!TryGetProperty(obj, out var value, names) || value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+        {
+            return null;
+        }
+
+        if (value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var number))
+        {
+            return number;
+        }
+
+        if (value.ValueKind == JsonValueKind.String
+            && double.TryParse(value.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var parsed))
+        {
+            return parsed;
+        }
+
+        return null;
+    }
+
+    private static int? ReadInt(JsonElement obj, params string[] names)
+    {
+        var number = ReadNumber(obj, names);
+        return number is null ? null : (int)Math.Round(number.Value);
     }
 
     private sealed class MatchCriterionAi
     {
         public string? CriterionId { get; set; }
+
+        public string? Name { get; set; }
 
         public double? Score { get; set; }
 
