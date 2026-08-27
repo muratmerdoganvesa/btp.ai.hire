@@ -19,11 +19,13 @@ public static class AiGatewayRegistration
             configuration.GetSection(SapAiCoreOptions.SectionName).Bind(options);
             configuration.GetSection("AiCore").Bind(options);
 
-            options.ServiceKeyJson ??= configuration["AICORE_SERVICE_KEY"];
-            options.ServiceKeyJson ??= TryReadServiceKeyFile(
-                configuration["SapAiCore:ServiceKeyPath"]
-                ?? configuration["AiCore:ServiceKeyPath"]
-                ?? "aicore-service-key.json");
+            options.ServiceKeyJson ??= AiCoreServiceKey.Coalesce(
+                configuration["AICORE_SERVICE_KEY"]
+                ?? configuration[$"{SapAiCoreOptions.SectionName}:ServiceKeyJson"],
+                TryReadServiceKeyFile(
+                    configuration["SapAiCore:ServiceKeyPath"]
+                    ?? configuration["AiCore:ServiceKeyPath"]
+                    ?? "aicore-service-key.json"));
 
             options.DeploymentId ??= configuration["AICORE_DEPLOYMENT_ID"]
                 ?? configuration["AiCore:DeploymentId"];
@@ -89,7 +91,9 @@ public static class AiGatewayRegistration
             var clientId = opts.ClientId
                 ?? configuration["AiCore:ClientId"]
                 ?? configuration[$"{SapAiCoreOptions.SectionName}:ClientId"];
-            var configured = !string.IsNullOrWhiteSpace(key) || !string.IsNullOrWhiteSpace(clientId);
+            var configured = AiCoreServiceKey.IsValidBindingJson(key)
+                || !string.IsNullOrWhiteSpace(key)
+                || !string.IsNullOrWhiteSpace(clientId);
             return configured
                 ? sp.GetRequiredService<SapOrchestrationProvider>()
                 : sp.GetRequiredService<StubAiProvider>();

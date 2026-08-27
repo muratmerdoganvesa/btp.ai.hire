@@ -39,8 +39,8 @@ public sealed class SapAiCoreOptions
     public int MaxRetries { get; set; } = 3;
 
     /// <summary>
-    /// Orchestration placeholder bag key. Verified landscapes use "placeholder_values";
-    /// some older deployments expect "input_params". Flip after a 400 on first call.
+    /// Orchestration placeholder bag key. Current AI Core deployments accept only
+    /// "placeholder_values"; sending both keys returns 400 (additional properties).
     /// </summary>
     public string PlaceholderValuesKey { get; set; } = "placeholder_values";
 }
@@ -77,12 +77,8 @@ public sealed class SapOrchestrationProvider(
 
     public static AiCoreBinding ParseBinding(string? json)
     {
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            throw new InvalidOperationException("AICORE_SERVICE_KEY / SapAiCore:ServiceKeyJson is not set.");
-        }
-
-        using var document = System.Text.Json.JsonDocument.Parse(json);
+        var normalized = AiCoreServiceKey.RequireJson(json);
+        using var document = System.Text.Json.JsonDocument.Parse(normalized);
         var root = document.RootElement;
         var clientId = root.GetProperty("clientid").GetString()
             ?? throw new InvalidOperationException("AI Core binding omitted clientid.");

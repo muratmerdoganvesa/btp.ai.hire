@@ -256,13 +256,8 @@ public sealed class OrchestrationClient(
         string placeholderKey,
         IReadOnlyDictionary<string, string> placeholders)
     {
-        body["placeholder_values"] = placeholders;
-        body["input_params"] = placeholders;
-        if (!placeholderKey.Equals("placeholder_values", StringComparison.Ordinal)
-            && !placeholderKey.Equals("input_params", StringComparison.Ordinal))
-        {
-            body[placeholderKey] = placeholders;
-        }
+        // Generic orchestration rejects unknown sibling keys (400: input_params unexpected).
+        body[placeholderKey] = placeholders;
     }
 
     private static (string Content, int PromptTokens, int CompletionTokens) ExtractContent(string raw) =>

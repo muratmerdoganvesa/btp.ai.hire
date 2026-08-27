@@ -122,6 +122,13 @@ public sealed class CriteriaExtractionService(
             return "AI Core kimliği doğrulanamadı. AICORE_SERVICE_KEY ve resource group ayarını kontrol edin.";
         }
 
+        if (ex.Message.Contains("invalid start of a value", StringComparison.OrdinalIgnoreCase)
+            || ex.Message.Contains(AiCoreServiceKey.PowerShellCorruptionMessage, StringComparison.Ordinal)
+            || (ex.Message.Contains("'$'", StringComparison.Ordinal) && ex.Message.Contains("JSON", StringComparison.OrdinalIgnoreCase)))
+        {
+            return AiCoreServiceKey.PowerShellCorruptionMessage;
+        }
+
         var detail = ex.Message;
         return string.IsNullOrWhiteSpace(detail)
             ? "Servis yanıt vermiyor. Kriterleri elle girebilirsiniz."
