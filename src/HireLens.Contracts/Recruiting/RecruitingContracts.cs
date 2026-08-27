@@ -10,7 +10,9 @@ public sealed record PositionDto(
     DateTimeOffset CreatedAt,
     string? Slug = null,
     PositionStatsDto? Stats = null,
-    IReadOnlyList<ExtractedInterviewQuestionDto>? InterviewQuestions = null);
+    IReadOnlyList<ExtractedInterviewQuestionDto>? InterviewQuestions = null,
+    IReadOnlyList<UnmeasurablePhraseDto>? Unmeasurable = null,
+    IReadOnlyList<FlaggedPhraseDto>? FlaggedPhrases = null);
 
 public interface IPositionStatsPort
 {

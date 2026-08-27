@@ -121,6 +121,11 @@ public sealed class Position : ITenantEntity, ISoftDelete
         InterviewQuestionsJson = string.IsNullOrWhiteSpace(json) ? "[]" : json.Trim();
     }
 
+    public void SetExtractionNotesJson(string? json)
+    {
+        ExtractionNotesJson = string.IsNullOrWhiteSpace(json) ? "{}" : json.Trim();
+    }
+
     public static string BuildSlug(string title, Guid id)
     {
         var normalized = title.Trim().ToLowerInvariant();
