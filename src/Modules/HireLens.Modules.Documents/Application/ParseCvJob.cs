@@ -162,9 +162,17 @@ public sealed class ParseCvJob(
                     SystemPrompt: prompt.SystemPrompt,
                     UserPrompt: prompt.UserTemplate,
                     DeploymentId: deploymentId),
-                new AiOptions(MaxOutputTokens: 2048, Temperature: 0.1),
+                new AiOptions(MaxOutputTokens: 8000, Temperature: 0.1),
                 cancellationToken);
-            return CvExtractionMapper.IsUsable(result.Value);
+            var usable = CvExtractionMapper.IsUsable(result.Value);
+            if (!usable)
+            {
+                logger.LogWarning(
+                    "CV extraction JSON was not usable. Preview={Preview}",
+                    Truncate(result.Value));
+            }
+
+            return usable;
         }
         catch (Exception ex)
         {
@@ -175,4 +183,14 @@ public sealed class ParseCvJob(
 
     private bool IsTesting =>
         string.Equals(env.EnvironmentName, "Testing", StringComparison.OrdinalIgnoreCase);
+
+    private static string Truncate(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "(empty)";
+        }
+
+        return value.Length <= 800 ? value : value[..800] + "…";
+    }
 }

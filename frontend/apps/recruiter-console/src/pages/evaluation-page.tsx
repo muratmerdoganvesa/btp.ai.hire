@@ -87,16 +87,16 @@ export function EvaluationPage() {
       return api.inviteInterview(candidateId, positionId);
     },
     onSuccess: async (result) => {
-      const absolute = result.inviteUrl.startsWith("http")
-        ? result.inviteUrl
-        : `${window.location.origin}${result.inviteUrl}`;
-      setInviteUrl(absolute);
+      setInviteUrl(toPublicInterviewUrl(result.inviteUrl));
       setInviteExpiresAt(result.expiresAt);
       setInviteError(null);
       setInterviewOpen(true);
       await queryClient.invalidateQueries({ queryKey: ["interview", candidateId] });
     },
-    onError: () => setInviteError(t("errors.generic"))
+    onError: (err) => {
+      const message = err instanceof Error ? err.message : "";
+      setInviteError(message ? `${t("errors.generic")} (${message.replace(/^http_\d+:/, "")})` : t("errors.generic"));
+    }
   });
 
   const deleteInterview = useMutation({
@@ -488,6 +488,21 @@ export function EvaluationPage() {
       </PageBody>
     </>
   );
+}
+
+function toPublicInterviewUrl(inviteUrl: string): string {
+  const origin = window.location.origin;
+  try {
+    if (inviteUrl.startsWith("http://") || inviteUrl.startsWith("https://")) {
+      const parsed = new URL(inviteUrl);
+      return `${origin}${parsed.pathname}${parsed.search}`;
+    }
+  } catch {
+    /* relative path */
+  }
+
+  const path = inviteUrl.startsWith("/") ? inviteUrl : `/interview/${inviteUrl}`;
+  return `${origin}${path}`;
 }
 
 function interviewStatusLabel(status: string, t: (key: string) => string): string {

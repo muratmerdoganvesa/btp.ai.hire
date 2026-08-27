@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using UglyToad.PdfPig;
+using UglyToad.PdfPig.Content;
 
 namespace HireLens.Modules.Documents.Application;
 
@@ -89,10 +90,47 @@ public static partial class CvTextExtractor
         var sb = new StringBuilder();
         foreach (var page in document.GetPages())
         {
-            sb.AppendLine(page.Text);
+            var ordered = ExtractPageReadingOrder(page);
+            sb.AppendLine(string.IsNullOrWhiteSpace(ordered) ? page.Text : ordered);
         }
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Designer CVs paint glyphs in drawing order (header color, icons, columns),
+    /// not reading order. <see cref="Page.Text"/> then looks garbled to the LLM.
+    /// </summary>
+    private static string ExtractPageReadingOrder(Page page)
+    {
+        var words = page.GetWords().ToList();
+        if (words.Count == 0)
+        {
+            return page.Text ?? string.Empty;
+        }
+
+        var lineTolerance = Math.Max(2.0, page.Height * 0.01);
+        var lines = new List<List<Word>>();
+        foreach (var word in words
+                     .OrderByDescending(w => w.BoundingBox.Centroid.Y)
+                     .ThenBy(w => w.BoundingBox.Left))
+        {
+            var y = word.BoundingBox.Centroid.Y;
+            var current = lines.Count == 0 ? null : lines[^1];
+            if (current is null || Math.Abs(current[0].BoundingBox.Centroid.Y - y) > lineTolerance)
+            {
+                current = [];
+                lines.Add(current);
+            }
+
+            current.Add(word);
+        }
+
+        return string.Join(
+            '\n',
+            lines.Select(line => string.Join(
+                ' ',
+                line.OrderBy(w => w.BoundingBox.Left).Select(w => w.Text))));
     }
 
     private static string ExtractDocx(byte[] bytes)

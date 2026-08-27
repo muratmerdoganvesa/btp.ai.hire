@@ -104,17 +104,17 @@ public sealed class InterviewService(
             }
         }
 
-        var url = BuildInviteUrl(token);
+        var path = $"/interview/{token}";
         await notifications.SendAsync(
             new NotificationDraft(
                 request.CandidateId,
                 "email",
                 "HireLens interview invitation",
                 "A signed video interview link was issued (3 camera answers → transcript).",
-                url),
+                ToAbsoluteInviteUrl(path)),
             cancellationToken);
 
-        return Result.Success(new InterviewInviteDto(session.Id, url, session.ExpiresAt, session.VideoMeetingUrl));
+        return Result.Success(new InterviewInviteDto(session.Id, path, session.ExpiresAt, session.VideoMeetingUrl));
     }
 
     public async Task<Result<IReadOnlyList<InterviewBoardItemDto>>> ListBoardAsync(CancellationToken cancellationToken)
@@ -540,20 +540,17 @@ public sealed class InterviewService(
         return Result.Success();
     }
 
-    private string BuildInviteUrl(string token)
+    private string ToAbsoluteInviteUrl(string path)
     {
         var host = configuration["PUBLIC_HOST"]
             ?? configuration["App:PublicHost"]
-            ?? configuration["BTP:PublicHost"];
-        if (string.IsNullOrWhiteSpace(host))
-        {
-            return $"/interview/{token}";
-        }
-
+            ?? configuration["BTP:PublicHost"]
+            ?? "hirelens-web.cfapps.eu20-002.hana.ondemand.com";
+        host = host.Trim().Replace("eu10-002", "eu20-002", StringComparison.OrdinalIgnoreCase);
         var baseUrl = host.StartsWith("http", StringComparison.OrdinalIgnoreCase)
             ? host.TrimEnd('/')
-            : $"https://{host.Trim().TrimEnd('/')}";
-        return $"{baseUrl}/interview/{token}";
+            : $"https://{host.TrimEnd('/')}";
+        return $"{baseUrl}{path}";
     }
 
     private async Task<Result<InterviewSession>> OpenAsync(string token, CancellationToken cancellationToken)

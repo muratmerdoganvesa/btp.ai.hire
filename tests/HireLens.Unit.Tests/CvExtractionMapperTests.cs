@@ -30,6 +30,21 @@ public sealed class CvExtractionMapperTests
     }
 
     [Fact]
+    public void Accepts_poor_parseQuality_when_skills_are_present()
+    {
+        const string json = """
+            {
+              "parseQuality": "poor",
+              "skills": [{ "name": "Python", "evidenceQuote": "Python developer" }],
+              "experience": [],
+              "education": []
+            }
+            """;
+
+        CvExtractionMapper.IsUsable(json).Should().BeTrue();
+    }
+
+    [Fact]
     public void Rejects_stub_payload()
     {
         CvExtractionMapper.IsUsable("""{"status":"unknown","note":"stub-provider"}""").Should().BeFalse();
