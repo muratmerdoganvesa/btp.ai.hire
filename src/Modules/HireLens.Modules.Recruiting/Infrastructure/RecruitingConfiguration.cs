@@ -13,6 +13,7 @@ public sealed class PositionConfiguration : IEntityTypeConfiguration<Position>
         builder.Property(p => p.Title).HasMaxLength(200).IsRequired();
         builder.Property(p => p.JobDescription).IsRequired();
         builder.Property(p => p.Slug).HasMaxLength(220).IsRequired();
+        builder.Property(p => p.InterviewQuestionsJson);
         builder.Property(p => p.IsDeleted).IsRequired();
         builder.HasIndex(p => new { p.TenantId, p.Slug }).IsUnique();
         builder.HasIndex(p => new { p.TenantId, p.IsDeleted });

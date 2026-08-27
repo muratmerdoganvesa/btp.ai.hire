@@ -337,9 +337,9 @@ export function EvaluationPage() {
                 </CardHeader>
                 <CardContent>
                   <ul className="flex flex-col gap-2">
-                    {evaluation.data!.followUps.map((item) => (
+                    {evaluation.data!.followUps.map((item, index) => (
                       <li
-                        key={item}
+                        key={`${index}-${item.slice(0, 24)}`}
                         className="rounded-xl border border-border/70 bg-brand-0/50 px-3 py-2.5 text-sm leading-6"
                       >
                         {item}

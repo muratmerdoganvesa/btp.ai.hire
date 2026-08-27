@@ -65,6 +65,7 @@ public sealed class PositionService(
         }
 
         db.Set<Position>().Add(created.Value);
+        created.Value.SetInterviewQuestionsJson(PositionInterviewQuestions.Serialize(request.InterviewQuestions));
         await db.SaveChangesAsync(cancellationToken);
         return Result.Success(ToDto(created.Value));
     }
@@ -90,6 +91,7 @@ public sealed class PositionService(
             return Result.Failure<PositionDto>(criteria.Error);
         }
 
+        row.SetInterviewQuestionsJson(PositionInterviewQuestions.Serialize(request.InterviewQuestions));
         await db.SaveChangesAsync(cancellationToken);
         return Result.Success(ToDto(row));
     }
@@ -136,7 +138,12 @@ public sealed class PositionService(
         var result = await GetAsync(positionId, cancellationToken);
         return result.IsFailure
             ? null
-            : new PositionSnapshot(result.Value.Id, result.Value.Title, result.Value.JobDescription, result.Value.Criteria);
+            : new PositionSnapshot(
+                result.Value.Id,
+                result.Value.Title,
+                result.Value.JobDescription,
+                result.Value.Criteria,
+                result.Value.InterviewQuestions);
     }
 
     private static PositionDto ToDto(Position position, PositionStatsDto? stats = null) =>
@@ -149,5 +156,6 @@ public sealed class PositionService(
             string.IsNullOrWhiteSpace(position.Slug)
                 ? Position.BuildSlug(position.Title, position.Id)
                 : position.Slug,
-            stats);
+            stats,
+            PositionInterviewQuestions.Deserialize(position.InterviewQuestionsJson));
 }

@@ -81,6 +81,27 @@ public sealed class InterviewService(
         db.Set<InterviewSession>().Add(session);
         await db.SaveChangesAsync(cancellationToken);
 
+        await SeedQuestionsAsync(session, cancellationToken);
+        if (session.Questions.Count > 0)
+        {
+            if (UsesRelationalSql())
+            {
+                foreach (var question in session.Questions)
+                {
+                    await InsertQuestionRawAsync(question, cancellationToken);
+                }
+            }
+            else
+            {
+                foreach (var question in session.Questions)
+                {
+                    db.Set<InterviewQuestion>().Add(question);
+                }
+
+                await db.SaveChangesAsync(cancellationToken);
+            }
+        }
+
         var url = BuildInviteUrl(token);
         await notifications.SendAsync(
             new NotificationDraft(
@@ -545,9 +566,42 @@ public sealed class InterviewService(
 
     private async Task SeedQuestionsAsync(InterviewSession session, CancellationToken cancellationToken)
     {
-        // Deterministic only — do not call the AI gateway here. Gateway SaveChanges /
-        // orchestration failures were surfacing as opaque "Sequence contains no elements"
-        // on the public start endpoint.
+        PositionSnapshot? position = null;
+        try
+        {
+            position = await positions.GetAsync(session.PositionId, cancellationToken);
+        }
+        catch
+        {
+            position = null;
+        }
+
+        var stored = (position?.InterviewQuestions ?? [])
+            .Where(q => !string.IsNullOrWhiteSpace(q.Question))
+            .Take(5)
+            .ToList();
+        if (stored.Count > 0 && position is not null)
+        {
+            var order = 1;
+            foreach (var question in stored)
+            {
+                var criterionId = ExtractedInterviewQuestionDto.ResolveCriterionId(
+                    position.Criteria,
+                    question.CriterionId);
+                if (criterionId == Guid.Empty)
+                {
+                    continue;
+                }
+
+                session.AddQuestion(criterionId, question.Question.Trim(), order++);
+            }
+
+            if (session.Questions.Count > 0)
+            {
+                return;
+            }
+        }
+
         IReadOnlyList<CriterionScoreDto> gaps = [];
         try
         {
@@ -559,16 +613,6 @@ public sealed class InterviewService(
             gaps = [];
         }
 
-        PositionSnapshot? position = null;
-        try
-        {
-            position = await positions.GetAsync(session.PositionId, cancellationToken);
-        }
-        catch
-        {
-            position = null;
-        }
-
         if (gaps.Count == 0 && position is not null)
         {
             gaps = position.Criteria
@@ -576,17 +620,17 @@ public sealed class InterviewService(
                 .ToList();
         }
 
-        var order = 1;
+        var fallbackOrder = 1;
         foreach (var gap in gaps.Take(3))
         {
-            session.AddQuestion(gap.CriterionId, $"Please share concrete evidence for {gap.CriterionName}.", order++);
+            session.AddQuestion(gap.CriterionId, $"{gap.CriterionName} için somut bir örnek paylaşır mısınız?", fallbackOrder++);
         }
 
         if (session.Questions.Count == 0 && position is not null)
         {
             foreach (var criterion in position.Criteria.Take(3))
             {
-                session.AddQuestion(criterion.Id, $"Please share concrete evidence for {criterion.Name}.", order++);
+                session.AddQuestion(criterion.Id, $"{criterion.Name} için somut bir örnek paylaşır mısınız?", fallbackOrder++);
             }
         }
     }

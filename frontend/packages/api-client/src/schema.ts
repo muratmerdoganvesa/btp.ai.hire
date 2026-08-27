@@ -82,6 +82,7 @@ export interface components {
       createdAt: string;
       slug?: string | null;
       stats?: components["schemas"]["PositionStats"] | null;
+      interviewQuestions?: components["schemas"]["ExtractedInterviewQuestion"][];
     };
     PositionStats: {
       totalCandidates: number;
@@ -115,6 +116,7 @@ export interface components {
       title: string;
       jobDescription: string;
       criteria: { name: string; description: string; weight: number }[];
+      interviewQuestions?: components["schemas"]["ExtractedInterviewQuestion"][];
     };
     ExtractCriteriaRequest: {
       jobTitle: string;

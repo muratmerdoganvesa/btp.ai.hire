@@ -70,6 +70,14 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
         weight: criterion.weight
       }))
     );
+    setInterviewQuestions(
+      (existing.data.interviewQuestions ?? []).map((item) => ({
+        questionId: item.questionId ?? "",
+        criterionId: item.criterionId ?? "",
+        question: item.question,
+        whatToListenFor: item.whatToListenFor ?? []
+      }))
+    );
   }, [existing.data]);
 
   const weightSum = useMemo(() => criteria.reduce((sum, row) => sum + (Number(row.weight) || 0), 0), [criteria]);
@@ -180,7 +188,15 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
           name: row.name.trim(),
           description: row.description.trim() || row.name.trim(),
           weight: Number(row.weight)
-        }))
+        })),
+        interviewQuestions: interviewQuestions
+          .filter((item) => item.question.trim().length > 0)
+          .map((item) => ({
+            questionId: item.questionId ?? "",
+            criterionId: item.criterionId ?? "",
+            question: item.question.trim(),
+            whatToListenFor: item.whatToListenFor ?? []
+          }))
       };
       return isEditing && positionId ? api.updatePosition(positionId, payload) : api.createPosition(payload);
     },

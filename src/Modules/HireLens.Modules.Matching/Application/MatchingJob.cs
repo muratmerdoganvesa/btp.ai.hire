@@ -153,9 +153,11 @@ public sealed class MatchingJob(
                     : "Evidence-bound scores are ready for human review.";
             }
 
-            var followUps = gaps.Count == 0
-                ? Array.Empty<string>()
-                : new[] { "Ask for evidence on criteria still marked insufficient." };
+            var followUps = (position.InterviewQuestions ?? [])
+                .Select(q => q.Question)
+                .Where(q => !string.IsNullOrWhiteSpace(q))
+                .Take(5)
+                .ToList();
 
             var opts = aiOptions.Value;
             evaluation.Complete(

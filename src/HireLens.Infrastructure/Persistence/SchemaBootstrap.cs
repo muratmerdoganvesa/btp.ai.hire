@@ -28,6 +28,7 @@ public static class SchemaBootstrap
         if (positionsExists && criteriaExists)
         {
             await EnsurePositionSlugColumnAsync(db, logger, cancellationToken);
+            await EnsurePositionInterviewQuestionsColumnAsync(db, logger, cancellationToken);
             logger.LogInformation("HireLens recruiting tables present (Positions, PositionCriteria).");
             return;
         }
@@ -51,7 +52,8 @@ public static class SchemaBootstrap
                     "Slug" NVARCHAR(220) DEFAULT '' NOT NULL,
                     "CreatedAt" NVARCHAR(48) NOT NULL,
                     "IsDeleted" BOOLEAN DEFAULT FALSE NOT NULL,
-                    "DeletedAt" NVARCHAR(48) NULL
+                    "DeletedAt" NVARCHAR(48) NULL,
+                    "InterviewQuestionsJson" NCLOB NULL
                 )
                 """,
                 cancellationToken);
@@ -101,6 +103,7 @@ public static class SchemaBootstrap
 
         logger.LogInformation("HireLens recruiting tables ready.");
         await EnsurePositionSlugColumnAsync(db, logger, cancellationToken);
+        await EnsurePositionInterviewQuestionsColumnAsync(db, logger, cancellationToken);
     }
 
     public static async Task EnsureCandidateTablesAsync(
@@ -180,6 +183,24 @@ public static class SchemaBootstrap
             cancellationToken);
 
         logger.LogInformation("Position slug column ensured.");
+    }
+
+    private static async Task EnsurePositionInterviewQuestionsColumnAsync(
+        HireLensDbContext db,
+        ILogger logger,
+        CancellationToken cancellationToken)
+    {
+        if (db.Database.IsInMemory() || !await TableExistsAsync(db, "POSITIONS", cancellationToken))
+        {
+            return;
+        }
+
+        await ExecuteIgnoreDuplicateAsync(
+            db,
+            logger,
+            """ALTER TABLE "Positions" ADD ("InterviewQuestionsJson" NCLOB NULL)""",
+            cancellationToken);
+        logger.LogInformation("Position interview questions column ensured.");
     }
 
     /// <summary>

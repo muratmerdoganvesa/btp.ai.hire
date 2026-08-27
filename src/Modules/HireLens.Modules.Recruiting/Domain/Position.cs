@@ -29,6 +29,8 @@ public sealed class Position : ITenantEntity, ISoftDelete
 
     public DateTimeOffset? DeletedAt { get; private set; }
 
+    public string? InterviewQuestionsJson { get; private set; }
+
     public IReadOnlyCollection<PositionCriterion> Criteria => _criteria;
 
     public static Result<Position> Create(
@@ -110,6 +112,11 @@ public sealed class Position : ITenantEntity, ISoftDelete
         Title = title.Trim();
         JobDescription = jobDescription.Trim();
         return Result.Success();
+    }
+
+    public void SetInterviewQuestionsJson(string? json)
+    {
+        InterviewQuestionsJson = string.IsNullOrWhiteSpace(json) ? "[]" : json.Trim();
     }
 
     public static string BuildSlug(string title, Guid id)

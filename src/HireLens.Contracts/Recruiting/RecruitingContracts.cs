@@ -9,7 +9,8 @@ public sealed record PositionDto(
     IReadOnlyList<PositionCriterionDto> Criteria,
     DateTimeOffset CreatedAt,
     string? Slug = null,
-    PositionStatsDto? Stats = null);
+    PositionStatsDto? Stats = null,
+    IReadOnlyList<ExtractedInterviewQuestionDto>? InterviewQuestions = null);
 
 public interface IPositionStatsPort
 {
@@ -57,7 +58,8 @@ public sealed record PublicApplicationStatusDto(
 public sealed record UpsertPositionRequest(
     string Title,
     string JobDescription,
-    IReadOnlyList<UpsertCriterionRequest> Criteria);
+    IReadOnlyList<UpsertCriterionRequest> Criteria,
+    IReadOnlyList<ExtractedInterviewQuestionDto>? InterviewQuestions = null);
 
 public sealed record UpsertCriterionRequest(string Name, string Description, int Weight);
 
@@ -73,7 +75,40 @@ public sealed record ExtractedInterviewQuestionDto(
     string QuestionId,
     string CriterionId,
     string Question,
-    IReadOnlyList<string> WhatToListenFor);
+    IReadOnlyList<string> WhatToListenFor)
+{
+    public static Guid ResolveCriterionId(
+        IReadOnlyList<PositionCriterionDto> criteria,
+        string? criterionIdOrName)
+    {
+        if (criteria.Count == 0)
+        {
+            return Guid.Empty;
+        }
+
+        if (!string.IsNullOrWhiteSpace(criterionIdOrName))
+        {
+            var needle = criterionIdOrName.Trim();
+            var exact = criteria.FirstOrDefault(c =>
+                string.Equals(c.Name, needle, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(c.Id.ToString(), needle, StringComparison.OrdinalIgnoreCase));
+            if (exact is not null)
+            {
+                return exact.Id;
+            }
+
+            var fuzzy = criteria.FirstOrDefault(c =>
+                c.Name.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                || needle.Contains(c.Name, StringComparison.OrdinalIgnoreCase));
+            if (fuzzy is not null)
+            {
+                return fuzzy.Id;
+            }
+        }
+
+        return criteria[0].Id;
+    }
+}
 
 public sealed record ExtractCriteriaResponse(
     IReadOnlyList<ExtractedCriterionDto> Criteria,
@@ -87,7 +122,8 @@ public sealed record PositionSnapshot(
     Guid Id,
     string Title,
     string JobDescription,
-    IReadOnlyList<PositionCriterionDto> Criteria);
+    IReadOnlyList<PositionCriterionDto> Criteria,
+    IReadOnlyList<ExtractedInterviewQuestionDto>? InterviewQuestions = null);
 
 public interface IPositionReadPort
 {
