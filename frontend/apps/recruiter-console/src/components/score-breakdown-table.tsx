@@ -4,13 +4,7 @@ import { useTranslation } from "react-i18next";
 import { ConfidenceMeter } from "./confidence-meter";
 import { EvidenceChip } from "./evidence-chip";
 
-export function ScoreBreakdownTable({
-  scores,
-  onSelect
-}: {
-  scores: CriterionScore[];
-  onSelect?: (quote: string) => void;
-}) {
+export function ScoreBreakdownTable({ scores }: { scores: CriterionScore[] }) {
   const { t } = useTranslation();
 
   return (
@@ -56,11 +50,7 @@ export function ScoreBreakdownTable({
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {row.evidence.map((item) => (
-                      <EvidenceChip
-                        key={`${item.startOffset}-${item.quote}`}
-                        evidence={item}
-                        onSelect={(e) => onSelect?.(e.quote)}
-                      />
+                      <EvidenceChip key={`${item.startOffset}-${item.quote}`} evidence={item} />
                     ))}
                   </div>
                 )}

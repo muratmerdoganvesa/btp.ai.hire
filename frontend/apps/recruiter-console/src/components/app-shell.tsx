@@ -1,31 +1,32 @@
 import { Button, InitialsAvatar, cn } from "@hirelens/ui";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { isDevAuth, logout as endSession } from "../auth-mode";
 import { useAuthStore } from "../auth-store";
 import { ProductTour } from "../tour/product-tour";
 
-function shortLabel(value: string | undefined): string {
-  if (!value) {
-    return "—";
-  }
-  if (value.length <= 18) {
-    return value;
-  }
-  return `${value.slice(0, 8)}…${value.slice(-4)}`;
-}
+const roleKeys: Record<string, string> = {
+  Recruiter: "login.roles.Recruiter",
+  HiringManager: "login.roles.HiringManager",
+  TenantAdmin: "login.roles.TenantAdmin"
+};
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const session = useAuthStore((s) => s.session);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const items = [
     { to: "/", label: t("nav.dashboard"), exact: true, tour: "tour-nav-dashboard" },
     { to: "/positions", label: t("nav.positions"), exact: false, tour: "tour-nav-positions" }
   ] as const;
+
+  const role = session?.roles[0];
+  const roleLabel = role && roleKeys[role] ? t(roleKeys[role]) : t("nav.recruiterRole");
+  const displayName = friendlySubject(session?.subject) ?? roleLabel;
 
   const logout = () => {
     endSession();
@@ -38,13 +39,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen bg-background text-foreground">
       <ProductTour />
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-border bg-surface px-4 py-7 lg:flex">
-        <Link to="/" className="px-2">
-          <span className="text-xl font-extrabold tracking-tight text-brand-6">HireLens</span>
-          <span className="mt-1 block text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-muted">
-            {t("nav.workspace")}
-          </span>
-        </Link>
-        <nav className="mt-10 flex flex-col gap-1">
+        <Brand />
+        <nav className="mt-10 flex flex-col gap-1" aria-label={t("nav.main")}>
           {items.map((item) => {
             const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
             return (
@@ -64,12 +60,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="mt-auto border-t border-border px-1 pt-5">
           <div className="flex items-center gap-2.5">
-            <InitialsAvatar name={session?.roles[0] ?? "HL"} className="size-8 rounded-full" />
+            <InitialsAvatar name={displayName} className="size-8 rounded-full" />
             <div className="min-w-0">
-              <p className="truncate text-sm font-bold">{session?.roles[0] ?? "Recruiter"}</p>
-              <p className="truncate text-xs text-muted" title={session?.subject}>
-                {shortLabel(session?.subject)}
-              </p>
+              <p className="truncate text-sm font-bold">{displayName}</p>
+              <p className="truncate text-xs text-muted">{roleLabel}</p>
             </div>
           </div>
           <Button variant="outline" size="sm" className="mt-3 w-full" onClick={logout}>
@@ -79,18 +73,83 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-border bg-surface px-4 py-3 lg:hidden">
-          <Link to="/" className="text-lg font-extrabold text-brand-6">
-            HireLens
-          </Link>
-          <Button variant="ghost" size="sm" onClick={logout}>
-            {t("dashboard.logout")}
-          </Button>
+        <header className="flex flex-col border-b border-border bg-surface lg:hidden">
+          <div className="flex items-center justify-between px-4 py-3">
+            <Brand compact />
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                aria-expanded={menuOpen}
+                aria-label={t("nav.menu")}
+                onClick={() => setMenuOpen((open) => !open)}
+              >
+                {menuOpen ? t("nav.close") : t("nav.menu")}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={logout}>
+                {t("dashboard.logout")}
+              </Button>
+            </div>
+          </div>
+          {menuOpen ? (
+            <nav className="flex flex-col gap-1 border-t border-border px-3 py-3" aria-label={t("nav.main")}>
+              {items.map((item) => {
+                const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    onClick={() => setMenuOpen(false)}
+                    className={cn(
+                      "rounded-xl px-3 py-2.5 text-sm font-semibold",
+                      active ? "hl-nav-active" : "text-muted hover:bg-brand-0"
+                    )}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          ) : null}
         </header>
-        <main className="hl-rise flex min-h-0 w-full min-w-0 flex-1 flex-col gap-3 overflow-hidden px-4 py-3 sm:px-5 sm:py-4 lg:px-6">
+        <main className="hl-rise flex min-h-0 w-full min-w-0 flex-1 flex-col gap-4 overflow-hidden px-4 py-4 sm:px-5 sm:py-5 lg:px-7">
           {children}
         </main>
       </div>
     </div>
   );
+}
+
+function Brand({ compact = false }: { compact?: boolean }) {
+  const { t } = useTranslation();
+  return (
+    <Link to="/" className={compact ? "" : "px-2"}>
+      <span className={cn("font-extrabold tracking-tight text-brand-6", compact ? "text-lg" : "text-xl")}>
+        HireLens
+      </span>
+      {!compact ? (
+        <span className="mt-1 block text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted">
+          {t("nav.workspace")}
+        </span>
+      ) : null}
+    </Link>
+  );
+}
+
+function friendlySubject(value: string | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+  if (/^[0-9a-f-]{36}$/i.test(value)) {
+    return null;
+  }
+  if (value.includes("@")) {
+    return value.split("@")[0] ?? value;
+  }
+  if (value.includes(".")) {
+    const part = value.split(".")[0];
+    return part ? part.charAt(0).toUpperCase() + part.slice(1) : value;
+  }
+  return value.length > 24 ? `${value.slice(0, 12)}…` : value;
 }

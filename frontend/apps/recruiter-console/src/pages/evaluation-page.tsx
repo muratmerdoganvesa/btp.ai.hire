@@ -6,17 +6,14 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
 import { AppShell } from "../components/app-shell";
-import { EvaluationAuditPanel } from "../components/evaluation-audit-panel";
-import { ScoreFormulaPanel } from "../components/score-formula-panel";
+import { AiDisclosureBanner } from "../components/ai-disclosure-banner";
 import { DecisionPanel } from "../components/decision-panel";
-import { EvidencePanel } from "../components/evidence-panel";
+import { EvaluationAuditPanel } from "../components/evaluation-audit-panel";
+import { GapCard } from "../components/gap-card";
+import { InterviewFramesGallery } from "../components/interview-frames-gallery";
+import { InterviewTranscript } from "../components/interview-transcript";
 import { RiskFlagList } from "../components/risk-flag-list";
 import { ScoreBreakdownTable } from "../components/score-breakdown-table";
-import { AiDisclosureBanner } from "../components/ai-disclosure-banner";
-import { GapCard } from "../components/gap-card";
-import { InterviewTranscript } from "../components/interview-transcript";
-import { InterviewFramesGallery } from "../components/interview-frames-gallery";
-import { SourceHighlighter } from "../components/source-highlighter";
 
 const outcomeKeys: Record<string, string> = {
   advance: "decision.advance",
@@ -29,7 +26,6 @@ export function EvaluationPage() {
   const navigate = useNavigate();
   const { candidateId } = useParams({ from: "/candidates/$candidateId" });
   const queryClient = useQueryClient();
-  const [quote, setQuote] = useState<string | null>(null);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [inviteExpiresAt, setInviteExpiresAt] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -73,7 +69,6 @@ export function EvaluationPage() {
         if (error instanceof ApiError && error.status === 404) {
           return null;
         }
-
         throw error;
       }
     }
@@ -97,10 +92,9 @@ export function EvaluationPage() {
       return api.inviteInterview(candidateId, positionId);
     },
     onSuccess: async (result) => {
-      const absolute =
-        result.inviteUrl.startsWith("http")
-          ? result.inviteUrl
-          : `${window.location.origin}${result.inviteUrl}`;
+      const absolute = result.inviteUrl.startsWith("http")
+        ? result.inviteUrl
+        : `${window.location.origin}${result.inviteUrl}`;
       setInviteUrl(absolute);
       setInviteExpiresAt(result.expiresAt);
       setInviteError(null);
@@ -146,10 +140,6 @@ export function EvaluationPage() {
     }
   };
 
-  const sourceText = (evaluation.data?.scores ?? [])
-    .flatMap((score) => score.evidence.map((item) => item.quote))
-    .join("\n");
-
   const criterionLabels = useMemo(() => {
     const map: Record<string, string> = {};
     for (const row of evaluation.data?.scores ?? []) {
@@ -157,6 +147,14 @@ export function EvaluationPage() {
     }
     return map;
   }, [evaluation.data?.scores]);
+
+  const missingCriteria = useMemo(
+    () =>
+      (evaluation.data?.scores ?? []).filter(
+        (row) => row.score === null || row.evidenceStatus === "Insufficient"
+      ),
+    [evaluation.data?.scores]
+  );
 
   const latestDecision = decisions.data?.[0];
   const hasEvaluation = Boolean(evaluation.data);
@@ -250,6 +248,7 @@ export function EvaluationPage() {
                 <CardTitle className="text-base font-extrabold tracking-tight">
                   {t("evaluation.aiSummary")}
                 </CardTitle>
+                <p className="text-xs text-muted">{t("evaluation.summaryHint")}</p>
               </CardHeader>
               <CardContent>
                 <p className="text-sm leading-7 text-foreground">
@@ -258,7 +257,16 @@ export function EvaluationPage() {
               </CardContent>
             </Card>
 
-            <ScoreBreakdownTable scores={evaluation.data!.scores} onSelect={setQuote} />
+            {missingCriteria.length > 0 ? (
+              <div className="rounded-2xl border border-amber-200/80 bg-amber-50/50 px-4 py-3">
+                <p className="text-sm font-bold text-amber-950">{t("evaluation.missingEvidence")}</p>
+                <p className="mt-1 text-sm text-amber-900/80">
+                  {missingCriteria.map((row) => row.criterionName).join(" · ")}
+                </p>
+              </div>
+            ) : null}
+
+            <ScoreBreakdownTable scores={evaluation.data!.scores} />
 
             {(evaluation.data!.followUps ?? []).length > 0 ? (
               <Card className="border-border/80">
@@ -282,13 +290,6 @@ export function EvaluationPage() {
               </Card>
             ) : null}
 
-            {sourceText ? (
-              <div className="grid gap-5 lg:grid-cols-2">
-                <EvidencePanel scores={evaluation.data!.scores} onSelect={(selected) => setQuote(selected)} />
-                <SourceHighlighter text={sourceText} quote={quote} />
-              </div>
-            ) : null}
-
             <details
               className="rounded-2xl border border-border bg-surface open:pb-4"
               open={interviewOpen}
@@ -302,28 +303,18 @@ export function EvaluationPage() {
                 <p className="mt-1 font-normal text-muted">{t("interview.inviteCardHint")}</p>
               </summary>
               <div className="flex flex-col gap-4 border-t border-border px-5 pt-4">
-                <p className="text-sm leading-relaxed text-muted">{t("interview.inviteCardBody")}</p>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={invite.isPending}
-                    onClick={() => invite.mutate()}
-                  >
-                    {invite.isPending ? t("interview.inviting") : t("interview.invite")}
-                  </Button>
-                </div>
+                <Button type="button" size="sm" className="w-fit" disabled={invite.isPending} onClick={() => invite.mutate()}>
+                  {invite.isPending ? t("interview.inviting") : t("interview.invite")}
+                </Button>
                 {(inviteUrl || interview.data) ? (
                   <div className="rounded-xl border border-border bg-brand-0/40 px-4 py-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-sm font-semibold">{t("interview.invited")}</p>
-                      {inviteExpiresAt || interview.data?.expiresAt ? (
-                        <p className="text-xs text-muted">
-                          {t("interview.expires")}:{" "}
-                          {new Date(inviteExpiresAt ?? interview.data!.expiresAt!).toLocaleString()}
-                        </p>
-                      ) : null}
-                    </div>
+                    <p className="text-sm font-semibold">{t("interview.invited")}</p>
+                    {inviteExpiresAt || interview.data?.expiresAt ? (
+                      <p className="mt-1 text-xs text-muted">
+                        {t("interview.expires")}:{" "}
+                        {new Date(inviteExpiresAt ?? interview.data!.expiresAt!).toLocaleString()}
+                      </p>
+                    ) : null}
                     {inviteUrl ? (
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <a
@@ -346,23 +337,21 @@ export function EvaluationPage() {
                       </p>
                     ) : null}
                     {interview.data ? (
-                      <div className="mt-3">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="text-danger hover:bg-danger-bg"
-                          disabled={deleteInterview.isPending}
-                          onClick={() => {
-                            if (!window.confirm(t("interview.deleteConfirm"))) {
-                              return;
-                            }
-                            deleteInterview.mutate();
-                          }}
-                        >
-                          {deleteInterview.isPending ? t("interview.deleting") : t("interview.delete")}
-                        </Button>
-                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 w-fit text-danger"
+                        disabled={deleteInterview.isPending}
+                        onClick={() => {
+                          if (!window.confirm(t("interview.deleteConfirm"))) {
+                            return;
+                          }
+                          deleteInterview.mutate();
+                        }}
+                      >
+                        {deleteInterview.isPending ? t("interview.deleting") : t("interview.delete")}
+                      </Button>
                     ) : null}
                   </div>
                 ) : null}
@@ -380,14 +369,6 @@ export function EvaluationPage() {
                 <GapCard gaps={interview.data.questions.map((question) => question.prompt)} />
                 <InterviewTranscript turns={interview.data.turns} />
                 <InterviewFramesGallery frames={interview.data.frames ?? []} />
-                {interview.data.summary ? (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">{t("interview.title")}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-sm leading-6">{interview.data.summary}</CardContent>
-                  </Card>
-                ) : null}
               </div>
             ) : null}
           </div>
@@ -404,7 +385,6 @@ export function EvaluationPage() {
                 await decide.mutateAsync(input);
               }}
             />
-            <ScoreFormulaPanel evaluation={evaluation.data!} />
             <RiskFlagList
               flags={[...(evaluation.data!.needsVerification ?? [])]}
               labelById={criterionLabels}

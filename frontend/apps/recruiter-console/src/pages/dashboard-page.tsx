@@ -5,14 +5,14 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
-import { AppShell } from "../components/app-shell";
-import { Pagination } from "../components/pagination";
 import { isDevAuth } from "../auth-mode";
 import { useAuthStore } from "../auth-store";
+import { AppShell } from "../components/app-shell";
+import { Pagination } from "../components/pagination";
 import { useTourStore } from "../tour/tour-store";
 
-const PAGE_SIZE = 10;
-type SortKey = "newest" | "title" | "candidates" | "pending" | "review";
+const PAGE_SIZE = 8;
+type SortKey = "review" | "candidates" | "newest" | "title";
 
 export function DashboardPage() {
   const { t } = useTranslation();
@@ -22,7 +22,7 @@ export function DashboardPage() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<SortKey>("newest");
+  const [sort, setSort] = useState<SortKey>("review");
 
   const seed = useMutation({
     mutationFn: () => api.seedDemo(),
@@ -46,11 +46,20 @@ export function DashboardPage() {
 
   const list = positions.data ?? [];
 
+  const needsReview = useMemo(
+    () =>
+      [...list]
+        .filter((p) => (p.stats?.reviewPendingCount ?? 0) > 0)
+        .sort((a, b) => (b.stats?.reviewPendingCount ?? 0) - (a.stats?.reviewPendingCount ?? 0))
+        .slice(0, 4),
+    [list]
+  );
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     let rows = [...list];
     if (q) {
-      rows = rows.filter((p) => p.title.toLowerCase().includes(q) || p.jobDescription.toLowerCase().includes(q));
+      rows = rows.filter((p) => p.title.toLowerCase().includes(q));
     }
 
     rows.sort((a, b) => {
@@ -59,12 +68,10 @@ export function DashboardPage() {
           return a.title.localeCompare(b.title, "tr");
         case "candidates":
           return (b.stats?.totalCandidates ?? 0) - (a.stats?.totalCandidates ?? 0);
-        case "pending":
-          return (b.stats?.pendingCount ?? 0) - (a.stats?.pendingCount ?? 0);
-        case "review":
-          return (b.stats?.reviewPendingCount ?? 0) - (a.stats?.reviewPendingCount ?? 0);
-        default:
+        case "newest":
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        default:
+          return (b.stats?.reviewPendingCount ?? 0) - (a.stats?.reviewPendingCount ?? 0);
       }
     });
 
@@ -102,12 +109,11 @@ export function DashboardPage() {
 
   return (
     <AppShell>
-      <header className="flex shrink-0 flex-col gap-3 border-b border-border pb-3 sm:flex-row sm:items-center sm:justify-between">
+      <header className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">{workspaceName}</p>
-          <h1 className="text-xl font-extrabold leading-tight tracking-tight text-foreground sm:text-2xl">
-            {t("dashboard.title")}
-          </h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">{workspaceName}</p>
+          <h1 className="mt-1 text-2xl font-extrabold tracking-tight sm:text-3xl">{t("dashboard.title")}</h1>
+          <p className="mt-1 max-w-xl text-sm text-muted">{t("dashboard.subtitle")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button type="button" variant="outline" size="sm" onClick={() => startTour(true)}>
@@ -121,7 +127,7 @@ export function DashboardPage() {
 
       <section
         data-tour="tour-funnel"
-        className="grid shrink-0 grid-cols-2 divide-border overflow-hidden rounded-xl border border-border bg-surface sm:grid-cols-4 sm:divide-x"
+        className="grid shrink-0 grid-cols-2 gap-3 sm:grid-cols-4"
       >
         <Kpi label={t("dashboard.openReqs")} value={list.length} />
         <Kpi label={t("dashboard.funnelCandidates")} value={totals.candidates} />
@@ -129,53 +135,86 @@ export function DashboardPage() {
         <Kpi label={t("dashboard.reviewPending")} value={totals.review} emphasize={totals.review > 0} />
       </section>
 
-      <section data-tour="tour-recent" className="flex min-h-0 flex-1 flex-col gap-2">
+      {needsReview.length > 0 ? (
+        <section className="shrink-0 rounded-2xl border border-amber-200/80 bg-amber-50/60 p-4 sm:p-5">
+          <div className="mb-3 flex items-end justify-between gap-2">
+            <div>
+              <h2 className="text-base font-extrabold tracking-tight">{t("dashboard.attentionTitle")}</h2>
+              <p className="text-sm text-muted">{t("dashboard.attentionHint")}</p>
+            </div>
+          </div>
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {needsReview.map((position) => (
+              <li key={position.id}>
+                <Link
+                  to="/positions/$positionId"
+                  params={{ positionId: position.id }}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-white px-4 py-3 transition-colors hover:border-brand-4"
+                >
+                  <span className="min-w-0 truncate font-semibold">{position.title}</span>
+                  <span className="shrink-0 rounded-lg bg-amber-100 px-2 py-1 text-xs font-bold text-amber-800">
+                    {t("dashboard.reviewBadge", { count: position.stats?.reviewPendingCount ?? 0 })}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      <section data-tour="tour-recent" className="flex min-h-0 flex-1 flex-col gap-3">
         <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-base font-extrabold tracking-tight">{t("dashboard.jobList")}</h2>
+          <div>
+            <h2 className="text-base font-extrabold tracking-tight">{t("dashboard.jobList")}</h2>
+            <p className="text-xs text-muted">{t("dashboard.jobListHint")}</p>
+          </div>
           <div className="flex flex-wrap items-center gap-2">
-            <label className="sr-only" htmlFor="dashboard-search">
-              {t("dashboard.search")}
-            </label>
             <input
-              id="dashboard-search"
               value={query}
               placeholder={t("dashboard.searchPlaceholder")}
               onChange={(event) => {
                 setQuery(event.target.value);
                 setPage(1);
               }}
-              className="h-9 w-full min-w-[12rem] rounded-lg border border-border bg-surface px-3 text-sm outline-none placeholder:text-muted focus-visible:border-brand-5 focus-visible:ring-2 focus-visible:ring-brand-6/15 sm:w-56"
+              className="h-9 w-full min-w-[11rem] rounded-xl border border-border bg-surface px-3 text-sm outline-none placeholder:text-muted focus-visible:border-brand-5 focus-visible:ring-2 focus-visible:ring-brand-6/15 sm:w-52"
+              aria-label={t("dashboard.search")}
             />
-            <label className="sr-only" htmlFor="dashboard-sort">
-              {t("dashboard.sort")}
-            </label>
-            <select
-              id="dashboard-sort"
-              className="h-9 rounded-lg border border-border bg-surface px-3 text-sm outline-none focus-visible:border-brand-5 focus-visible:ring-2 focus-visible:ring-brand-6/15"
-              value={sort}
-              onChange={(event) => {
-                setSort(event.target.value as SortKey);
-                setPage(1);
-              }}
-            >
-              <option value="newest">{t("dashboard.sortNewest")}</option>
-              <option value="title">{t("dashboard.sortTitle")}</option>
-              <option value="candidates">{t("dashboard.sortCandidates")}</option>
-              <option value="pending">{t("dashboard.sortPending")}</option>
-              <option value="review">{t("dashboard.sortReview")}</option>
-            </select>
+            <div className="flex rounded-xl border border-border bg-surface p-0.5" role="group" aria-label={t("dashboard.sort")}>
+              {(
+                [
+                  ["review", t("dashboard.sortReview")],
+                  ["candidates", t("dashboard.sortCandidates")],
+                  ["newest", t("dashboard.sortNewest")]
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => {
+                    setSort(id);
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "h-8 rounded-lg px-2.5 text-xs font-bold transition-colors",
+                    sort === id ? "bg-brand-6 text-white" : "text-muted hover:bg-brand-0 hover:text-foreground"
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-surface">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-surface">
           {positions.isLoading ? (
             <div className="space-y-0 divide-y divide-border">
               {Array.from({ length: 5 }).map((_, index) => (
-                <div key={index} className="h-11 animate-pulse bg-brand-0/60" />
+                <div key={index} className="h-14 animate-pulse bg-brand-0/60" />
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="px-6 py-10 text-center">
+            <div className="px-6 py-12 text-center">
               <p className="text-base font-bold text-foreground">
                 {list.length === 0 ? t("dashboard.empty") : t("dashboard.noResults")}
               </p>
@@ -197,32 +236,12 @@ export function DashboardPage() {
             </div>
           ) : (
             <>
-              <div className="min-h-0 flex-1 overflow-auto">
-                <table className="w-full min-w-[44rem] text-left text-sm">
-                  <thead className="sticky top-0 z-10 bg-surface">
-                    <tr className="border-b border-border text-[0.7rem] font-bold uppercase tracking-[0.08em] text-muted">
-                      <th className="px-3 py-2.5 font-bold sm:px-4">{t("dashboard.colTitle")}</th>
-                      <th className="px-3 py-2.5 text-right font-bold tabular-nums">{t("dashboard.colCandidates")}</th>
-                      <th className="hidden px-3 py-2.5 text-right font-bold tabular-nums md:table-cell">
-                        {t("dashboard.colEvaluated")}
-                      </th>
-                      <th className="hidden px-3 py-2.5 text-right font-bold tabular-nums md:table-cell">
-                        {t("dashboard.colPending")}
-                      </th>
-                      <th className="px-3 py-2.5 text-right font-bold tabular-nums">{t("dashboard.colReview")}</th>
-                      <th className="px-3 py-2.5 text-right font-bold sm:px-4">
-                        <span className="sr-only">{t("dashboard.colActions")}</span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pageRows.map((position) => (
-                      <JobRow key={position.id} position={position} />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="shrink-0 px-3 pb-3 sm:px-4">
+              <ul className="min-h-0 flex-1 divide-y divide-border overflow-auto">
+                {pageRows.map((position) => (
+                  <JobRow key={position.id} position={position} />
+                ))}
+              </ul>
+              <div className="shrink-0 border-t border-border px-3 py-3 sm:px-4">
                 <Pagination
                   page={page}
                   pageCount={pageCount}
@@ -244,6 +263,8 @@ function JobRow({ position }: { position: Position }) {
   const [copied, setCopied] = useState(false);
   const stats = position.stats;
   const review = stats?.reviewPendingCount ?? 0;
+  const total = stats?.totalCandidates ?? 0;
+  const evaluated = stats?.evaluatedCount ?? 0;
 
   const copyApplyLink = async () => {
     if (!position.slug) {
@@ -260,65 +281,61 @@ function JobRow({ position }: { position: Position }) {
   };
 
   return (
-    <tr className="border-b border-border last:border-0 transition-colors hover:bg-brand-0/40">
-      <td className="px-3 py-2 sm:px-4">
+    <li className="flex flex-col gap-3 px-4 py-4 transition-colors hover:bg-brand-0/35 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+      <div className="min-w-0 flex-1">
         <Link
           to="/positions/$positionId"
           params={{ positionId: position.id }}
-          className="block min-w-0 font-semibold tracking-tight text-foreground hover:text-brand-7"
+          className="block truncate text-base font-bold tracking-tight text-foreground hover:text-brand-7"
         >
-          <span className="line-clamp-1">{position.title}</span>
+          {position.title}
         </Link>
-      </td>
-      <td className="px-3 py-2 text-right tabular-nums text-foreground">{stats?.totalCandidates ?? 0}</td>
-      <td className="hidden px-3 py-2 text-right tabular-nums text-muted md:table-cell">
-        {stats?.evaluatedCount ?? 0}
-      </td>
-      <td className="hidden px-3 py-2 text-right tabular-nums text-muted md:table-cell">
-        {stats?.pendingCount ?? 0}
-      </td>
-      <td className="px-3 py-2 text-right">
-        <span
-          className={cn(
-            "inline-flex min-w-[1.75rem] justify-end tabular-nums font-semibold",
-            review > 0 ? "text-amber-700" : "text-muted"
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+          <span>
+            <strong className="font-semibold text-foreground">{total}</strong> {t("dashboard.colCandidates").toLowerCase()}
+          </span>
+          <span>
+            <strong className="font-semibold text-foreground">{evaluated}</strong>{" "}
+            {t("dashboard.colEvaluated").toLowerCase()}
+          </span>
+          {review > 0 ? (
+            <span className="font-semibold text-amber-800">
+              {t("dashboard.reviewBadge", { count: review })}
+            </span>
+          ) : (
+            <span>{t("dashboard.noReviewWaiting")}</span>
           )}
-        >
-          {review}
-        </span>
-      </td>
-      <td className="px-3 py-2 sm:px-4">
-        <div className="flex items-center justify-end gap-1.5">
-          {position.slug ? (
-            <button
-              type="button"
-              onClick={() => void copyApplyLink()}
-              className="rounded-lg px-2.5 py-1 text-xs font-semibold text-muted transition-colors hover:bg-brand-1 hover:text-brand-7"
-            >
-              {copied ? t("dashboard.linkCopied") : t("dashboard.copyLink")}
-            </button>
-          ) : null}
-          <Link
-            to="/positions/$positionId"
-            params={{ positionId: position.id }}
-            className="inline-flex h-8 shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-brand-6 px-3 text-xs font-semibold text-white transition-colors hover:bg-brand-7"
-          >
-            {t("positions.open")}
-          </Link>
         </div>
-      </td>
-    </tr>
+      </div>
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
+        {position.slug ? (
+          <Button type="button" variant="ghost" size="sm" onClick={() => void copyApplyLink()}>
+            {copied ? t("dashboard.linkCopied") : t("dashboard.copyLink")}
+          </Button>
+        ) : null}
+        <Button asChild size="sm">
+          <Link to="/positions/$positionId" params={{ positionId: position.id }}>
+            {t("dashboard.openCandidates")}
+          </Link>
+        </Button>
+      </div>
+    </li>
   );
 }
 
 function Kpi({ label, value, emphasize = false }: { label: string; value: number; emphasize?: boolean }) {
   return (
-    <div className="px-3 py-2.5 sm:px-4 sm:py-3">
-      <p className="text-[0.7rem] font-semibold text-muted">{label}</p>
+    <div
+      className={cn(
+        "rounded-2xl border px-4 py-3",
+        emphasize ? "border-amber-200 bg-amber-50/70" : "border-border bg-surface"
+      )}
+    >
+      <p className="text-xs font-semibold text-muted">{label}</p>
       <p
         className={cn(
-          "mt-0.5 text-xl font-extrabold tabular-nums tracking-tight sm:text-2xl",
-          emphasize ? "text-amber-700" : "text-foreground"
+          "mt-1 text-2xl font-extrabold tabular-nums tracking-tight",
+          emphasize ? "text-amber-800" : "text-foreground"
         )}
       >
         {value}
