@@ -32,7 +32,24 @@ public sealed record InterviewSessionDto(
     string? Summary,
     string? VideoMeetingUrl = null,
     DateTimeOffset? ExpiresAt = null,
-    IReadOnlyList<InterviewFrameDto>? Frames = null);
+    IReadOnlyList<InterviewFrameDto>? Frames = null,
+    string? CandidateName = null,
+    string? PositionTitle = null,
+    DateTimeOffset? CreatedAt = null);
+
+/// <summary>Recruiter board row for sent AI pre-interviews.</summary>
+public sealed record InterviewBoardItemDto(
+    Guid Id,
+    Guid CandidateId,
+    string CandidateName,
+    Guid PositionId,
+    string PositionTitle,
+    string Status,
+    int? InterviewScore,
+    int QuestionCount,
+    int AnswerCount,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset ExpiresAt);
 
 public sealed record InterviewAnswerRequest(string Text, IReadOnlyList<string>? FramesBase64 = null);
 

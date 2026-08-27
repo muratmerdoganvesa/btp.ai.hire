@@ -19,7 +19,7 @@ type NavItem = {
   labelKey: string;
   tour?: string;
   /** How to decide active state */
-  match: "exact" | "positions" | "candidates" | "create" | "pipeline";
+  match: "exact" | "positions" | "candidates" | "create" | "pipeline" | "interview";
   icon: NavIconName;
 };
 
@@ -34,7 +34,7 @@ const primaryNav: NavItem[] = [
 
 const processNav: NavItem[] = [
   { id: "pipeline", to: "/pipeline", labelKey: "nav.pipeline", match: "pipeline", icon: "pipeline" },
-  { id: "interview", to: "/pipeline", labelKey: "nav.aiInterview", match: "pipeline", icon: "interview" },
+  { id: "interview", to: "/interviews", labelKey: "nav.aiInterview", match: "interview", icon: "interview" },
   { id: "reports", to: "/", labelKey: "nav.reports", match: "exact", icon: "reports" }
 ];
 
@@ -209,6 +209,9 @@ function resolveActiveId(pathname: string): string | null {
   }
   if (pathname === "/pipeline") {
     return "pipeline";
+  }
+  if (pathname === "/interviews" || pathname.startsWith("/interviews/")) {
+    return "interview";
   }
   if (pathname === "/candidates" || pathname.startsWith("/candidates/")) {
     return "candidates";

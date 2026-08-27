@@ -19,6 +19,10 @@ public interface IInterviewService
 {
     Task<Result<InterviewInviteDto>> InviteAsync(InterviewInviteRequest request, CancellationToken cancellationToken);
 
+    Task<Result<IReadOnlyList<InterviewBoardItemDto>>> ListBoardAsync(CancellationToken cancellationToken);
+
+    Task<Result<InterviewSessionDto>> GetByIdAsync(Guid sessionId, CancellationToken cancellationToken);
+
     Task<Result<InterviewPrepDto>> PrepAsync(string token, CancellationToken cancellationToken);
 
     Task<Result<InterviewSessionDto>> GetByTokenAsync(string token, CancellationToken cancellationToken);
@@ -88,6 +92,95 @@ public sealed class InterviewService(
             cancellationToken);
 
         return Result.Success(new InterviewInviteDto(session.Id, url, session.ExpiresAt, session.VideoMeetingUrl));
+    }
+
+    public async Task<Result<IReadOnlyList<InterviewBoardItemDto>>> ListBoardAsync(CancellationToken cancellationToken)
+    {
+        RepositoryGuard.RequireTenant(tenant);
+        var sessions = await db.Set<InterviewSession>()
+            .AsNoTracking()
+            .OrderByDescending(s => s.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        if (sessions.Count == 0)
+        {
+            return Result.Success<IReadOnlyList<InterviewBoardItemDto>>([]);
+        }
+
+        var candidateIds = sessions.Select(s => s.CandidateId).Distinct().ToList();
+        var positionIds = sessions.Select(s => s.PositionId).Distinct().ToList();
+
+        var candidateNames = new Dictionary<Guid, string>();
+        foreach (var id in candidateIds)
+        {
+            var snap = await candidates.GetAsync(id, cancellationToken);
+            if (snap is not null)
+            {
+                candidateNames[id] = snap.DisplayName;
+            }
+        }
+
+        var positionTitles = new Dictionary<Guid, string>();
+        foreach (var id in positionIds)
+        {
+            var snap = await positions.GetAsync(id, cancellationToken);
+            if (snap is not null)
+            {
+                positionTitles[id] = snap.Title;
+            }
+        }
+
+        var sessionIds = sessions.Select(s => s.Id).ToList();
+        var questionCounts = await db.Set<InterviewQuestion>()
+            .AsNoTracking()
+            .Where(q => sessionIds.Contains(q.SessionId))
+            .GroupBy(q => q.SessionId)
+            .Select(g => new { SessionId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.SessionId, x => x.Count, cancellationToken);
+        var answerCounts = await db.Set<InterviewTurn>()
+            .AsNoTracking()
+            .Where(t => sessionIds.Contains(t.SessionId) && t.Role == "candidate")
+            .GroupBy(t => t.SessionId)
+            .Select(g => new { SessionId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.SessionId, x => x.Count, cancellationToken);
+
+        IReadOnlyList<InterviewBoardItemDto> rows = sessions
+            .Select(s => new InterviewBoardItemDto(
+                s.Id,
+                s.CandidateId,
+                candidateNames.GetValueOrDefault(s.CandidateId, "—"),
+                s.PositionId,
+                positionTitles.GetValueOrDefault(s.PositionId, "—"),
+                s.Status,
+                s.InterviewScore,
+                questionCounts.GetValueOrDefault(s.Id),
+                answerCounts.GetValueOrDefault(s.Id),
+                s.CreatedAt,
+                s.ExpiresAt))
+            .ToList();
+        return Result.Success(rows);
+    }
+
+    public async Task<Result<InterviewSessionDto>> GetByIdAsync(Guid sessionId, CancellationToken cancellationToken)
+    {
+        RepositoryGuard.RequireTenant(tenant);
+        var session = await db.Set<InterviewSession>()
+            .AsNoTracking()
+            .SingleOrDefaultAsync(s => s.Id == sessionId, cancellationToken);
+        if (session is null)
+        {
+            return Result.Failure<InterviewSessionDto>(Error.NotFound("Interview was not found."));
+        }
+
+        var frames = await db.Set<InterviewFrame>()
+            .AsNoTracking()
+            .Where(f => f.SessionId == session.Id)
+            .OrderBy(f => f.CapturedAt)
+            .ToListAsync(cancellationToken);
+
+        var candidate = await candidates.GetAsync(session.CandidateId, cancellationToken);
+        var position = await positions.GetAsync(session.PositionId, cancellationToken);
+        return Result.Success(ToDto(session, frames, candidate?.DisplayName, position?.Title));
     }
 
     public async Task<Result<InterviewPrepDto>> PrepAsync(string token, CancellationToken cancellationToken)
@@ -620,7 +713,9 @@ public sealed class InterviewService(
 
     private static InterviewSessionDto ToDto(
         InterviewSession session,
-        IReadOnlyList<InterviewFrame>? frames = null) =>
+        IReadOnlyList<InterviewFrame>? frames = null,
+        string? candidateName = null,
+        string? positionTitle = null) =>
         new(
             session.Id,
             session.CandidateId,
@@ -639,7 +734,10 @@ public sealed class InterviewService(
                 f.TurnId,
                 f.ContentType,
                 f.ImageBase64,
-                f.CapturedAt)).ToList());
+                f.CapturedAt)).ToList(),
+            candidateName,
+            positionTitle,
+            session.CreatedAt);
 
     private List<InterviewFrame> BuildFrames(
         InterviewSession session,

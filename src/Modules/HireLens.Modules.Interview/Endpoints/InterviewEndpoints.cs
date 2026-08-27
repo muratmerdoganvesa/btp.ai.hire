@@ -22,6 +22,19 @@ public static class InterviewEndpoints
                 : HttpResults.From(result);
         }).WithTags("Interview").RequireAuthorization();
 
+        endpoints.MapGet("/api/interviews", async (
+            IInterviewService interviews,
+            CancellationToken ct) => HttpResults.From(await interviews.ListBoardAsync(ct)))
+            .WithTags("Interview")
+            .RequireAuthorization();
+
+        endpoints.MapGet("/api/interviews/{sessionId:guid}", async (
+            Guid sessionId,
+            IInterviewService interviews,
+            CancellationToken ct) => HttpResults.From(await interviews.GetByIdAsync(sessionId, ct)))
+            .WithTags("Interview")
+            .RequireAuthorization();
+
         endpoints.MapGet("/api/candidates/{candidateId:guid}/interview", async (
             Guid candidateId,
             IInterviewService interviews,

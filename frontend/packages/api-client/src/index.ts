@@ -21,6 +21,43 @@ export type CandidateBoardItem = {
   recommendedAction: string | null;
   createdAt: string;
 };
+export type InterviewBoardItem = {
+  id: string;
+  candidateId: string;
+  candidateName: string;
+  positionId: string;
+  positionTitle: string;
+  status: string;
+  interviewScore: number | null;
+  questionCount: number;
+  answerCount: number;
+  createdAt: string;
+  expiresAt: string;
+};
+export type InterviewSessionDetail = {
+  id: string;
+  candidateId: string;
+  positionId: string;
+  status: string;
+  disclosureAccepted: boolean;
+  interviewScore: number | null;
+  questions: { id: string; criterionId: string; prompt: string; order: number }[];
+  turns: { id: string; role: string; text: string; questionId: string | null; createdAt: string }[];
+  summary: string | null;
+  videoMeetingUrl?: string | null;
+  expiresAt?: string | null;
+  frames?: {
+    id: string;
+    questionId: string | null;
+    turnId: string | null;
+    contentType: string;
+    imageBase64: string;
+    capturedAt: string;
+  }[];
+  candidateName?: string | null;
+  positionTitle?: string | null;
+  createdAt?: string | null;
+};
 export type Evaluation = components["schemas"]["Evaluation"];
 export type CriterionScore = components["schemas"]["CriterionScore"];
 export type Evidence = components["schemas"]["Evidence"];
@@ -205,6 +242,14 @@ export class ApiClient {
       positionId,
       videoMeetingUrl: videoMeetingUrl?.trim() || null
     });
+  }
+
+  public async listInterviews(): Promise<InterviewBoardItem[]> {
+    return this.get<InterviewBoardItem[]>("/api/interviews");
+  }
+
+  public async getInterviewSessionById(sessionId: string): Promise<InterviewSessionDetail> {
+    return this.get<InterviewSessionDetail>(`/api/interviews/${sessionId}`);
   }
 
   public async getInterview(candidateId: string): Promise<{

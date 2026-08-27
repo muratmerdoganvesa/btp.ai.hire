@@ -14,6 +14,8 @@ import { ApplyJobPage } from "./pages/apply/apply-job-page";
 import { ApplyConsentPage } from "./pages/apply/apply-consent-page";
 import { ApplyFormPage } from "./pages/apply/apply-form-page";
 import { ApplyDonePage, ApplyUnreadablePage } from "./pages/apply/apply-done-page";
+import { InterviewsPage } from "./pages/interviews-page";
+import { InterviewDetailPage } from "./pages/interview-detail-page";
 import { PublicInterviewPage } from "./pages/interview/public-interview-page";
 
 const rootRoute = createRootRoute({
@@ -100,6 +102,20 @@ const pipelineRoute = createRoute({
   component: PipelinePage
 });
 
+const interviewsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/interviews",
+  beforeLoad: requireSession,
+  component: InterviewsPage
+});
+
+const interviewDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/interviews/$sessionId",
+  beforeLoad: requireSession,
+  component: InterviewDetailPage
+});
+
 const applyJobRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/apply/$slug",
@@ -152,6 +168,8 @@ const routeTree = rootRoute.addChildren([
   positionDetailRoute,
   candidatesBoardRoute,
   pipelineRoute,
+  interviewsRoute,
+  interviewDetailRoute,
   evaluationRoute,
   applyJobRoute,
   applyConsentRoute,
