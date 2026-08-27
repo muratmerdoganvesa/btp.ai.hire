@@ -489,7 +489,15 @@
     "partial": "Partial",
     "limited": "Limited",
     "unknown": "Unknown",
-    "insufficient": "Insufficient evidence"
+    "insufficient": "Insufficient evidence",
+    "glossaryAria": "Explain score, coverage, and how ranking is calculated",
+    "glossaryTitle": "What do score and coverage mean?",
+    "glossaryScoreTitle": "Score",
+    "glossaryScoreBody": "0–100. Weighted average of job criteria that have a quotable evidence span in the CV (and interview, if any). The model does not output the total; the app computes it. Criteria without evidence are omitted, not scored as zero. Low match confidence reduces the points.",
+    "glossaryCoverageTitle": "Coverage",
+    "glossaryCoverageBody": "Share of rubric weight that had enough evidence to score. Example: score 59 with 28% coverage means 59 on the few scored criteria; most criteria were silent in the CV. Low coverage is missing information, not a weak candidate by itself.",
+    "glossaryHowTitle": "Scoring and rank",
+    "glossaryHowBody": "Suggested order is score first, then coverage on a tie. If an interview score exists, the overall number may blend CV and interview. You make the final call."
   },
   "interview": {
     "title": "AI pre-interview",

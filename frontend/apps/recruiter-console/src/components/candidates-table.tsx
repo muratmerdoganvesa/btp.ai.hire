@@ -2,6 +2,7 @@ import type { Candidate } from "@hirelens/api-client";
 import { Badge, Button, InitialsAvatar, cn } from "@hirelens/ui";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import { ScoringGlossary } from "./scoring-glossary";
 
 const actionLabels: Record<string, string> = {
   shortlist: "candidates.actionShortlist",
@@ -30,11 +31,11 @@ export function CandidatesTable({
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-surface">
-      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-5">
+      <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3 sm:px-5">
         <div>
           <h2 className="text-sm font-extrabold tracking-tight text-foreground">{t("candidates.rankingTitle")}</h2>
           <p className="text-xs text-muted">{t("candidates.rankingHint")}</p>
-          <p className="mt-1 text-xs font-semibold text-brand-7">{t("candidates.rankingRule")}</p>
+          <ScoringGlossary />
         </div>
         <p className="shrink-0 text-xs font-semibold tabular-nums text-muted">
           {rows.length} {t("candidates.count")}
