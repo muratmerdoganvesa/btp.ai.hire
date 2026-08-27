@@ -125,11 +125,14 @@ public static class AiGatewayRegistration
 
         yield return Path.GetFullPath(relativeOrAbsolute);
         yield return Path.Combine(Directory.GetCurrentDirectory(), relativeOrAbsolute);
+        yield return Path.Combine(Directory.GetCurrentDirectory(), "hirelens", relativeOrAbsolute);
+        yield return Path.Combine(AppContext.BaseDirectory, relativeOrAbsolute);
 
         var dir = new DirectoryInfo(Directory.GetCurrentDirectory());
         while (dir is not null)
         {
             yield return Path.Combine(dir.FullName, relativeOrAbsolute);
+            yield return Path.Combine(dir.FullName, "hirelens", relativeOrAbsolute);
             if (dir.Name.Equals("hirelens", StringComparison.OrdinalIgnoreCase))
             {
                 yield return Path.Combine(dir.FullName, relativeOrAbsolute);
