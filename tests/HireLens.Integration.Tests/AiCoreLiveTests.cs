@@ -2,6 +2,7 @@ using FluentAssertions;
 using HireLens.AiGateway.Masking;
 using HireLens.AiGateway.Providers;
 using HireLens.AiGateway.Routing;
+using HireLens.Modules.Documents.Application;
 using HireLens.Modules.Recruiting.Application;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -105,6 +106,65 @@ public sealed class AiCoreLiveTests
         var mapped = CriteriaExtractionMapper.Parse(result.Content);
         mapped.Criteria.Should().NotBeEmpty("AI Core kriter döndürmedi. Preview={0}", Truncate(result.Content));
         mapped.TotalWeight.Should().Be(100);
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task Cv_extraction_default_orchestration_returns_usable_profile()
+    {
+        var key = LoadServiceKey();
+        if (key is null)
+        {
+            return;
+        }
+
+        var options = Options.Create(new SapAiCoreOptions
+        {
+            ServiceKeyJson = key,
+            DeploymentId = "d08b1ad950db57c6",
+            ResourceGroup = "default",
+            ModelName = "anthropic--claude-4.5-haiku",
+            ModelVersion = "1",
+            TimeoutSeconds = 90,
+            MaxRetries = 2,
+            PlaceholderValuesKey = "placeholder_values"
+        });
+
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+        var tokens = new AiCoreTokenProvider(http, options, NullLogger<AiCoreTokenProvider>.Instance);
+        var client = new OrchestrationClient(http, tokens, options, NullLogger<OrchestrationClient>.Instance);
+        var provider = new SapOrchestrationProvider(client, options, NullLogger<SapOrchestrationProvider>.Instance);
+
+        var promptPath = FindRepoFile(Path.Combine("prompts", "CvExtraction", "v1.1.0.md"));
+        promptPath.Should().NotBeNull();
+        var promptText = await File.ReadAllTextAsync(promptPath!);
+        var split = promptText.IndexOf("\n---\n", StringComparison.Ordinal);
+        var system = split > 0 ? promptText[..split].Trim() : promptText;
+        var user = split > 0 ? promptText[(split + 5)..].Trim() : "{{?cv_text}}";
+
+        const string cvText = """
+            Senior backend engineer. 6 years C# / ASP.NET Core, REST APIs, Entity Framework, SQL Server.
+            Led a hiring pipeline service on SAP BTP. Docker, Kubernetes, Git. B.Sc. Computer Engineering.
+            """;
+
+        var result = await provider.CompleteAsync(
+            new MaskedPrompt(cvText, new Dictionary<string, string>()),
+            new ModelProfile("anthropic--claude-4.5-haiku", null, 2048, 0.1),
+            CancellationToken.None,
+            new OrchestrationPromptSpec(
+                SystemPrompt: system,
+                UserPrompt: user,
+                Placeholders: new Dictionary<string, string>
+                {
+                    ["cv_text"] = cvText,
+                    ["application_data"] = "yok"
+                },
+                DeploymentId: "d08b1ad950db57c6"));
+
+        result.Content.Should().NotBeNullOrWhiteSpace();
+        CvExtractionMapper.IsUsable(result.Content).Should().BeTrue(
+            "CV extraction AI kullanılamadı. Preview={0}",
+            Truncate(result.Content));
     }
 
     private static string? LoadServiceKey()

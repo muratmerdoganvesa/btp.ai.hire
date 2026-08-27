@@ -357,10 +357,10 @@ jobs:
           else
             ./cf set-env hirelens-api AICORE_CRITERIA_DEPLOYMENT_ID "dbec6f896a57c947"
           fi
-          ./cf set-env hirelens-api AICORE_CV_EXTRACTION_DEPLOYMENT_ID "084f3d02-26c3-407f-8a42-0a0d18b3dcd9"
-          ./cf set-env hirelens-worker AICORE_CV_EXTRACTION_DEPLOYMENT_ID "084f3d02-26c3-407f-8a42-0a0d18b3dcd9"
-          ./cf set-env hirelens-api AICORE_MATCHING_DEPLOYMENT_ID "b11163d0-bb50-4483-96a0-56618057278d"
-          ./cf set-env hirelens-worker AICORE_MATCHING_DEPLOYMENT_ID "b11163d0-bb50-4483-96a0-56618057278d"
+          ./cf unset-env hirelens-api AICORE_CV_EXTRACTION_DEPLOYMENT_ID || true
+          ./cf unset-env hirelens-worker AICORE_CV_EXTRACTION_DEPLOYMENT_ID || true
+          ./cf unset-env hirelens-api AICORE_MATCHING_DEPLOYMENT_ID || true
+          ./cf unset-env hirelens-worker AICORE_MATCHING_DEPLOYMENT_ID || true
           if [ -n "${AICORE_RG}" ]; then
             ./cf set-env hirelens-api AICORE_RESOURCE_GROUP "${AICORE_RG}"
             ./cf set-env hirelens-worker AICORE_RESOURCE_GROUP "${AICORE_RG}"

@@ -1,4 +1,6 @@
 using HireLens.AiGateway;
+using HireLens.AiGateway.Prompts;
+using HireLens.AiGateway.Providers;
 using HireLens.Contracts.Documents;
 using HireLens.Contracts.Evidence;
 using HireLens.Contracts.Matching;
@@ -9,7 +11,6 @@ using HireLens.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using HireLens.AiGateway.Providers;
 
 namespace HireLens.Modules.Matching.Application;
 
@@ -29,6 +30,7 @@ public sealed class MatchingJob(
     IDocumentTextPort documents,
     IEvidenceScoring evidence,
     IAiGateway gateway,
+    IPromptRegistry prompts,
     IOptions<SapAiCoreOptions> aiOptions,
     IAnalysisJobs jobs,
     IHostEnvironment env) : IEvaluationService
@@ -114,22 +116,21 @@ public sealed class MatchingJob(
             IReadOnlyList<ProposedCriterionScore> proposals;
             try
             {
-                var deploymentId = string.IsNullOrWhiteSpace(aiOptions.Value.MatchingDeploymentId)
-                    ? aiOptions.Value.DeploymentId
-                    : aiOptions.Value.MatchingDeploymentId;
+                var prompt = prompts.Get("JdCvMatching", "1.0.0");
                 var jobDescription = BuildJobDescription(position);
                 var aiResult = await gateway.ExecuteAsync<string>(
                     AiTaskType.JdCvMatching,
                     new PromptContext(
                         TaskInput: maskedText,
-                        PromptVersion: "1",
+                        PromptVersion: prompt.Version,
                         Variables: new Dictionary<string, string>
                         {
                             ["job_description"] = jobDescription,
                             ["cv_text"] = maskedText
                         },
-                        PlaceholdersOnly: true,
-                        DeploymentId: deploymentId),
+                        SystemPrompt: prompt.SystemPrompt,
+                        UserPrompt: prompt.UserTemplate,
+                        DeploymentId: aiOptions.Value.DeploymentId),
                     new AiOptions(MaxOutputTokens: 2048, Temperature: 0.1),
                     cancellationToken);
                 var mapped = CriteriaMatchingMapper.TryMap(aiResult.Value, position);

@@ -2,6 +2,7 @@ using System.Text;
 using System.Security.Cryptography;
 using HireLens.AiGateway;
 using HireLens.AiGateway.Masking;
+using HireLens.AiGateway.Prompts;
 using HireLens.AiGateway.Providers;
 using HireLens.Contracts.Documents;
 using HireLens.Contracts.Matching;
@@ -26,6 +27,7 @@ public sealed class ParseCvJob(
     IParseCache parseCache,
     IClock clock,
     IOptions<SapAiCoreOptions> aiCoreOptions,
+    IPromptRegistry prompts,
     IHostEnvironment env,
     ILogger<ParseCvJob> logger)
 {
@@ -143,21 +145,22 @@ public sealed class ParseCvJob(
     {
         try
         {
-            var deploymentId = string.IsNullOrWhiteSpace(aiCoreOptions.Value.CvExtractionDeploymentId)
-                ? aiCoreOptions.Value.DeploymentId
-                : aiCoreOptions.Value.CvExtractionDeploymentId;
+            // Hosted cv-extraction-v1 is not deployed in this landscape (404).
+            // Use defaultOrchestrationConfig with the repo prompt — still real AI Core.
+            var prompt = prompts.Get("CvExtraction", "1.1.0");
             var result = await gateway.ExecuteAsync<string>(
                 AiTaskType.CvExtraction,
                 new PromptContext(
                     TaskInput: masked,
-                    PromptVersion: "1",
+                    PromptVersion: prompt.Version,
                     Variables: new Dictionary<string, string>
                     {
                         ["cv_text"] = masked,
-                        ["application_data"] = string.Empty
+                        ["application_data"] = "yok"
                     },
-                    PlaceholdersOnly: true,
-                    DeploymentId: deploymentId),
+                    SystemPrompt: prompt.SystemPrompt,
+                    UserPrompt: prompt.UserTemplate,
+                    DeploymentId: aiCoreOptions.Value.DeploymentId),
                 new AiOptions(MaxOutputTokens: 2048, Temperature: 0.1),
                 cancellationToken);
             return CvExtractionMapper.IsUsable(result.Value);
