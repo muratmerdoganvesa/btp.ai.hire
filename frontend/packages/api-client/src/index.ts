@@ -73,6 +73,7 @@ export type PositionStats = components["schemas"]["PositionStats"];
 export type CandidateExport = components["schemas"]["CandidateExport"];
 export type ExtractCriteriaRequest = components["schemas"]["ExtractCriteriaRequest"];
 export type ExtractCriteriaResponse = components["schemas"]["ExtractCriteriaResponse"];
+export type ExtractedInterviewQuestion = components["schemas"]["ExtractedInterviewQuestion"];
 export type FlaggedPhrase = components["schemas"]["FlaggedPhrase"];
 export type UnmeasurablePhrase = components["schemas"]["UnmeasurablePhrase"];
 export type { paths, components } from "./schema";

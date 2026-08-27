@@ -169,12 +169,26 @@ public sealed class OrchestrationClient(
         string modelVersion,
         ModelProfile profile)
     {
-        var systemContent = promptSpec?.SystemPrompt ?? string.Empty;
-        var userContent = promptSpec?.UserPrompt ?? prompt.Text;
         var placeholders = promptSpec?.Placeholders ?? new Dictionary<string, string>
         {
             ["cv_text"] = prompt.Text
         };
+
+        var placeholderKey = string.IsNullOrWhiteSpace(options.Value.PlaceholderValuesKey)
+            ? "placeholder_values"
+            : options.Value.PlaceholderValuesKey;
+
+        // Hosted orchestration already has the prompt; only fill input variables.
+        if (promptSpec?.PlaceholdersOnly == true)
+        {
+            return new Dictionary<string, object?>
+            {
+                [placeholderKey] = placeholders
+            };
+        }
+
+        var systemContent = promptSpec?.SystemPrompt ?? string.Empty;
+        var userContent = promptSpec?.UserPrompt ?? prompt.Text;
 
         var template = new List<OrchestrationMessage>();
         if (!string.IsNullOrWhiteSpace(systemContent))
@@ -222,16 +236,11 @@ public sealed class OrchestrationClient(
             }
         };
 
-        var root = new Dictionary<string, object?>
+        return new Dictionary<string, object?>
         {
-            ["config"] = new Dictionary<string, object?> { ["modules"] = modules }
+            ["config"] = new Dictionary<string, object?> { ["modules"] = modules },
+            [placeholderKey] = placeholders
         };
-
-        var placeholderKey = string.IsNullOrWhiteSpace(options.Value.PlaceholderValuesKey)
-            ? "placeholder_values"
-            : options.Value.PlaceholderValuesKey;
-        root[placeholderKey] = placeholders;
-        return root;
     }
 
     private static (string Content, int PromptTokens, int CompletionTokens) ExtractContent(string raw)
@@ -288,4 +297,5 @@ public sealed record OrchestrationPromptSpec(
     IReadOnlyDictionary<string, string> Placeholders,
     JsonElement? ResponseSchema = null,
     string? SchemaName = null,
-    IReadOnlyDictionary<string, string>? Defaults = null);
+    IReadOnlyDictionary<string, string>? Defaults = null,
+    bool PlaceholdersOnly = false);

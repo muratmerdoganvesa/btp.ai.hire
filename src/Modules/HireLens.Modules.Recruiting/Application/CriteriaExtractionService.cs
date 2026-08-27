@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Net.Http;
 using System.Text.Json;
 using HireLens.AiGateway;
-using HireLens.AiGateway.Prompts;
 using HireLens.Contracts.Recruiting;
 using HireLens.SharedKernel;
 using Microsoft.Extensions.Logging;
@@ -16,13 +15,16 @@ public interface ICriteriaExtractionService
         CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// Calls the hosted SAP orchestration (jd-criteria-extraction-v1). Prompt lives in AI Core;
+/// we only send jd_title / jd_text and map the JSON response.
+/// </summary>
 public sealed class CriteriaExtractionService(
     IAiGateway gateway,
-    IPromptRegistry prompts,
     ILogger<CriteriaExtractionService> logger) : ICriteriaExtractionService
 {
-    private const string PromptId = "CriteriaExtraction";
-    private const string PromptVersion = "1";
+    private const string OrchestrationId = "jd-criteria-extraction-v1";
+    private const string PromptVersion = "0.0.1";
     private const int MinDescriptionLength = 100;
     private const int MaxDescriptionLength = 20_000;
 
@@ -56,35 +58,21 @@ public sealed class CriteriaExtractionService(
                 Error.Validation("İş tanımı çok uzun."));
         }
 
-        PromptDefinition prompt;
-        try
-        {
-            prompt = prompts.Get(PromptId, PromptVersion);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "CriteriaExtraction prompt missing");
-            return Result.Failure<ExtractCriteriaResponse>(
-                Error.Unavailable("Servis yanıt vermiyor. Kriterleri elle girebilirsiniz."));
-        }
-
         var sw = Stopwatch.StartNew();
         try
         {
-            // Deserialize in this assembly: AiGateway cannot construct private payload types.
             var aiResult = await gateway.ExecuteAsync<string>(
                 AiTaskType.CriteriaExtraction,
                 new PromptContext(
                     TaskInput: $"{title}\n---\n{description}",
-                    PromptVersion: prompt.Version,
+                    PromptVersion: PromptVersion,
                     Variables: new Dictionary<string, string>
                     {
-                        ["job_title"] = title,
-                        ["job_description"] = description
+                        ["jd_title"] = title,
+                        ["jd_text"] = description
                     },
-                    SystemPrompt: prompt.SystemPrompt,
-                    UserPrompt: prompt.UserTemplate),
-                new AiOptions(MaxOutputTokens: 4000, Temperature: 0),
+                    PlaceholdersOnly: true),
+                new AiOptions(MaxOutputTokens: 8000, Temperature: 0),
                 cancellationToken);
 
             sw.Stop();
@@ -92,16 +80,17 @@ public sealed class CriteriaExtractionService(
             var normalized = Normalize(payload);
 
             logger.LogInformation(
-                "AI call promptId={PromptId} promptVersion={PromptVersion} model={Model} inputTokens={InputTokens} outputTokens={OutputTokens} latencyMs={LatencyMs} status={Status} criteriaCount={CriteriaCount} warnings={Warnings}",
-                PromptId,
-                prompt.Version,
+                "AI call orchestration={Orchestration} promptVersion={PromptVersion} model={Model} inputTokens={InputTokens} outputTokens={OutputTokens} latencyMs={LatencyMs} status={Status} criteriaCount={CriteriaCount} interviewCount={InterviewCount} warnings={Warnings}",
+                OrchestrationId,
+                PromptVersion,
                 aiResult.ModelId,
                 aiResult.InputTokens,
                 aiResult.OutputTokens,
                 (long)aiResult.Latency.TotalMilliseconds,
                 "ok",
                 normalized.Criteria.Count,
-                string.Join(',', aiResult.Warnings));
+                normalized.InterviewQuestions.Count,
+                string.Join(',', aiResult.Warnings.Concat(normalized.Warnings)));
 
             return Result.Success(normalized);
         }
@@ -110,8 +99,8 @@ public sealed class CriteriaExtractionService(
             sw.Stop();
             logger.LogWarning(
                 ex,
-                "AI call promptId={PromptId} promptVersion={PromptVersion} latencyMs={LatencyMs} status={Status}",
-                PromptId,
+                "AI call orchestration={Orchestration} promptVersion={PromptVersion} latencyMs={LatencyMs} status={Status}",
+                OrchestrationId,
                 PromptVersion,
                 sw.ElapsedMilliseconds,
                 "unavailable");
@@ -123,8 +112,8 @@ public sealed class CriteriaExtractionService(
             sw.Stop();
             logger.LogError(
                 ex,
-                "AI call promptId={PromptId} promptVersion={PromptVersion} latencyMs={LatencyMs} status={Status}",
-                PromptId,
+                "AI call orchestration={Orchestration} promptVersion={PromptVersion} latencyMs={LatencyMs} status={Status}",
+                OrchestrationId,
                 PromptVersion,
                 sw.ElapsedMilliseconds,
                 "error");
@@ -176,16 +165,8 @@ public sealed class CriteriaExtractionService(
 
     private static ExtractCriteriaResponse Normalize(CriteriaExtractionAiPayload payload)
     {
-        var raw = (payload.Criteria ?? [])
-            .Where(c => !string.IsNullOrWhiteSpace(c.Label))
-            .Select(c => new ExtractedCriterionDto(
-                c.Label!.Trim(),
-                string.IsNullOrWhiteSpace(c.Description) ? c.Label!.Trim() : c.Description.Trim(),
-                Math.Max(0, c.Weight),
-                c.Mandatory))
-            .ToList();
-
-        var criteria = NormalizeWeights(raw);
+        var rawCriteria = ExtractCriteria(payload);
+        var criteria = NormalizeWeights(rawCriteria);
 
         var flagged = (payload.FlaggedPhrases ?? [])
             .Where(f => !string.IsNullOrWhiteSpace(f.Phrase))
@@ -202,12 +183,72 @@ public sealed class CriteriaExtractionService(
                 u.Reason?.Trim() ?? string.Empty))
             .ToList();
 
+        var interviewQuestions = (payload.InterviewQuestions ?? [])
+            .Where(q => !string.IsNullOrWhiteSpace(q.Question))
+            .Select(q => new ExtractedInterviewQuestionDto(
+                string.IsNullOrWhiteSpace(q.QuestionId) ? string.Empty : q.QuestionId.Trim(),
+                string.IsNullOrWhiteSpace(q.CriterionId) ? string.Empty : q.CriterionId.Trim(),
+                q.Question!.Trim(),
+                (q.WhatToListenFor ?? [])
+                    .Where(h => !string.IsNullOrWhiteSpace(h))
+                    .Select(h => h.Trim())
+                    .ToList()))
+            .Take(5)
+            .ToList();
+
+        var warnings = (payload.Warnings ?? [])
+            .Where(w => !string.IsNullOrWhiteSpace(w))
+            .Select(w => w.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
         return new ExtractCriteriaResponse(
             criteria,
             flagged,
             unmeasurable,
-            criteria.Sum(c => c.Weight));
+            criteria.Sum(c => c.Weight),
+            interviewQuestions,
+            warnings);
     }
+
+    private static List<ExtractedCriterionDto> ExtractCriteria(CriteriaExtractionAiPayload payload)
+    {
+        var fromRubric = (payload.Rubric?.Criteria ?? [])
+            .Select(MapCriterion)
+            .Where(c => c is not null)
+            .Select(c => c!)
+            .ToList();
+
+        if (fromRubric.Count > 0)
+        {
+            return fromRubric;
+        }
+
+        return (payload.Criteria ?? [])
+            .Select(MapCriterion)
+            .Where(c => c is not null)
+            .Select(c => c!)
+            .ToList();
+    }
+
+    private static ExtractedCriterionDto? MapCriterion(CriterionAi c)
+    {
+        var label = FirstNonEmpty(c.Name, c.Label);
+        if (string.IsNullOrWhiteSpace(label))
+        {
+            return null;
+        }
+
+        var description = string.IsNullOrWhiteSpace(c.Description) ? label : c.Description.Trim();
+        return new ExtractedCriterionDto(
+            label.Trim(),
+            description,
+            Math.Max(0, c.Weight),
+            c.Mandatory);
+    }
+
+    private static string? FirstNonEmpty(params string?[] values) =>
+        values.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v));
 
     internal static IReadOnlyList<ExtractedCriterionDto> NormalizeWeights(
         IReadOnlyList<ExtractedCriterionDto> criteria)
@@ -254,7 +295,13 @@ public sealed class CriteriaExtractionService(
 
     private sealed class CriteriaExtractionAiPayload
     {
+        public RubricAi? Rubric { get; set; }
+
         public List<CriterionAi>? Criteria { get; set; }
+
+        public List<InterviewQuestionAi>? InterviewQuestions { get; set; }
+
+        public List<string>? Warnings { get; set; }
 
         public List<FlaggedAi>? FlaggedPhrases { get; set; }
 
@@ -263,8 +310,19 @@ public sealed class CriteriaExtractionService(
         public int? TotalWeight { get; set; }
     }
 
+    private sealed class RubricAi
+    {
+        public List<CriterionAi>? Criteria { get; set; }
+
+        public int? WeightTotal { get; set; }
+    }
+
     private sealed class CriterionAi
     {
+        public string? CriterionId { get; set; }
+
+        public string? Name { get; set; }
+
         public string? Label { get; set; }
 
         public string? Description { get; set; }
@@ -272,6 +330,17 @@ public sealed class CriteriaExtractionService(
         public int Weight { get; set; }
 
         public bool Mandatory { get; set; }
+    }
+
+    private sealed class InterviewQuestionAi
+    {
+        public string? QuestionId { get; set; }
+
+        public string? CriterionId { get; set; }
+
+        public string? Question { get; set; }
+
+        public List<string>? WhatToListenFor { get; set; }
     }
 
     private sealed class FlaggedAi

@@ -135,11 +135,19 @@ export interface components {
       phrase: string;
       reason: string;
     };
+    ExtractedInterviewQuestion: {
+      questionId: string;
+      criterionId: string;
+      question: string;
+      whatToListenFor: string[];
+    };
     ExtractCriteriaResponse: {
       criteria: components["schemas"]["ExtractedCriterion"][];
       flaggedPhrases: components["schemas"]["FlaggedPhrase"][];
       unmeasurable: components["schemas"]["UnmeasurablePhrase"][];
       totalWeight: number;
+      interviewQuestions: components["schemas"]["ExtractedInterviewQuestion"][];
+      warnings: string[];
     };
     Candidate: {
       id: string;

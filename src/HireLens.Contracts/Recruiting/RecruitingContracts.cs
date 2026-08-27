@@ -69,11 +69,19 @@ public sealed record FlaggedPhraseDto(string Phrase, string Category, string Rea
 
 public sealed record UnmeasurablePhraseDto(string Phrase, string Reason);
 
+public sealed record ExtractedInterviewQuestionDto(
+    string QuestionId,
+    string CriterionId,
+    string Question,
+    IReadOnlyList<string> WhatToListenFor);
+
 public sealed record ExtractCriteriaResponse(
     IReadOnlyList<ExtractedCriterionDto> Criteria,
     IReadOnlyList<FlaggedPhraseDto> FlaggedPhrases,
     IReadOnlyList<UnmeasurablePhraseDto> Unmeasurable,
-    int TotalWeight);
+    int TotalWeight,
+    IReadOnlyList<ExtractedInterviewQuestionDto> InterviewQuestions,
+    IReadOnlyList<string> Warnings);
 
 public sealed record PositionSnapshot(
     Guid Id,

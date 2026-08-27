@@ -69,7 +69,15 @@ public sealed class AiGateway(
         }
 
         OrchestrationPromptSpec? promptSpec = null;
-        if (!string.IsNullOrWhiteSpace(context.SystemPrompt) || !string.IsNullOrWhiteSpace(context.UserPrompt))
+        if (context.PlaceholdersOnly)
+        {
+            promptSpec = new OrchestrationPromptSpec(
+                SystemPrompt: null,
+                UserPrompt: string.Empty,
+                Placeholders: maskedVariables ?? new Dictionary<string, string>(StringComparer.Ordinal),
+                PlaceholdersOnly: true);
+        }
+        else if (!string.IsNullOrWhiteSpace(context.SystemPrompt) || !string.IsNullOrWhiteSpace(context.UserPrompt))
         {
             promptSpec = new OrchestrationPromptSpec(
                 context.SystemPrompt,

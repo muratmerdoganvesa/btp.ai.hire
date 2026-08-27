@@ -1,6 +1,6 @@
 import { Button } from "@hirelens/ui";
 import { ApiError } from "@hirelens/api-client";
-import type { FlaggedPhrase, UnmeasurablePhrase } from "@hirelens/api-client";
+import type { ExtractedInterviewQuestion, FlaggedPhrase, UnmeasurablePhrase } from "@hirelens/api-client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
@@ -9,7 +9,7 @@ import { api } from "../api";
 import { Field, TextArea, TextInput } from "../components/field";
 import { PageBody, PageHero } from "../components/page-hero";
 
-type CriterionRow = { name: string; description: string; weight: number };
+type CriterionRow = { name: string; description: string; weight: number; mandatory?: boolean };
 
 function splitWeights(count: number): number[] {
   if (count === 0) {
@@ -53,6 +53,8 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
   const [extractError, setExtractError] = useState<string | null>(null);
   const [flaggedPhrases, setFlaggedPhrases] = useState<FlaggedPhrase[]>([]);
   const [unmeasurable, setUnmeasurable] = useState<UnmeasurablePhrase[]>([]);
+  const [interviewQuestions, setInterviewQuestions] = useState<ExtractedInterviewQuestion[]>([]);
+  const [extractWarnings, setExtractWarnings] = useState<string[]>([]);
   const [flaggedDismissed, setFlaggedDismissed] = useState(false);
 
   useEffect(() => {
@@ -139,11 +141,14 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
         response.criteria.map((item) => ({
           name: item.label,
           description: item.description,
-          weight: item.weight
+          weight: item.weight,
+          mandatory: item.mandatory
         }))
       );
       setFlaggedPhrases(response.flaggedPhrases ?? []);
       setUnmeasurable(response.unmeasurable ?? []);
+      setInterviewQuestions(response.interviewQuestions ?? []);
+      setExtractWarnings(response.warnings ?? []);
       setFlaggedDismissed(false);
       if (response.criteria.length === 0) {
         setExtractError(t("positions.extractEmpty"));
@@ -378,8 +383,47 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
               </div>
             ) : null}
 
+            {extractWarnings.length > 0 ? (
+              <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-xs text-muted">
+                <p className="font-semibold text-foreground">{t("positions.extractWarningsIntro")}</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                  {extractWarnings.map((warning, index) => (
+                    <li key={`${warning}-${index}`}>{warning}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
             <p className="text-xs text-muted">{t("positions.weightsHint")}</p>
           </section>
+
+          {interviewQuestions.length > 0 ? (
+            <section className="flex flex-col gap-3">
+              <div>
+                <h3 className="text-sm font-bold">{t("positions.interviewQuestions")}</h3>
+                <p className="mt-1 text-xs text-muted">{t("positions.interviewQuestionsHint")}</p>
+              </div>
+              <ol className="space-y-3">
+                {interviewQuestions.map((item, index) => (
+                  <li
+                    key={item.questionId || `${item.criterionId}-${index}`}
+                    className="rounded-xl border border-border bg-brand-0/30 px-4 py-3"
+                  >
+                    <p className="text-sm font-semibold text-foreground">
+                      {index + 1}. {item.question}
+                    </p>
+                    {item.whatToListenFor.length > 0 ? (
+                      <ul className="mt-2 list-disc space-y-0.5 pl-5 text-xs text-muted">
+                        {item.whatToListenFor.map((hint, hintIndex) => (
+                          <li key={`${item.questionId}-hint-${hintIndex}`}>{hint}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ) : null}
 
           {extractError ? <p className="text-sm font-medium text-danger">{extractError}</p> : null}
           {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}

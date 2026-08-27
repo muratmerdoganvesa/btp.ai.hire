@@ -16,7 +16,11 @@ public sealed record PromptContext(
     string PromptVersion,
     IReadOnlyDictionary<string, string>? Variables = null,
     string? SystemPrompt = null,
-    string? UserPrompt = null);
+    string? UserPrompt = null,
+    /// <summary>
+    /// When true, only placeholder_values are sent; the deployment's own prompt template is used.
+    /// </summary>
+    bool PlaceholdersOnly = false);
 
 public sealed record AiOptions(
     string? ModelOverride = null,
