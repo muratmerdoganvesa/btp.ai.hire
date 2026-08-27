@@ -40,6 +40,8 @@ public interface IInterviewService
 
     Task<Result<InterviewSessionDto>> GetForCandidateAsync(Guid candidateId, CancellationToken cancellationToken);
 
+    Task<Result<InterviewSessionDto>> EvaluateForCandidateAsync(Guid candidateId, CancellationToken cancellationToken);
+
     Task<Result> SoftDeleteForCandidateAsync(Guid candidateId, CancellationToken cancellationToken);
 }
 
@@ -469,34 +471,8 @@ public sealed class InterviewService(
 
         await db.SaveChangesAsync(cancellationToken);
 
-        try
-        {
-            await EvaluateAsync(session, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            session.Complete(null, ex.Message);
-        }
-
-        if (UsesRelationalSql())
-        {
-            await db.Database.ExecuteSqlInterpolatedAsync(
-                $"""
-                UPDATE "InterviewSessions"
-                SET "Status" = {session.Status},
-                    "InterviewScore" = {session.InterviewScore},
-                    "Summary" = {session.Summary}
-                WHERE "Id" = {session.Id.ToString("D")}
-                """,
-                cancellationToken);
-        }
-        else
-        {
-            var tracked = await db.Set<InterviewSession>().SingleAsync(s => s.Id == session.Id, cancellationToken);
-            tracked.Complete(session.InterviewScore, session.Summary);
-            await db.SaveChangesAsync(cancellationToken);
-        }
-
+        session.Complete(null, null);
+        await PersistCompletionAsync(session, cancellationToken);
         return Result.Success(ToDto(session));
     }
 
@@ -513,6 +489,50 @@ public sealed class InterviewService(
         }
 
         var frames = await db.Set<InterviewFrame>()
+            .Where(f => f.SessionId == session.Id)
+            .OrderBy(f => f.CapturedAt)
+            .ToListAsync(cancellationToken);
+        return Result.Success(ToDto(session, frames));
+    }
+
+    public async Task<Result<InterviewSessionDto>> EvaluateForCandidateAsync(
+        Guid candidateId,
+        CancellationToken cancellationToken)
+    {
+        RepositoryGuard.RequireTenant(tenant);
+        var session = await db.Set<InterviewSession>()
+            .Where(s => s.CandidateId == candidateId)
+            .OrderByDescending(s => s.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (session is null)
+        {
+            return Result.Failure<InterviewSessionDto>(Error.NotFound("Interview was not found."));
+        }
+
+        var unanswered = session.Questions.OrderBy(q => q.Order)
+            .FirstOrDefault(q => session.Turns.Count(t => t.QuestionId == q.Id && t.Role == "candidate") == 0);
+        if (unanswered is not null)
+        {
+            return Result.Failure<InterviewSessionDto>(
+                Error.Validation("Aday mülakatı henüz bitirmedi. Değerlendirme recruiter tetiklemesiyle yapılır."));
+        }
+
+        try
+        {
+            var evaluated = await EvaluateAsync(session, cancellationToken);
+            if (evaluated.IsFailure)
+            {
+                return Result.Failure<InterviewSessionDto>(evaluated.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            return Result.Failure<InterviewSessionDto>(Error.Unavailable(ex.Message));
+        }
+
+        await PersistCompletionAsync(session, cancellationToken);
+        var frames = await db.Set<InterviewFrame>()
+            .AsNoTracking()
             .Where(f => f.SessionId == session.Id)
             .OrderBy(f => f.CapturedAt)
             .ToListAsync(cancellationToken);
@@ -710,7 +730,28 @@ public sealed class InterviewService(
             cancellationToken);
     }
 
-    private async Task EvaluateAsync(InterviewSession session, CancellationToken cancellationToken)
+    private async Task PersistCompletionAsync(InterviewSession session, CancellationToken cancellationToken)
+    {
+        if (UsesRelationalSql())
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                UPDATE "InterviewSessions"
+                SET "Status" = {session.Status},
+                    "InterviewScore" = {session.InterviewScore},
+                    "Summary" = {session.Summary}
+                WHERE "Id" = {session.Id.ToString("D")}
+                """,
+                cancellationToken);
+            return;
+        }
+
+        var tracked = await db.Set<InterviewSession>().SingleAsync(s => s.Id == session.Id, cancellationToken);
+        tracked.Complete(session.InterviewScore, session.Summary);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task<Result> EvaluateAsync(InterviewSession session, CancellationToken cancellationToken)
     {
         var evaluation = await evaluations.GetForCandidateAsync(session.CandidateId, cancellationToken);
         var position = await positions.GetAsync(session.PositionId, cancellationToken);
@@ -743,11 +784,10 @@ public sealed class InterviewService(
             if (IsTesting)
             {
                 await EvaluateDeterministicForTestsAsync(session, evaluation, transcript, cancellationToken);
-                return;
+                return Result.Success();
             }
 
-            session.Complete(null, ai.Error.Message);
-            return;
+            return Result.Failure(ai.Error);
         }
 
         var mapped = ai.Value;
@@ -792,6 +832,7 @@ public sealed class InterviewService(
                 : mapped.Summary);
         var weight = await weights.GetInterviewWeightAsync(cancellationToken);
         await blend.BlendInterviewAsync(session.CandidateId, score, weight, cancellationToken);
+        return Result.Success();
     }
 
     private async Task EvaluateDeterministicForTestsAsync(

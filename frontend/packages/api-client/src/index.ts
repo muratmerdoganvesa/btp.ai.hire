@@ -277,6 +277,16 @@ export class ApiClient {
     await this.send<unknown>(`/api/candidates/${candidateId}/interview`, "DELETE");
   }
 
+  public async evaluateInterview(candidateId: string): Promise<{
+    status: string;
+    interviewScore: number | null;
+    summary: string | null;
+    turns: { role: string; text: string }[];
+    questions: { criterionId: string; prompt: string }[];
+  }> {
+    return this.send(`/api/candidates/${candidateId}/interview/evaluate`, "POST");
+  }
+
   public async getInterviewPrep(token: string): Promise<{
     whatToExpect: string;
     estimatedMinutes: number;

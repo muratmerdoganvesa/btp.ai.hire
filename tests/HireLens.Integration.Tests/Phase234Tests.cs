@@ -85,7 +85,12 @@ public sealed class Phase234Tests : IClassFixture<HireLensApiFactory>
 
         var completed = await anonymous.GetFromJsonAsync<InterviewSessionDto>($"/api/interviews/public/{token}", Json);
         completed!.Status.Should().Be("completed");
-        completed.InterviewScore.Should().NotBeNull();
+        completed.InterviewScore.Should().BeNull();
+
+        using var evaluated = await client.PostAsync($"/api/candidates/{seeded.CandidateId}/interview/evaluate", null);
+        evaluated.EnsureSuccessStatusCode();
+        var scored = await evaluated.Content.ReadFromJsonAsync<InterviewSessionDto>(Json);
+        scored!.InterviewScore.Should().NotBeNull();
     }
 
     [Fact]

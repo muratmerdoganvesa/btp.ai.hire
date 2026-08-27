@@ -8,7 +8,6 @@ import { api } from "../api";
 import { AiDisclosureBanner } from "../components/ai-disclosure-banner";
 import { DecisionPanel } from "../components/decision-panel";
 import { EvaluationAuditPanel } from "../components/evaluation-audit-panel";
-import { GapCard } from "../components/gap-card";
 import { InterviewFramesGallery } from "../components/interview-frames-gallery";
 import { InterviewTranscript } from "../components/interview-transcript";
 import { PageBody, PageHero } from "../components/page-hero";
@@ -24,6 +23,7 @@ export function EvaluationPage() {
   const [inviteExpiresAt, setInviteExpiresAt] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const [evaluateError, setEvaluateError] = useState<string | null>(null);
   const [interviewOpen, setInterviewOpen] = useState(false);
 
   const candidate = useQuery({
@@ -104,7 +104,24 @@ export function EvaluationPage() {
     onSuccess: async () => {
       setInviteUrl(null);
       setInviteExpiresAt(null);
+      setEvaluateError(null);
       await queryClient.invalidateQueries({ queryKey: ["interview", candidateId] });
+    }
+  });
+
+  const evaluateInterview = useMutation({
+    mutationFn: () => api.evaluateInterview(candidateId),
+    onSuccess: async () => {
+      setEvaluateError(null);
+      await queryClient.invalidateQueries({ queryKey: ["interview", candidateId] });
+      await queryClient.invalidateQueries({ queryKey: ["evaluation", candidateId] });
+      await queryClient.invalidateQueries({ queryKey: ["candidates-board"] });
+    },
+    onError: (err) => {
+      const message = err instanceof Error ? err.message : "";
+      setEvaluateError(
+        message ? `${t("errors.generic")} (${message.replace(/^http_\d+:/, "").replace(/^validation:/, "")})` : t("errors.generic")
+      );
     }
   });
 
@@ -424,11 +441,80 @@ export function EvaluationPage() {
             </details>
 
             {interview.data ? (
-              <div className="grid gap-5 lg:grid-cols-2">
-                <AiDisclosureBanner />
-                <GapCard gaps={interview.data.questions.map((question) => question.prompt)} />
-                <InterviewTranscript turns={interview.data.turns} />
-                <InterviewFramesGallery frames={interview.data.frames ?? []} />
+              <div className="flex flex-col gap-5">
+                {interview.data.status === "completed" ? (
+                  <div className="flex flex-col gap-3 rounded-2xl border border-border bg-surface px-5 py-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-extrabold tracking-tight">{t("interview.evaluate")}</p>
+                        <p className="mt-1 text-sm text-muted">{t("interview.evaluateHint")}</p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <ScoreBadge
+                          score={interview.data.interviewScore}
+                          label={
+                            interview.data.interviewScore == null
+                              ? t("interview.scorePending")
+                              : t("evaluation.overallOf100")
+                          }
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={evaluateInterview.isPending}
+                          onClick={() => evaluateInterview.mutate()}
+                        >
+                          {evaluateInterview.isPending
+                            ? t("interview.evaluating")
+                            : interview.data.interviewScore == null
+                              ? t("interview.evaluate")
+                              : t("interview.evaluateAgain")}
+                        </Button>
+                      </div>
+                    </div>
+                    {interview.data.summary ? (
+                      <p className="text-sm leading-6 text-foreground">{interview.data.summary}</p>
+                    ) : null}
+                    {evaluateError ? (
+                      <p className="text-sm text-danger" role="alert">
+                        {evaluateError}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <div className="grid gap-5 lg:grid-cols-2">
+                  <AiDisclosureBanner />
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{t("interview.askedQuestions")}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {interview.data.questions.length === 0 ? (
+                        <p className="text-sm text-muted">{t("interviewsBoard.noQuestions")}</p>
+                      ) : (
+                        <ol className="flex flex-col gap-2">
+                          {interview.data.questions.map((question, index) => (
+                            <li
+                              key={`${question.criterionId}-${index}`}
+                              className="rounded-xl border border-border/70 bg-brand-0/50 px-3 py-2.5 text-sm leading-6"
+                            >
+                              <p className="text-xs font-bold uppercase tracking-wide text-muted">
+                                {t("interview.questionLabel", {
+                                  current: index + 1,
+                                  total: interview.data!.questions.length
+                                })}
+                              </p>
+                              <p className="mt-1">{question.prompt}</p>
+                            </li>
+                          ))}
+                        </ol>
+                      )}
+                    </CardContent>
+                  </Card>
+                  <InterviewTranscript turns={interview.data.turns} />
+                  <InterviewFramesGallery frames={interview.data.frames ?? []} />
+                </div>
               </div>
             ) : null}
           </div>

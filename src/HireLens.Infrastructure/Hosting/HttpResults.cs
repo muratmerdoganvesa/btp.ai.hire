@@ -33,6 +33,7 @@ public static class HttpResults
             "conflict" => Results.Conflict(new { error = error.Message }),
             "unauthorized" => Results.Unauthorized(),
             "forbidden" => Results.Json(new { error = error.Message }, statusCode: 403),
+            "unavailable" => Results.Json(new { error = error.Message }, statusCode: StatusCodes.Status503ServiceUnavailable),
             _ => Results.Problem(error.Message)
         };
 }
