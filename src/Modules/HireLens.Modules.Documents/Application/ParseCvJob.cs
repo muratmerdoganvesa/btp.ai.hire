@@ -143,21 +143,48 @@ public sealed class ParseCvJob(
 
     private async Task<bool> TryHostedCvExtractionAsync(string masked, CancellationToken cancellationToken)
     {
+        var variables = new Dictionary<string, string>
+        {
+            ["cv_text"] = masked,
+            ["application_data"] = "yok"
+        };
+
+        var hostedId = aiCoreOptions.Value.CvExtractionDeploymentId;
+        if (!string.IsNullOrWhiteSpace(hostedId))
+        {
+            try
+            {
+                var hosted = await gateway.ExecuteAsync<string>(
+                    AiTaskType.CvExtraction,
+                    new PromptContext(
+                        TaskInput: masked,
+                        PromptVersion: "1",
+                        Variables: variables,
+                        PlaceholdersOnly: true,
+                        DeploymentId: hostedId),
+                    new AiOptions(MaxOutputTokens: 2048, Temperature: 0.1),
+                    cancellationToken);
+                if (CvExtractionMapper.IsUsable(hosted.Value))
+                {
+                    logger.LogInformation("CV extraction used Launchpad deployment {DeploymentId}", hostedId);
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Launchpad cv-extraction-v1 not ready; falling back to default orchestration");
+            }
+        }
+
         try
         {
-            // Hosted cv-extraction-v1 is not deployed in this landscape (404).
-            // Use defaultOrchestrationConfig with the repo prompt — still real AI Core.
             var prompt = prompts.Get("CvExtraction", "1.1.0");
             var result = await gateway.ExecuteAsync<string>(
                 AiTaskType.CvExtraction,
                 new PromptContext(
                     TaskInput: masked,
                     PromptVersion: prompt.Version,
-                    Variables: new Dictionary<string, string>
-                    {
-                        ["cv_text"] = masked,
-                        ["application_data"] = "yok"
-                    },
+                    Variables: variables,
                     SystemPrompt: prompt.SystemPrompt,
                     UserPrompt: prompt.UserTemplate,
                     DeploymentId: aiCoreOptions.Value.DeploymentId),
@@ -167,7 +194,7 @@ public sealed class ParseCvJob(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Hosted CV extraction failed");
+            logger.LogWarning(ex, "Default CV extraction failed");
             return false;
         }
     }

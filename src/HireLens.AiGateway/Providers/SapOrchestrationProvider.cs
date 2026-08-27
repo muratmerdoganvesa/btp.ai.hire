@@ -34,6 +34,9 @@ public sealed class SapAiCoreOptions
     /// <summary>Hosted criteria-matching-v1 orchestration deployment.</summary>
     public string? MatchingDeploymentId { get; set; }
 
+    /// <summary>Hosted interview-evaluation-v1 orchestration deployment.</summary>
+    public string? InterviewEvaluationDeploymentId { get; set; }
+
     public string ResourceGroup { get; set; } = "default";
 
     public string ModelName { get; set; } = "anthropic--claude-4.5-haiku";

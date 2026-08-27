@@ -42,7 +42,11 @@ public sealed class InterviewEvaluationServiceTests
 
         var svc = new InterviewEvaluationService(
             gateway,
-            Options.Create(new SapAiCoreOptions { DeploymentId = "d08b1ad950db57c6" }),
+            Options.Create(new SapAiCoreOptions
+            {
+                DeploymentId = "d08b1ad950db57c6",
+                InterviewEvaluationDeploymentId = "da115516a621a2e7"
+            }),
             NullLogger<InterviewEvaluationService>.Instance);
 
         var result = await svc.EvaluateAsync(
@@ -66,7 +70,7 @@ public sealed class InterviewEvaluationServiceTests
         captured!.PlaceholdersOnly.Should().BeTrue();
         captured.SystemPrompt.Should().BeNull();
         captured.UserPrompt.Should().BeNull();
-        captured.DeploymentId.Should().Be("d08b1ad950db57c6");
+        captured.DeploymentId.Should().Be("da115516a621a2e7");
         captured.Variables.Should().ContainKey("transcript");
         captured.Variables!["transcript"].Should().Be("[00:03:20] Aday: C# API yazdım.");
         captured.Variables["cv_match_result"].Should().BeEmpty();

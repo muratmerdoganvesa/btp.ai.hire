@@ -15,9 +15,8 @@ public interface IInterviewEvaluationService
 }
 
 /// <summary>
-/// Calls the hosted interview-evaluation-v1 orchestration config.
+/// Calls the hosted interview-evaluation-v1 orchestration deployment.
 /// Prompt lives in SAP AI Launchpad; this service only sends placeholder strings.
-/// Uses the existing SapAiCore:DeploymentId (no new deployment).
 /// </summary>
 public sealed class InterviewEvaluationService(
     IAiGateway gateway,
@@ -38,7 +37,9 @@ public sealed class InterviewEvaluationService(
 
         var variables = placeholders.Value;
         var transcript = variables[InterviewEvaluationPlaceholders.Transcript];
-        var deploymentId = aiCoreOptions.Value.DeploymentId;
+        var deploymentId = string.IsNullOrWhiteSpace(aiCoreOptions.Value.InterviewEvaluationDeploymentId)
+            ? aiCoreOptions.Value.DeploymentId
+            : aiCoreOptions.Value.InterviewEvaluationDeploymentId;
 
         try
         {
