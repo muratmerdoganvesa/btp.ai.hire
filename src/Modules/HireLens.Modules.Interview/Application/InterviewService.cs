@@ -301,9 +301,21 @@ public sealed class InterviewService(
         // Persist children without a tracked InterviewSession parent (HANA AutoInclude SaveChanges bug).
         db.ChangeTracker.Clear();
 
+        // Invite already inserts questions. Re-Add on in-memory EF throws
+        // "An item with the same key has already been added".
+        var persistedQuestionIds = (await db.Set<InterviewQuestion>()
+                .AsNoTracking()
+                .Where(q => q.SessionId == session.Id)
+                .Select(q => q.Id)
+                .ToListAsync(cancellationToken))
+            .ToHashSet();
+        var questionsToInsert = session.Questions
+            .Where(q => !persistedQuestionIds.Contains(q.Id))
+            .ToList();
+
         if (UsesRelationalSql())
         {
-            foreach (var question in session.Questions)
+            foreach (var question in questionsToInsert)
             {
                 await InsertQuestionRawAsync(question, cancellationToken);
             }
@@ -323,7 +335,7 @@ public sealed class InterviewService(
         }
         else
         {
-            foreach (var question in session.Questions)
+            foreach (var question in questionsToInsert)
             {
                 db.Set<InterviewQuestion>().Add(question);
             }
