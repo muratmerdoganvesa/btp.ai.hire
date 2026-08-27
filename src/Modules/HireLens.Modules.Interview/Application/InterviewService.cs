@@ -823,13 +823,7 @@ public sealed class InterviewService(
         }
 
         var score = mapped.OverallScore ?? DeterministicInterviewScore.Overall(proposals);
-        session.Complete(
-            score,
-            string.IsNullOrWhiteSpace(mapped.Summary)
-                ? (score is null
-                    ? "Mülakat değerlendirmesi kanıtlı puan üretmedi."
-                    : "Mülakat puanı interview-evaluation-v1 çıktısından yazıldı.")
-                : mapped.Summary);
+        session.Complete(score, InterviewEvaluationVerdict.RecruiterSummary(mapped, score));
         var weight = await weights.GetInterviewWeightAsync(cancellationToken);
         await blend.BlendInterviewAsync(session.CandidateId, score, weight, cancellationToken);
         return Result.Success();

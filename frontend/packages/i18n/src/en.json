@@ -519,6 +519,7 @@
     "evaluateAgain": "Re-evaluate",
     "evaluateNeedComplete": "The candidate must finish the interview before evaluation.",
     "scorePending": "Not evaluated yet",
+    "scoreInsufficientHint": "Evaluated; answers did not support an evidence-bound score.",
     "prep": "Preparation",
     "expect": "What to expect",
     "duration": "Estimated time",

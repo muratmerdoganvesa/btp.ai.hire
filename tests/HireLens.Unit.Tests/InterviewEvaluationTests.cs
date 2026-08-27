@@ -221,4 +221,98 @@ public sealed class InterviewEvaluationMapperTests
         InterviewEvaluationMapper.IsStubContent("""{"criteria":[{"criterionId":"a","score":10}]}""")
             .Should().BeFalse();
     }
+
+    [Fact]
+    public void Merges_answers_missing_evidence_when_interview_scores_are_null()
+    {
+        const string json = """
+            {
+              "criterionScores": [
+                {
+                  "criterionId": "122a0e35-98ab-4943-b6cf-31c187447ee2",
+                  "interviewScore": null,
+                  "verificationSource": "none",
+                  "rationale": "Beyan düzeyinde kaldı.",
+                  "confidence": "none"
+                }
+              ],
+              "answers": [
+                {
+                  "questionId": "q1",
+                  "criterionId": "122a0e35-98ab-4943-b6cf-31c187447ee2",
+                  "answerStatus": "evaded",
+                  "score": null,
+                  "missingEvidence": ["somut proje adı", "çıktı veya araç"],
+                  "followUpQuestion": "Hangi Ar-Ge projesinde ne teslim ettiniz?",
+                  "confidence": "none",
+                  "evidence": []
+                }
+              ],
+              "warnings": [{ "code": "transcript_too_short", "severity": "warning" }]
+            }
+            """;
+
+        var result = InterviewEvaluationMapper.Parse(json);
+        result.OverallScore.Should().BeNull();
+        result.Criteria.Should().ContainSingle();
+        result.Criteria[0].Score.Should().BeNull();
+        result.Criteria[0].Reasoning.Should().Contain("Beyan");
+        result.Criteria[0].Reasoning.Should().Contain("Eksik kanıt");
+        result.Criteria[0].Reasoning.Should().Contain("somut proje adı");
+        result.Warnings.Should().Contain("transcript_too_short");
+    }
+
+    [Fact]
+    public void Accepts_decimal_scores_from_model()
+    {
+        var result = InterviewEvaluationMapper.Parse(
+            """{"criterionScores":[{"criterionId":"c1","interviewScore":70.0}]}""");
+        result.Criteria.Should().ContainSingle();
+        result.Criteria[0].Score.Should().Be(70);
+    }
+}
+
+public sealed class InterviewEvaluationVerdictTests
+{
+    [Fact]
+    public void Null_score_says_insufficient_with_reasoning()
+    {
+        var mapped = new InterviewEvaluationResponse(
+            null,
+            null,
+            null,
+            [new InterviewEvaluatedCriterionDto(
+                "c1",
+                null,
+                null,
+                "low",
+                "evaded",
+                "Somut proje veya araç anlatılmadı.",
+                [])],
+            [],
+            [],
+            [],
+            null);
+
+        InterviewEvaluationVerdict.RecruiterSummary(mapped, null)
+            .Should().StartWith("Yetersiz kanıt")
+            .And.Contain("Somut proje");
+    }
+
+    [Fact]
+    public void Prefers_model_summary()
+    {
+        var mapped = new InterviewEvaluationResponse(
+            null, null, null, [], [], [], [], "Kanıt yetersiz: araç adı yok.");
+        InterviewEvaluationVerdict.RecruiterSummary(mapped, null)
+            .Should().Be("Kanıt yetersiz: araç adı yok.");
+    }
+
+    [Fact]
+    public void Empty_criteria_is_unreadable_output_not_insufficient_answers()
+    {
+        var mapped = new InterviewEvaluationResponse(null, null, null, [], [], [], [], null);
+        InterviewEvaluationVerdict.RecruiterSummary(mapped, null)
+            .Should().Contain("okunamadı");
+    }
 }

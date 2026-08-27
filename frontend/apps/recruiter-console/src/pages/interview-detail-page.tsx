@@ -28,7 +28,13 @@ export function InterviewDetailPage() {
             {data ? (
               <ScoreBadge
                 score={data.interviewScore}
-                label={data.interviewScore == null ? t("score.unknown") : t("evaluation.overallOf100")}
+                label={
+                  data.interviewScore != null
+                    ? t("evaluation.overallOf100")
+                    : data.summary
+                      ? t("score.insufficient")
+                      : t("score.unknown")
+                }
               />
             ) : null}
             <Button asChild variant="outline" size="sm" className="!border-white/40 !bg-white/10 !text-white hover:!bg-white/20 hover:!text-white">

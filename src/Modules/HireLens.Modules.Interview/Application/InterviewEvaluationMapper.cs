@@ -13,7 +13,8 @@ public static class InterviewEvaluationMapper
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
-        NumberHandling = JsonNumberHandling.AllowReadingFromString
+        NumberHandling = JsonNumberHandling.AllowReadingFromString,
+        Converters = { new FlexibleIntConverter() }
     };
 
     public static bool IsStubContent(string? content)
@@ -130,6 +131,7 @@ public static class InterviewEvaluationMapper
             .Where(c => c is not null)
             .Select(c => c!)
             .ToList();
+        criteria = MergeAnswers(criteria, payload.Answers ?? []);
 
         var consistency = (payload.Consistency ?? [])
             .Where(c => !string.IsNullOrWhiteSpace(c.CriterionId))
@@ -162,6 +164,120 @@ public static class InterviewEvaluationMapper
             evidence,
             warnings,
             string.IsNullOrWhiteSpace(payload.Summary) ? null : payload.Summary.Trim());
+    }
+
+    private static List<InterviewEvaluatedCriterionDto> MergeAnswers(
+        List<InterviewEvaluatedCriterionDto> criteria,
+        List<AnswerAi> answers)
+    {
+        var usable = answers.Where(a => !string.IsNullOrWhiteSpace(a.CriterionId)).ToList();
+        if (usable.Count == 0)
+        {
+            return criteria;
+        }
+
+        if (criteria.Count == 0)
+        {
+            return usable
+                .GroupBy(a => a.CriterionId!.Trim(), StringComparer.OrdinalIgnoreCase)
+                .Select(g => MapAnswerGroup(g.Key, g.ToList()))
+                .Where(c => c is not null)
+                .Select(c => c!)
+                .ToList();
+        }
+
+        var grouped = usable
+            .GroupBy(a => a.CriterionId!.Trim(), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+
+        return criteria
+            .Select(row => grouped.TryGetValue(row.CriterionId, out var group)
+                ? EnrichFromAnswers(row, group)
+                : row)
+            .ToList();
+    }
+
+    private static InterviewEvaluatedCriterionDto? MapAnswerGroup(string criterionId, List<AnswerAi> answers)
+    {
+        if (string.IsNullOrWhiteSpace(criterionId) || answers.Count == 0)
+        {
+            return null;
+        }
+
+        return EnrichFromAnswers(
+            new InterviewEvaluatedCriterionDto(criterionId, null, null, null, null, null, []),
+            answers);
+    }
+
+    private static InterviewEvaluatedCriterionDto EnrichFromAnswers(
+        InterviewEvaluatedCriterionDto existing,
+        List<AnswerAi> answers)
+    {
+        var answerEvidence = answers
+            .SelectMany(a => a.Evidence ?? [])
+            .Select(MapEvidence)
+            .Where(e => e is not null)
+            .Select(e => e!)
+            .ToList();
+        var evidence = existing.Evidence.Count > 0
+            ? existing.Evidence.Concat(answerEvidence).DistinctBy(e => e.Quote).ToList()
+            : answerEvidence;
+
+        var missing = answers
+            .SelectMany(a => a.MissingEvidence ?? [])
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        var followUps = answers
+            .Select(a => a.FollowUpQuestion)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s!.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        var statuses = answers
+            .Select(a => a.AnswerStatus)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var reasoning = JoinNonEmpty(
+            existing.Reasoning,
+            statuses.Count == 0 ? null : "answerStatus: " + string.Join(", ", statuses),
+            missing.Count == 0 ? null : "Eksik kanıt: " + string.Join("; ", missing),
+            followUps.Count == 0 ? null : "Doğrulama: " + string.Join(" ", followUps));
+
+        return existing with
+        {
+            QuestionId = existing.QuestionId
+                ?? answers.Select(a => a.QuestionId).FirstOrDefault(s => !string.IsNullOrWhiteSpace(s))?.Trim(),
+            Score = existing.Score ?? answers.Select(a => a.Score).FirstOrDefault(s => s is not null),
+            Confidence = existing.Confidence
+                ?? answers.Select(a => a.Confidence).FirstOrDefault(s => !string.IsNullOrWhiteSpace(s))?.Trim(),
+            Status = IsVerificationSource(existing.Status)
+                ? existing.Status
+                : statuses.Count == 0 ? existing.Status : statuses[0],
+            Reasoning = reasoning,
+            Evidence = evidence
+        };
+    }
+
+    private static bool IsVerificationSource(string? status) =>
+        status is not null
+        && (status.Equals("interview", StringComparison.OrdinalIgnoreCase)
+            || status.Equals("cv", StringComparison.OrdinalIgnoreCase)
+            || status.Equals("both", StringComparison.OrdinalIgnoreCase)
+            || status.Equals("document_required", StringComparison.OrdinalIgnoreCase)
+            || status.Equals("none", StringComparison.OrdinalIgnoreCase));
+
+    private static string? JoinNonEmpty(params string?[] parts)
+    {
+        var values = parts
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s!.Trim())
+            .ToList();
+        return values.Count == 0 ? null : string.Join(" ", values);
     }
 
     private static InterviewEvaluatedCriterionDto? MapCriterion(CriterionAi c)
@@ -272,6 +388,8 @@ public static class InterviewEvaluationMapper
 
         public List<CriterionScoreAi>? CriterionScores { get; set; }
 
+        public List<AnswerAi>? Answers { get; set; }
+
         public List<ConsistencyAi>? Consistency { get; set; }
 
         public List<EvidenceAi>? Evidence { get; set; }
@@ -347,5 +465,51 @@ public static class InterviewEvaluationMapper
         public string? QuestionId { get; set; }
 
         public string? CriterionId { get; set; }
+    }
+
+    private sealed class AnswerAi
+    {
+        public string? QuestionId { get; set; }
+
+        public string? CriterionId { get; set; }
+
+        public string? AnswerStatus { get; set; }
+
+        public int? Score { get; set; }
+
+        public List<EvidenceAi>? Evidence { get; set; }
+
+        public List<string>? MissingEvidence { get; set; }
+
+        public string? FollowUpQuestion { get; set; }
+
+        public string? Confidence { get; set; }
+    }
+
+    private sealed class FlexibleIntConverter : JsonConverter<int?>
+    {
+        public override int? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            return reader.TokenType switch
+            {
+                JsonTokenType.Null => null,
+                JsonTokenType.Number when reader.TryGetInt32(out var i) => i,
+                JsonTokenType.Number => (int)Math.Round(reader.GetDouble()),
+                JsonTokenType.String when int.TryParse(reader.GetString(), out var parsed) => parsed,
+                JsonTokenType.String => null,
+                _ => null
+            };
+        }
+
+        public override void Write(Utf8JsonWriter writer, int? value, JsonSerializerOptions options)
+        {
+            if (value is null)
+            {
+                writer.WriteNullValue();
+                return;
+            }
+
+            writer.WriteNumberValue(value.Value);
+        }
     }
 }

@@ -453,9 +453,11 @@ export function EvaluationPage() {
                         <ScoreBadge
                           score={interview.data.interviewScore}
                           label={
-                            interview.data.interviewScore == null
-                              ? t("interview.scorePending")
-                              : t("evaluation.overallOf100")
+                            interview.data.interviewScore != null
+                              ? t("evaluation.overallOf100")
+                              : interview.data.summary
+                                ? t("score.insufficient")
+                                : t("interview.scorePending")
                           }
                         />
                         <Button
@@ -466,14 +468,17 @@ export function EvaluationPage() {
                         >
                           {evaluateInterview.isPending
                             ? t("interview.evaluating")
-                            : interview.data.interviewScore == null
-                              ? t("interview.evaluate")
-                              : t("interview.evaluateAgain")}
+                            : interview.data.interviewScore != null || interview.data.summary
+                              ? t("interview.evaluateAgain")
+                              : t("interview.evaluate")}
                         </Button>
                       </div>
                     </div>
                     {interview.data.summary ? (
                       <p className="text-sm leading-6 text-foreground">{interview.data.summary}</p>
+                    ) : null}
+                    {interview.data.interviewScore == null && interview.data.summary ? (
+                      <p className="text-sm text-muted">{t("interview.scoreInsufficientHint")}</p>
                     ) : null}
                     {evaluateError ? (
                       <p className="text-sm text-danger" role="alert">

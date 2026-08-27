@@ -519,6 +519,7 @@
     "evaluateAgain": "Yeniden değerlendir",
     "evaluateNeedComplete": "Aday mülakatı bitirmeden değerlendirme yapılamaz.",
     "scorePending": "Henüz değerlendirilmedi",
+    "scoreInsufficientHint": "Değerlendirme yapıldı; cevaplar kanıtlı skor için yetersiz.",
     "prep": "Hazırlık",
     "expect": "Ne bekleniyor",
     "duration": "Tahmini süre",

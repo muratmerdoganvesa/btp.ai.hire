@@ -56,7 +56,7 @@ public sealed class InterviewEvaluationService(
                     SystemPrompt: prompt.SystemPrompt,
                     UserPrompt: prompt.UserTemplate,
                     DeploymentId: deploymentId),
-                new AiOptions(MaxOutputTokens: 2048, Temperature: 0.1),
+                new AiOptions(MaxOutputTokens: 8000, Temperature: 0.1),
                 cancellationToken);
 
             if (InterviewEvaluationMapper.IsStubContent(aiResult.Value))
