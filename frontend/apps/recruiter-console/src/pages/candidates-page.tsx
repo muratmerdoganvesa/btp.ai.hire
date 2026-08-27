@@ -4,6 +4,7 @@ import { Link, useParams } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
+import { AddCandidateDialog } from "../components/add-candidate-dialog";
 import { AppShell } from "../components/app-shell";
 import { CandidatesTable } from "../components/candidates-table";
 import { CvUploadZone } from "../components/cv-upload-zone";
@@ -20,6 +21,7 @@ export function CandidatesPage() {
   const [mode, setMode] = useState<SourceMode>("choose");
   const [linkCopied, setLinkCopied] = useState(false);
   const [sfMessage, setSfMessage] = useState<string | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
 
   const position = useQuery({
     queryKey: ["position", positionId],
@@ -112,6 +114,9 @@ export function CandidatesPage() {
           <p className="text-sm tabular-nums text-muted">
             {list.length} {t("candidates.count")}
           </p>
+          <Button type="button" size="sm" onClick={() => setAddOpen(true)}>
+            {t("candidates.addManual")}
+          </Button>
           {!isEmpty ? (
             <Button type="button" variant="outline" size="sm" onClick={() => setMode("sf")}>
               {t("candidates.sfTitle")}
@@ -135,19 +140,12 @@ export function CandidatesPage() {
             }}
             emphasize
           />
-          <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-4">
-            <div>
-              <h2 className="text-base font-extrabold tracking-tight">{t("candidates.publicLink")}</h2>
-              <p className="mt-1 text-sm leading-relaxed text-muted">{t("candidates.emptyHint")}</p>
-            </div>
-            {applyHref ? (
-              <Button type="button" size="sm" variant="outline" onClick={() => void copyApplyLink()}>
-                {linkCopied ? t("candidates.copied") : t("candidates.copyLink")}
-              </Button>
-            ) : (
-              <p className="text-sm text-muted">{t("candidates.publicLinkPending")}</p>
-            )}
-          </div>
+          <SourcePanel
+            title={t("candidates.addManualTitle")}
+            body={t("candidates.addManualChooserBody")}
+            actionLabel={t("candidates.addManual")}
+            onAction={() => setAddOpen(true)}
+          />
         </section>
       ) : null}
 
@@ -236,6 +234,17 @@ export function CandidatesPage() {
           {t("candidates.empty")}
         </p>
       ) : null}
+
+      <AddCandidateDialog
+        open={addOpen}
+        positionId={positionId}
+        onClose={() => setAddOpen(false)}
+        onCreated={async (candidateId) => {
+          await queryClient.invalidateQueries({ queryKey: ["candidates", positionId] });
+          setSelectedCandidateId(candidateId);
+          setMode("choose");
+        }}
+      />
     </AppShell>
   );
 }
