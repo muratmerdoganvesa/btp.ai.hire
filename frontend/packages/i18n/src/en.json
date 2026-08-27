@@ -304,6 +304,35 @@
     "deleting": "Deleting…",
     "colActions": "Actions"
   },
+  "candidatesBoard": {
+    "title": "Candidates",
+    "subtitle": "All applications and pipeline. The same person may apply to multiple roles.",
+    "count": "records",
+    "search": "Search",
+    "searchPlaceholder": "Search candidate, job, or email…",
+    "allStages": "All",
+    "groupPeople": "Group same person",
+    "empty": "No candidates yet. Upload a CV on a position to start.",
+    "noResults": "No applications match your filters.",
+    "multiApply": "Applied to {{count}} roles",
+    "colCandidate": "Candidate",
+    "colJob": "Job",
+    "colScore": "Score",
+    "colStage": "Stage",
+    "colApps": "Apps",
+    "colActions": "Actions",
+    "open": "Open",
+    "stages": {
+      "new": "New",
+      "pool": "Pool",
+      "reviewing": "In review",
+      "pre_interview": "Pre-interview",
+      "interview": "Interview",
+      "hold": "On hold",
+      "offer": "Offer / shortlist",
+      "rejected": "Rejected"
+    }
+  },
   "upload": {
     "title": "Upload CV",
     "hint": "PDF, DOCX, or plain text (max 10 MB). Bytes go to object storage; the API only sees an evidence-bound score.",

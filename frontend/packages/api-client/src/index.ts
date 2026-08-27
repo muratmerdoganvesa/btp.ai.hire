@@ -7,6 +7,20 @@ export type CreateUser = components["schemas"]["CreateUser"];
 export type Position = components["schemas"]["Position"];
 export type UpsertPosition = components["schemas"]["UpsertPosition"];
 export type Candidate = components["schemas"]["Candidate"];
+export type CandidateBoardItem = {
+  id: string;
+  positionId: string;
+  positionTitle: string;
+  displayName: string;
+  personKey: string;
+  siblingApplicationCount: number;
+  overallScoreLabel: string | null;
+  overallScore: number | null;
+  status: string;
+  pipelineStage: string;
+  recommendedAction: string | null;
+  createdAt: string;
+};
 export type Evaluation = components["schemas"]["Evaluation"];
 export type CriterionScore = components["schemas"]["CriterionScore"];
 export type Evidence = components["schemas"]["Evidence"];
@@ -81,6 +95,10 @@ export class ApiClient {
 
   public async listCandidates(positionId: string): Promise<Candidate[]> {
     return this.get<Candidate[]>(`/api/positions/${positionId}/candidates`);
+  }
+
+  public async listCandidateBoard(): Promise<CandidateBoardItem[]> {
+    return this.get<CandidateBoardItem[]>(`/api/candidates`);
   }
 
   public async getCandidate(id: string): Promise<Candidate> {

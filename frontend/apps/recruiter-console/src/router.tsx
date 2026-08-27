@@ -1,6 +1,7 @@
 import { Outlet, createRootRoute, createRoute, createRouter, redirect } from "@tanstack/react-router";
 import { isDevAuth } from "./auth-mode";
 import { useAuthStore } from "./auth-store";
+import { CandidatesBoardPage } from "./pages/candidates-board-page";
 import { CandidatesPage } from "./pages/candidates-page";
 import { DashboardPage } from "./pages/dashboard-page";
 import { EvaluationPage } from "./pages/evaluation-page";
@@ -84,6 +85,13 @@ const evaluationRoute = createRoute({
   component: EvaluationPage
 });
 
+const candidatesBoardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/candidates",
+  beforeLoad: requireSession,
+  component: CandidatesBoardPage
+});
+
 const applyJobRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/apply/$slug",
@@ -134,6 +142,7 @@ const routeTree = rootRoute.addChildren([
   positionCreateRoute,
   positionEditRoute,
   positionDetailRoute,
+  candidatesBoardRoute,
   evaluationRoute,
   applyJobRoute,
   applyConsentRoute,

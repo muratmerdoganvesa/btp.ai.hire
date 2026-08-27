@@ -28,12 +28,12 @@ const primaryNav: NavItem[] = [
   { id: "overview", to: "/", labelKey: "nav.dashboard", match: "exact", tour: "tour-nav-dashboard", icon: "overview" },
   { id: "jobs", to: "/positions", labelKey: "nav.jobs", match: "positions", tour: "tour-nav-positions", icon: "jobs" },
   { id: "create", to: "/positions/new", labelKey: "nav.newJob", match: "create", icon: "add" },
-  { id: "candidates", to: "/positions", labelKey: "nav.candidates", match: "candidates", icon: "candidates" }
+  { id: "candidates", to: "/candidates", labelKey: "nav.candidates", match: "candidates", icon: "candidates" }
 ];
 
 const processNav: NavItem[] = [
-  { id: "pipeline", to: "/", labelKey: "nav.pipeline", match: "exact", icon: "pipeline" },
-  { id: "interview", to: "/positions", labelKey: "nav.aiInterview", match: "candidates", icon: "interview" },
+  { id: "pipeline", to: "/candidates", labelKey: "nav.pipeline", match: "candidates", icon: "pipeline" },
+  { id: "interview", to: "/candidates", labelKey: "nav.aiInterview", match: "candidates", icon: "interview" },
   { id: "reports", to: "/", labelKey: "nav.reports", match: "exact", icon: "reports" }
 ];
 
@@ -202,14 +202,14 @@ function resolveActiveId(pathname: string): string | null {
   if (pathname === "/positions/new") {
     return "create";
   }
-  if (pathname.startsWith("/candidates/")) {
+  if (pathname === "/candidates" || pathname.startsWith("/candidates/")) {
     return "candidates";
   }
   if (/^\/positions\/[^/]+\/edit$/.test(pathname)) {
     return "jobs";
   }
   if (/^\/positions\/[^/]+$/.test(pathname)) {
-    return "candidates";
+    return "jobs";
   }
   if (pathname === "/positions") {
     return "jobs";

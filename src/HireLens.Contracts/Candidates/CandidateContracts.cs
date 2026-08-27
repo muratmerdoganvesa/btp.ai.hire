@@ -13,6 +13,21 @@ public sealed record CandidateDto(
     string? EvaluationStatus = null,
     int RiskFlagCount = 0);
 
+/// <summary>Tenant-wide candidate board row (one application = one position).</summary>
+public sealed record CandidateBoardItemDto(
+    Guid Id,
+    Guid PositionId,
+    string PositionTitle,
+    string DisplayName,
+    string PersonKey,
+    int SiblingApplicationCount,
+    string? OverallScoreLabel,
+    int? OverallScore,
+    string Status,
+    string PipelineStage,
+    string? RecommendedAction,
+    DateTimeOffset CreatedAt);
+
 public sealed record CreateCandidateRequest(string DisplayName);
 
 public sealed record CandidateSnapshot(Guid Id, Guid PositionId, string DisplayName);

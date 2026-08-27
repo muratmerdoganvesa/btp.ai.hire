@@ -11,6 +11,11 @@ public static class CandidateEndpoints
 {
     public static IEndpointRouteBuilder MapCandidateEndpoints(this IEndpointRouteBuilder endpoints)
     {
+        endpoints.MapGet("/api/candidates", async (ICandidateService svc, CancellationToken ct) =>
+            HttpResults.From(await svc.ListBoardAsync(ct)))
+            .WithTags("Candidates")
+            .RequireAuthorization();
+
         endpoints.MapGet("/api/positions/{positionId:guid}/candidates", async (
             Guid positionId,
             ICandidateService svc,

@@ -304,6 +304,35 @@
     "deleting": "Siliniyor…",
     "colActions": "İşlemler"
   },
+  "candidatesBoard": {
+    "title": "Adaylar",
+    "subtitle": "Tüm başvurular ve pipeline. Aynı kişi birden fazla pozisyona başvurmuş olabilir.",
+    "count": "kayıt",
+    "search": "Ara",
+    "searchPlaceholder": "Aday, ilan veya e-posta ara…",
+    "allStages": "Tümü",
+    "groupPeople": "Aynı kişiyi grupla",
+    "empty": "Henüz aday yok. Bir pozisyona CV yükleyerek başlayın.",
+    "noResults": "Filtreyle eşleşen başvuru yok.",
+    "multiApply": "{{count}} pozisyona başvurdu",
+    "colCandidate": "Aday",
+    "colJob": "İlan",
+    "colScore": "Skor",
+    "colStage": "Aşama",
+    "colApps": "Başvuru",
+    "colActions": "İşlem",
+    "open": "Aç",
+    "stages": {
+      "new": "Yeni",
+      "pool": "Havuz",
+      "reviewing": "İnceleniyor",
+      "pre_interview": "Ön mülakat",
+      "interview": "Mülakat",
+      "hold": "Beklemede",
+      "offer": "Teklif / Shortlist",
+      "rejected": "Reddedildi"
+    }
+  },
   "upload": {
     "title": "CV yükle",
     "hint": "PDF, DOCX veya düz metin (maks. 10 MB). Dosya nesne deposuna gider; API yalnızca kanıtlı skoru görür.",
