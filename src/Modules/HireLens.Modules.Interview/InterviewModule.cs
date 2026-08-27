@@ -11,12 +11,14 @@ public static class InterviewModule
     {
         services.AddSingleton<InterviewTokenSigner>();
         services.AddScoped<IInterviewService, InterviewService>();
+        services.AddScoped<IInterviewEvaluationService, InterviewEvaluationService>();
         return services;
     }
 
     public static IEndpointRouteBuilder MapInterviewModule(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapInterviewEndpoints();
+        endpoints.MapInterviewEvaluationEndpoints();
         return endpoints;
     }
 }

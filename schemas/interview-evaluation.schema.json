@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hirelens.local/schemas/interview-evaluation.schema.json",
+  "title": "interview_evaluation",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "rubricId": { "type": "string" },
+    "rubricVersion": { "type": "string" },
+    "overallScore": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
+    "criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["criterionId"],
+        "properties": {
+          "criterionId": { "type": "string" },
+          "questionId": { "type": "string" },
+          "score": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
+          "confidence": { "type": "string" },
+          "status": { "type": "string" },
+          "reasoning": { "type": "string" },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": ["quote"],
+              "properties": {
+                "quote": { "type": "string" },
+                "source": { "type": "string" },
+                "speaker": { "type": "string" },
+                "timestamp": { "type": "string" },
+                "questionId": { "type": "string" },
+                "criterionId": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "consistency": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "criterionId": { "type": "string" },
+          "cvScore": { "type": ["number", "null"] },
+          "interviewScore": { "type": ["number", "null"] },
+          "aligned": { "type": ["boolean", "null"] },
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "summary": { "type": "string" }
+  }
+}
