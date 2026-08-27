@@ -5,7 +5,6 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
 import { AddCandidateDialog } from "../components/add-candidate-dialog";
-import { AppShell } from "../components/app-shell";
 import { CandidatesTable } from "../components/candidates-table";
 import { CvUploadZone } from "../components/cv-upload-zone";
 import { PageBody, PageHero } from "../components/page-hero";
@@ -15,7 +14,7 @@ type SortMode = "score" | "date" | "coverage";
 
 export function CandidatesPage() {
   const { t } = useTranslation();
-  const { positionId } = useParams({ from: "/positions/$positionId" });
+  const { positionId } = useParams({ from: "/_app/positions/$positionId" });
   const queryClient = useQueryClient();
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
@@ -104,7 +103,7 @@ export function CandidatesPage() {
   ];
 
   return (
-    <AppShell>
+    <>
       <PageHero
         kicker={position.data?.title ? t("candidates.title") : t("nav.positions")}
         title={position.data?.title ?? t("candidates.title")}
@@ -291,7 +290,7 @@ export function CandidatesPage() {
         }}
       />
       </PageBody>
-    </AppShell>
+    </>
   );
 }
 

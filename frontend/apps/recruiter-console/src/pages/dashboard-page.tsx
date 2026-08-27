@@ -7,9 +7,8 @@ import { useTranslation } from "react-i18next";
 import { api } from "../api";
 import { isDevAuth } from "../auth-mode";
 import { useAuthStore } from "../auth-store";
-import { AppShell } from "../components/app-shell";
-import { PageBody, PageHero } from "../components/page-hero";
 import { Pagination } from "../components/pagination";
+import { PageBody, PageHero } from "../components/page-hero";
 import { useTourStore } from "../tour/tour-store";
 
 const PAGE_SIZE = 6;
@@ -155,7 +154,7 @@ export function DashboardPage() {
   const activities = buildActivities(list, totals, t);
 
   return (
-    <AppShell>
+    <>
       <PageHero
         kicker={workspaceName}
         title={t("dashboard.title")}
@@ -415,7 +414,7 @@ export function DashboardPage() {
           </div>
         </section>
       </PageBody>
-    </AppShell>
+    </>
   );
 }
 

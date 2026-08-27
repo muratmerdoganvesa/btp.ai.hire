@@ -5,7 +5,6 @@ import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
-import { AppShell } from "../components/app-shell";
 import { AiDisclosureBanner } from "../components/ai-disclosure-banner";
 import { DecisionPanel } from "../components/decision-panel";
 import { EvaluationAuditPanel } from "../components/evaluation-audit-panel";
@@ -19,7 +18,7 @@ import { ScoreBreakdownTable } from "../components/score-breakdown-table";
 export function EvaluationPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { candidateId } = useParams({ from: "/candidates/$candidateId" });
+  const { candidateId } = useParams({ from: "/_app/candidates/$candidateId" });
   const queryClient = useQueryClient();
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [inviteExpiresAt, setInviteExpiresAt] = useState<string | null>(null);
@@ -173,7 +172,7 @@ export function EvaluationPage() {
   const coveragePct = evaluation.data ? Math.round(evaluation.data.coverageRatio * 100) : null;
 
   return (
-    <AppShell>
+    <>
       <PageHero
         kicker={position.data?.title ?? t("evaluation.title")}
         title={candidate.data?.displayName ?? t("evaluation.title")}
@@ -487,7 +486,7 @@ export function EvaluationPage() {
         </Card>
       )}
       </PageBody>
-    </AppShell>
+    </>
   );
 }
 

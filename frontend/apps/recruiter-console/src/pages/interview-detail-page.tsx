@@ -3,14 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
-import { AppShell } from "../components/app-shell";
 import { InterviewFramesGallery } from "../components/interview-frames-gallery";
 import { InterviewTranscript } from "../components/interview-transcript";
 import { PageBody, PageHero } from "../components/page-hero";
 
 export function InterviewDetailPage() {
   const { t } = useTranslation();
-  const { sessionId } = useParams({ from: "/interviews/$sessionId" });
+  const { sessionId } = useParams({ from: "/_app/interviews/$sessionId" });
 
   const session = useQuery({
     queryKey: ["interview-session", sessionId],
@@ -20,7 +19,7 @@ export function InterviewDetailPage() {
   const data = session.data;
 
   return (
-    <AppShell>
+    <>
       <PageHero
         kicker={data?.positionTitle ?? t("interviewsBoard.title")}
         title={data?.candidateName ?? t("interviewsBoard.detailTitle")}
@@ -115,7 +114,7 @@ export function InterviewDetailPage() {
           </>
         )}
       </PageBody>
-    </AppShell>
+    </>
   );
 }
 

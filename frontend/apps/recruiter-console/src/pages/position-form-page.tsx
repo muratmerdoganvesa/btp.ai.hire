@@ -6,7 +6,6 @@ import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
-import { AppShell } from "../components/app-shell";
 import { Field, TextArea, TextInput } from "../components/field";
 import { PageBody, PageHero } from "../components/page-hero";
 
@@ -31,7 +30,7 @@ export function PositionCreatePage() {
 }
 
 export function PositionEditPage() {
-  const { positionId } = useParams({ from: "/positions/$positionId/edit" });
+  const { positionId } = useParams({ from: "/_app/positions/$positionId/edit" });
   return <PositionFormPage mode="edit" positionId={positionId} />;
 }
 
@@ -204,19 +203,19 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
 
   if (isEditing && existing.isLoading) {
     return (
-      <AppShell>
+      <>
         <PageHero kicker={t("positions.title")} title={t("positions.edit")} />
         <PageBody>
           <p className="text-sm text-muted">{t("positions.loading")}</p>
         </PageBody>
-      </AppShell>
+      </>
     );
   }
 
   const showFlagged = !flaggedDismissed && flaggedPhrases.length > 0;
 
   return (
-    <AppShell>
+    <>
       <PageHero
         kicker={t("positions.title")}
         title={isEditing ? t("positions.edit") : t("positions.create")}
@@ -396,6 +395,6 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
         </div>
       </div>
       </PageBody>
-    </AppShell>
+    </>
   );
 }

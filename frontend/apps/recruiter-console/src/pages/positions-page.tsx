@@ -4,7 +4,6 @@ import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
-import { AppShell } from "../components/app-shell";
 import { PageBody, PageHero } from "../components/page-hero";
 
 export function PositionsPage() {
@@ -38,7 +37,7 @@ export function PositionsPage() {
   }, [positions.data, query]);
 
   return (
-    <AppShell>
+    <>
       <PageHero
         kicker={t("nav.sectionRecruiting")}
         title={t("positions.title")}
@@ -144,6 +143,6 @@ export function PositionsPage() {
         </div>
       </div>
       </PageBody>
-    </AppShell>
+    </>
   );
 }

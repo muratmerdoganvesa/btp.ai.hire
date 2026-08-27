@@ -29,7 +29,7 @@ export function PageHero({
     <header
       style={brandSurfaceStyle}
       className={cn(
-        "relative flex shrink-0 items-center overflow-hidden px-5 sm:px-6 lg:px-7",
+        "relative z-20 flex shrink-0 items-center overflow-hidden px-5 sm:px-6 lg:px-7",
         BRAND_BAR_CLASS,
         className
       )}

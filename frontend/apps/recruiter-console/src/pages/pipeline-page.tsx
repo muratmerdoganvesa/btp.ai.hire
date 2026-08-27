@@ -5,7 +5,6 @@ import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
-import { AppShell } from "../components/app-shell";
 import { PageBody, PageHero } from "../components/page-hero";
 
 const stageOrder = [
@@ -87,7 +86,7 @@ export function PipelinePage() {
   }, [filtered]);
 
   return (
-    <AppShell>
+    <>
       <PageHero kicker={t("nav.sectionProcess")} title={t("pipeline.title")} />
 
       <PageBody className="gap-4 overflow-hidden pb-2">
@@ -170,7 +169,7 @@ export function PipelinePage() {
           </div>
         )}
       </PageBody>
-    </AppShell>
+    </>
   );
 }
 

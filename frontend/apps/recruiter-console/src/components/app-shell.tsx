@@ -1,5 +1,5 @@
 import { Button, InitialsAvatar, cn } from "@hirelens/ui";
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { isDevAuth, logout as endSession } from "../auth-mode";
@@ -37,6 +37,14 @@ const processNav: NavItem[] = [
   { id: "interview", to: "/interviews", labelKey: "nav.aiInterview", match: "interview", icon: "interview" },
   { id: "reports", to: "/", labelKey: "nav.reports", match: "exact", icon: "reports" }
 ];
+
+export function AppLayout() {
+  return (
+    <AppShell>
+      <Outlet />
+    </AppShell>
+  );
+}
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
@@ -88,9 +96,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     });
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
+    <div className="flex h-screen overflow-hidden bg-background text-foreground">
       <ProductTour />
-      <aside className="sticky top-0 hidden h-screen w-[16.5rem] shrink-0 flex-col bg-[#f8fafc] lg:flex">
+      <aside className="hidden h-full w-[16.5rem] shrink-0 flex-col bg-[#f8fafc] lg:flex">
         <BrandBlock />
         <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto border-r border-slate-200 px-3 py-4">
           <div>
@@ -128,8 +136,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <header className="flex flex-col border-b border-border bg-white lg:hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="sticky top-0 z-30 flex flex-col border-b border-border bg-white lg:hidden">
           <div className="flex items-center justify-between gap-2 px-3 py-2.5">
             <BrandBlock compact />
             <div className="flex items-center gap-1">
@@ -155,7 +163,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           ) : null}
         </header>
-        <main className="hl-rise flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden bg-[linear-gradient(180deg,#eef1fb_0%,var(--hl-bg)_28%)]">
+        <main className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden bg-[linear-gradient(180deg,#eef1fb_0%,var(--hl-bg)_28%)]">
           {children}
         </main>
       </div>

@@ -5,7 +5,6 @@ import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
-import { AppShell } from "../components/app-shell";
 import { PageBody, PageHero } from "../components/page-hero";
 
 type StageFilter = "all" | string;
@@ -101,7 +100,7 @@ export function CandidatesBoardPage() {
   }, [filtered, groupPeople]);
 
   return (
-    <AppShell>
+    <>
       <PageHero
         title={t("candidatesBoard.title")}
         actions={
@@ -204,7 +203,7 @@ export function CandidatesBoardPage() {
           )}
         </section>
       </PageBody>
-    </AppShell>
+    </>
   );
 }
 

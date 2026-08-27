@@ -1,4 +1,5 @@
 import { Outlet, createRootRoute, createRoute, createRouter, redirect } from "@tanstack/react-router";
+import { AppLayout } from "./components/app-shell";
 import { isDevAuth } from "./auth-mode";
 import { useAuthStore } from "./auth-store";
 import { CandidatesBoardPage } from "./pages/candidates-board-page";
@@ -46,73 +47,70 @@ const sessionErrorRoute = createRoute({
   component: SessionErrorPage
 });
 
-const indexRoute = createRoute({
+const appRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/",
+  id: "/_app",
   beforeLoad: requireSession,
+  component: AppLayout
+});
+
+const indexRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/",
   component: DashboardPage
 });
 
 const positionsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: "/positions",
-  beforeLoad: requireSession,
   component: PositionsPage
 });
 
 const positionCreateRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: "/positions/new",
-  beforeLoad: requireSession,
   component: PositionCreatePage
 });
 
 const positionEditRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: "/positions/$positionId/edit",
-  beforeLoad: requireSession,
   component: PositionEditPage
 });
 
 const positionDetailRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: "/positions/$positionId",
-  beforeLoad: requireSession,
   component: CandidatesPage
 });
 
 const evaluationRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: "/candidates/$candidateId",
-  beforeLoad: requireSession,
   component: EvaluationPage
 });
 
 const candidatesBoardRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: "/candidates",
-  beforeLoad: requireSession,
   component: CandidatesBoardPage
 });
 
 const pipelineRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: "/pipeline",
-  beforeLoad: requireSession,
   component: PipelinePage
 });
 
 const interviewsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: "/interviews",
-  beforeLoad: requireSession,
   component: InterviewsPage
 });
 
 const interviewDetailRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: "/interviews/$sessionId",
-  beforeLoad: requireSession,
   component: InterviewDetailPage
 });
 
@@ -159,18 +157,20 @@ const interviewRoute = createRoute({
 });
 
 const routeTree = rootRoute.addChildren([
-  indexRoute,
   loginRoute,
   sessionErrorRoute,
-  positionsRoute,
-  positionCreateRoute,
-  positionEditRoute,
-  positionDetailRoute,
-  candidatesBoardRoute,
-  pipelineRoute,
-  interviewsRoute,
-  interviewDetailRoute,
-  evaluationRoute,
+  appRoute.addChildren([
+    indexRoute,
+    positionsRoute,
+    positionCreateRoute,
+    positionEditRoute,
+    positionDetailRoute,
+    candidatesBoardRoute,
+    pipelineRoute,
+    interviewsRoute,
+    interviewDetailRoute,
+    evaluationRoute
+  ]),
   applyJobRoute,
   applyConsentRoute,
   applyFormRoute,

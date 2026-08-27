@@ -5,7 +5,6 @@ import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
-import { AppShell } from "../components/app-shell";
 import { PageBody, PageHero } from "../components/page-hero";
 
 const statusTone: Record<string, string> = {
@@ -61,7 +60,7 @@ export function InterviewsPage() {
   );
 
   return (
-    <AppShell>
+    <>
       <PageHero
         kicker={t("nav.sectionProcess")}
         title={t("interviewsBoard.title")}
@@ -141,7 +140,7 @@ export function InterviewsPage() {
           )}
         </section>
       </PageBody>
-    </AppShell>
+    </>
   );
 }
 
