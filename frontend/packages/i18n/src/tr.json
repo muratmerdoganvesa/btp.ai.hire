@@ -394,9 +394,10 @@
     "submit": "Yükle ve çözümle",
     "working": "Değerlendiriliyor…",
     "phaseUpload": "Dosya yükleniyor…",
-    "phaseParse": "Metin çıkarılıyor…",
+    "phaseParse": "CV analiz ediliyor…",
     "phaseMatch": "Eşleştiriliyor ve skorlanıyor…",
-    "scanned": "Bu belge taranmış görünüyor, metin okunamadı. Lütfen metin tabanlı bir PDF yükleyin."
+    "scanned": "Bu belge taranmış görünüyor, metin okunamadı. Lütfen metin tabanlı bir PDF yükleyin.",
+    "stillProcessing": "Aday kaydedildi. Skorlama arka planda devam ediyor; liste birazdan güncellenir."
   },
   "evaluation": {
     "title": "Değerlendirme",

@@ -4,11 +4,19 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
 
-async function waitForJob(jobId: string, onTick: (status: string) => void): Promise<void> {
+const PARSE_TIMEOUT_MS = 180_000;
+const MATCH_TIMEOUT_MS = 180_000;
+const POLL_MS = 1500;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForJob(jobId: string, onTick: () => void): Promise<void> {
   const started = Date.now();
-  while (Date.now() - started < 90_000) {
+  while (Date.now() - started < PARSE_TIMEOUT_MS) {
     const job = await api.getJob(jobId);
-    onTick(job.status);
+    onTick();
     const status = job.status.toLowerCase();
     if (status === "succeeded" || status === "completed" || status === "done") {
       return;
@@ -16,9 +24,32 @@ async function waitForJob(jobId: string, onTick: (status: string) => void): Prom
     if (status === "failed" || status === "error") {
       throw new ApiError(500, job.error ?? "job_failed");
     }
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await sleep(POLL_MS);
   }
   throw new Error("job_timeout");
+}
+
+async function waitForEvaluation(candidateId: string, onTick: () => void): Promise<void> {
+  const started = Date.now();
+  while (Date.now() - started < MATCH_TIMEOUT_MS) {
+    try {
+      const evaluation = await api.getEvaluation(candidateId);
+      onTick();
+      const status = evaluation.status.toLowerCase();
+      if (status === "completed" || status === "succeeded") {
+        return;
+      }
+      if (status === "failed" || status === "error") {
+        throw new ApiError(500, evaluation.failureMessage ?? "job_failed");
+      }
+    } catch (err) {
+      if (!(err instanceof ApiError) || err.status !== 404) {
+        throw err;
+      }
+      onTick();
+    }
+    await sleep(POLL_MS);
+  }
 }
 
 export async function uploadCandidateCv(
@@ -32,8 +63,19 @@ export async function uploadCandidateCv(
   await api.putObject(session.uploadUrl, file);
   onPhase?.("parse");
   const job = await api.completeUpload(session.documentId);
+  await waitForJob(job.jobId, () => onPhase?.("parse"));
   onPhase?.("match");
-  await waitForJob(job.jobId, (status) => onPhase?.(`match:${status}`));
+  await waitForEvaluation(candidateId, () => onPhase?.("match"));
+}
+
+export function describeUploadPhase(phase: string, t: (key: string) => string): string {
+  if (phase === "upload") {
+    return t("upload.phaseUpload");
+  }
+  if (phase === "parse" || phase.startsWith("parse:")) {
+    return t("upload.phaseParse");
+  }
+  return t("upload.phaseMatch");
 }
 
 export function CvUploadZone({
@@ -61,17 +103,18 @@ export function CvUploadZone({
     setBusy(true);
     setError(null);
     try {
-      await uploadCandidateCv(positionId, candidateId, file, (p) => {
-        if (p === "upload") setPhase(t("upload.phaseUpload"));
-        else if (p === "parse") setPhase(t("upload.phaseParse"));
-        else if (p.startsWith("match")) setPhase(`${t("upload.phaseMatch")} (${p.split(":")[1] ?? ""})`);
-        else setPhase(t("upload.phaseMatch"));
-      });
+      await uploadCandidateCv(positionId, candidateId, file, (p) => setPhase(describeUploadPhase(p, t)));
       setPhase(null);
       setFile(null);
       onCompleted();
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
+      if (message === "job_timeout") {
+        setPhase(null);
+        setFile(null);
+        onCompleted();
+        return;
+      }
       if (/scanned|could not be extracted|text could not/i.test(message)) {
         setError(t("upload.scanned"));
       } else if (err instanceof ApiError && message) {

@@ -4,7 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
-import { uploadCandidateCv } from "./cv-upload-zone";
+import { describeUploadPhase, uploadCandidateCv } from "./cv-upload-zone";
 import { Field, TextInput } from "./field";
 
 export function AddCandidateDialog({
@@ -36,15 +36,15 @@ export function AddCandidateDialog({
       const candidate = await api.createCandidate(positionId, displayName.trim());
       try {
         await uploadCandidateCv(positionId, candidate.id, cvFile, (p) => {
-          if (p === "upload") setPhase(t("upload.phaseUpload"));
-          else if (p === "parse") setPhase(t("upload.phaseParse"));
-          else if (p.startsWith("match")) setPhase(`${t("upload.phaseMatch")} (${p.split(":")[1] ?? ""})`);
-          else setPhase(t("upload.phaseMatch"));
+          setPhase(describeUploadPhase(p, t));
         });
       } catch (err) {
         const message = err instanceof Error ? err.message : "";
         if (/scanned|could not be extracted|text could not/i.test(message)) {
           throw new Error(t("upload.scanned"));
+        }
+        if (message === "job_timeout") {
+          return candidate;
         }
         if (err instanceof ApiError && message) {
           throw new Error(`${t("errors.generic")} (${message.replace(/^http_\d+:/, "")})`);

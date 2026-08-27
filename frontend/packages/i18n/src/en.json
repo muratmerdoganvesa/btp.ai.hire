@@ -394,9 +394,10 @@
     "submit": "Upload and parse",
     "working": "Evaluating…",
     "phaseUpload": "Uploading file…",
-    "phaseParse": "Extracting text…",
+    "phaseParse": "Analyzing CV…",
     "phaseMatch": "Matching and scoring…",
-    "scanned": "This document looks scanned; text could not be read. Please upload a text-based PDF."
+    "scanned": "This document looks scanned; text could not be read. Please upload a text-based PDF.",
+    "stillProcessing": "Candidate saved. Scoring is continuing in the background; the list will update shortly."
   },
   "evaluation": {
     "title": "Evaluation",

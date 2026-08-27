@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using FluentAssertions;
 using HireLens.AiGateway.Masking;
 using HireLens.AiGateway.Prompts;
@@ -214,6 +215,109 @@ public sealed class AiCoreLiveTests
         var mapped = CriteriaMatchingMapper.TryMap(result.Content, position);
         mapped.Should().NotBeNull("Eşleştirme AI skor döndürmedi. Preview={0}", Truncate(result.Content));
         mapped!.Should().HaveCount(2);
+    }
+
+    /// <summary>
+    /// Recruiter console flow: a position exists, a CV arrives, complete() then
+    /// runs CvExtraction and JdCvMatching back-to-back on the same thread.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "Integration")]
+    public async Task Position_receives_cv_then_extract_and_match_against_ai_core()
+    {
+        var key = LoadServiceKey();
+        if (key is null)
+        {
+            Assert.Fail("aicore-service-key.json veya AICORE_SERVICE_KEY yok; canlı pipeline testi atlanamaz.");
+        }
+
+        var (provider, http) = CreateProvider(key);
+        using (http)
+        {
+        var tokenWatch = Stopwatch.StartNew();
+        var token = await new AiCoreTokenProvider(
+            http,
+            Options.Create(new SapAiCoreOptions { ServiceKeyJson = key }),
+            NullLogger<AiCoreTokenProvider>.Instance).GetTokenAsync(CancellationToken.None);
+        tokenWatch.Stop();
+        token.Should().NotBeNullOrWhiteSpace("XSUAA token alınamadı");
+        Console.WriteLine($"[pipeline] token={tokenWatch.ElapsedMilliseconds}ms");
+
+        const string cvText = """
+            Mert Aksüz — Senior Backend Engineer
+            6 years C# / ASP.NET Core, REST APIs, Entity Framework Core, SQL Server and HANA.
+            Built recruiter-facing hiring services on SAP BTP Cloud Foundry.
+            Docker, Kubernetes, Git, CI pipelines. B.Sc. Computer Engineering.
+            English CV. Istanbul / remote.
+            """;
+
+        var csharp = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        var sql = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+        var btp = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
+        var position = new PositionSnapshot(
+            Guid.NewGuid(),
+            "Backend .NET Geliştirici",
+            SampleJd,
+            [
+                new PositionCriterionDto(csharp, "C#", "C# ve ASP.NET Core", 50),
+                new PositionCriterionDto(sql, "SQL", "SQL ve EF", 30),
+                new PositionCriterionDto(btp, "SAP BTP", "SAP BTP / Cloud Foundry", 20)
+            ]);
+
+        var (extractSystem, extractUser) = LoadPrompt("CvExtraction", "v1.1.0.md");
+        var extractWatch = Stopwatch.StartNew();
+        var extracted = await provider.CompleteAsync(
+            new MaskedPrompt(cvText, new Dictionary<string, string>()),
+            new ModelProfile("anthropic--claude-4.5-haiku", null, 2048, 0.1),
+            CancellationToken.None,
+            new OrchestrationPromptSpec(
+                SystemPrompt: extractSystem,
+                UserPrompt: extractUser,
+                Placeholders: new Dictionary<string, string>
+                {
+                    ["cv_text"] = cvText,
+                    ["application_data"] = "yok"
+                },
+                DeploymentId: "d05d3551770ab22b"));
+        extractWatch.Stop();
+        Console.WriteLine(
+            $"[pipeline] cv-extraction={extractWatch.ElapsedMilliseconds}ms tokens={extracted.InputTokens}/{extracted.OutputTokens} preview={Truncate(extracted.Content)}");
+
+        extracted.Content.Should().NotBeNullOrWhiteSpace();
+        CvExtractionMapper.IsUsable(extracted.Content).Should().BeTrue(
+            "CV extraction başarısız. {0}ms. Preview={1}",
+            extractWatch.ElapsedMilliseconds,
+            Truncate(extracted.Content));
+
+        var (matchSystem, matchUser) = LoadPrompt("JdCvMatching", "v1.0.0.md");
+        var matchWatch = Stopwatch.StartNew();
+        var matched = await provider.CompleteAsync(
+            new MaskedPrompt(cvText, new Dictionary<string, string>()),
+            new ModelProfile("anthropic--claude-4.5-haiku", null, 2048, 0.1),
+            CancellationToken.None,
+            new OrchestrationPromptSpec(
+                SystemPrompt: matchSystem,
+                UserPrompt: matchUser,
+                Placeholders: new Dictionary<string, string>
+                {
+                    ["jd_structured"] = """{"title":"Backend .NET Geliştirici","jobDescription":"C# ASP.NET Core SQL SAP BTP"}""",
+                    ["rubric_criteria"] =
+                        $"[{{ \"criterionId\":\"{csharp:D}\",\"name\":\"C#\",\"weight\":50}},{{ \"criterionId\":\"{sql:D}\",\"name\":\"SQL\",\"weight\":30}},{{ \"criterionId\":\"{btp:D}\",\"name\":\"SAP BTP\",\"weight\":20}}]",
+                    ["candidate_profile"] = "{\"cv_text\":" + System.Text.Json.JsonSerializer.Serialize(cvText) + "}"
+                },
+                DeploymentId: "dcb0d6d919f15368"));
+        matchWatch.Stop();
+        Console.WriteLine(
+            $"[pipeline] matching={matchWatch.ElapsedMilliseconds}ms tokens={matched.InputTokens}/{matched.OutputTokens} preview={Truncate(matched.Content)}");
+
+        matched.Content.Should().NotBeNullOrWhiteSpace();
+        var scores = CriteriaMatchingMapper.TryMap(matched.Content, position);
+        scores.Should().NotBeNull("Eşleştirme skor döndürmedi. {0}ms. Preview={1}", matchWatch.ElapsedMilliseconds, Truncate(matched.Content));
+        scores!.Should().HaveCount(3);
+
+        var totalMs = tokenWatch.ElapsedMilliseconds + extractWatch.ElapsedMilliseconds + matchWatch.ElapsedMilliseconds;
+        Console.WriteLine($"[pipeline] total={totalMs}ms (UI complete() bu süreyi senkron bekler)");
+        }
     }
 
     [Fact]
