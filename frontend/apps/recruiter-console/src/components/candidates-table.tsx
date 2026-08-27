@@ -33,6 +33,7 @@ export function CandidatesTable({
         <div>
           <h2 className="text-sm font-extrabold tracking-tight text-foreground">{t("candidates.rankingTitle")}</h2>
           <p className="text-xs text-muted">{t("candidates.rankingHint")}</p>
+          <p className="mt-1 text-xs font-semibold text-brand-7">{t("candidates.rankingRule")}</p>
         </div>
         <p className="shrink-0 text-xs font-semibold tabular-nums text-muted">
           {rows.length} {t("candidates.count")}
@@ -50,6 +51,21 @@ export function CandidatesTable({
           const barWidth =
             score == null || maxScore <= 0 ? 0 : Math.max(6, Math.round((score / maxScore) * 100));
           const isTop = rank <= 3 && score != null;
+          const prev = index > 0 ? rows[index - 1] : null;
+          const sameScoreAsPrev =
+            prev != null &&
+            score != null &&
+            prev.overallScore != null &&
+            Math.round(score) === Math.round(prev.overallScore);
+          const rankReason = rankReasonText({
+            rank,
+            score,
+            coveragePct,
+            prevScore: prev?.overallScore ?? null,
+            prevCoveragePct:
+              prev?.coverageRatio == null ? null : Math.round(prev.coverageRatio * 100),
+            t
+          });
 
           return (
             <li
@@ -82,24 +98,28 @@ export function CandidatesTable({
                       </span>
                     ) : null}
                   </div>
+
+                  <p className="mt-1.5 text-sm font-semibold text-foreground">
+                    {t("candidates.scoreAndCoverage", {
+                      score: score == null ? "—" : Math.round(score),
+                      coverage: coveragePct == null ? "—" : `%${coveragePct}`
+                    })}
+                  </p>
+                  {rankReason ? (
+                    <p
+                      className={cn(
+                        "mt-1 text-xs font-medium",
+                        sameScoreAsPrev || rank === 1 ? "text-brand-7" : "text-muted"
+                      )}
+                    >
+                      {rankReason}
+                    </p>
+                  ) : null}
+
                   <div className="mt-2 max-w-md">
-                    <div className="mb-1 flex items-center justify-between gap-2 text-[0.7rem] text-muted">
-                      <span>{t("candidates.colScore")}</span>
-                      {coveragePct !== null ? (
-                        <span>
-                          {t("candidates.coverageShort", { pct: coveragePct })}
-                          {coveragePct < 50 ? (
-                            <span className="ml-1 text-danger">{t("candidates.lowCoverage")}</span>
-                          ) : null}
-                        </span>
-                      ) : null}
-                    </div>
                     <div className="h-1.5 overflow-hidden rounded-full bg-border/80">
                       <div
-                        className={cn(
-                          "h-full rounded-full transition-[width]",
-                          scoreBarClass(score)
-                        )}
+                        className={cn("h-full rounded-full transition-[width]", scoreBarClass(score))}
                         style={{ width: `${barWidth}%` }}
                       />
                     </div>
@@ -117,9 +137,12 @@ export function CandidatesTable({
                   >
                     {score == null ? "—" : Math.round(score)}
                   </p>
-                  <p className="mt-1 text-[0.7rem] font-semibold text-muted">
-                    {scoreLabel(score, t)}
-                  </p>
+                  <p className="mt-1 text-[0.7rem] font-semibold text-muted">{scoreLabel(score, t)}</p>
+                  {coveragePct !== null ? (
+                    <p className="mt-0.5 text-[0.7rem] font-semibold text-muted">
+                      {t("candidates.coverageShort", { pct: coveragePct })}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -129,12 +152,7 @@ export function CandidatesTable({
                     </Link>
                   </Button>
                   {onSelect ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onSelect(row.id)}
-                    >
+                    <Button type="button" variant="outline" size="sm" onClick={() => onSelect(row.id)}>
                       {t("candidates.uploadCv")}
                     </Button>
                   ) : null}
@@ -223,4 +241,54 @@ function scoreLabel(score: number | null | undefined, t: (key: string) => string
     return t("score.partial");
   }
   return t("score.limited");
+}
+
+function rankReasonText({
+  rank,
+  score,
+  coveragePct,
+  prevScore,
+  prevCoveragePct,
+  t
+}: {
+  rank: number;
+  score: number | null | undefined;
+  coveragePct: number | null;
+  prevScore: number | null;
+  prevCoveragePct: number | null;
+  t: (key: string, opts?: Record<string, string | number>) => string;
+}): string | null {
+  if (score == null) {
+    return t("candidates.rankUnscored");
+  }
+
+  if (rank === 1) {
+    if (coveragePct != null) {
+      return t("candidates.rankFirstExplain", {
+        score: Math.round(score),
+        coverage: coveragePct
+      });
+    }
+    return t("candidates.rankFirstScoreOnly", { score: Math.round(score) });
+  }
+
+  if (prevScore != null && Math.round(score) === Math.round(prevScore)) {
+    if (coveragePct != null && prevCoveragePct != null && coveragePct < prevCoveragePct) {
+      return t("candidates.rankTieCoverageLower", {
+        score: Math.round(score),
+        coverage: coveragePct,
+        prevCoverage: prevCoveragePct
+      });
+    }
+    return t("candidates.rankTieSameScore", { score: Math.round(score) });
+  }
+
+  if (prevScore != null && score < prevScore) {
+    return t("candidates.rankLowerScore", {
+      score: Math.round(score),
+      prevScore: Math.round(prevScore)
+    });
+  }
+
+  return null;
 }
