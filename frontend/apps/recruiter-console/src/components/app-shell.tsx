@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { isDevAuth, logout as endSession } from "../auth-mode";
 import { useAuthStore } from "../auth-store";
 import { ProductTour } from "../tour/product-tour";
-import { brandSurfaceStyle } from "./page-hero";
+import { brandSurfaceStyle, BRAND_BAR_CLASS } from "./page-hero";
 
 const roleKeys: Record<string, string> = {
   Recruiter: "login.roles.Recruiter",
@@ -184,7 +184,7 @@ function BrandBlock({ compact = false }: { compact?: boolean }) {
     <Link
       to="/"
       style={brandSurfaceStyle}
-      className="relative flex min-h-[5.75rem] items-center overflow-hidden px-5 py-4"
+      className={cn("relative flex items-center overflow-hidden px-5", BRAND_BAR_CLASS)}
     >
       <div className="pointer-events-none absolute -right-6 -top-8 size-28 rounded-full bg-white/10" />
       <div className="pointer-events-none absolute -bottom-10 -left-4 size-24 rounded-full bg-[#3d52e0]/30" />

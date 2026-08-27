@@ -88,13 +88,10 @@ export function PipelinePage() {
 
   return (
     <AppShell>
-      <PageHero
-        kicker={t("nav.sectionProcess")}
-        title={t("pipeline.title")}
-        description={t("pipeline.subtitle")}
-      />
+      <PageHero kicker={t("nav.sectionProcess")} title={t("pipeline.title")} />
 
       <PageBody className="gap-4 overflow-hidden pb-2">
+        <p className="text-sm text-muted">{t("pipeline.subtitle")}</p>
         <section className="flex shrink-0 flex-col gap-3 rounded-2xl border border-border bg-surface p-4 shadow-card sm:flex-row sm:items-end">
           <div className="min-w-0 flex-1">
             <label className="text-xs font-bold uppercase tracking-wide text-muted" htmlFor="pipeline-search">

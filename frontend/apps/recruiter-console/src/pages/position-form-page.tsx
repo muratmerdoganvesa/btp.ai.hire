@@ -220,7 +220,6 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
       <PageHero
         kicker={t("positions.title")}
         title={isEditing ? t("positions.edit") : t("positions.create")}
-        description={t("positions.formHint")}
         actions={
           <Button asChild variant="outline" size="sm" className="!border-white/40 !bg-white/10 !text-white hover:!bg-white/20 hover:!text-white">
             <Link to="/positions">{t("positions.backToList")}</Link>
@@ -228,6 +227,7 @@ function PositionFormPage({ mode, positionId }: { mode: "create" | "edit"; posit
         }
       />
       <PageBody>
+      <p className="text-sm text-muted">{t("positions.formHint")}</p>
       <div
         data-tour="form-composer"
         className="flex min-h-0 flex-1 flex-col overflow-auto rounded-xl border border-border bg-surface"

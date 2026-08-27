@@ -108,7 +108,6 @@ export function CandidatesPage() {
       <PageHero
         kicker={position.data?.title ? t("candidates.title") : t("nav.positions")}
         title={position.data?.title ?? t("candidates.title")}
-        description={t("candidates.pageHint")}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button
@@ -134,6 +133,7 @@ export function CandidatesPage() {
         }
       />
       <PageBody>
+      <p className="text-sm text-muted">{t("candidates.pageHint")}</p>
       {applySlug ? (
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface px-4 py-3 text-sm">
           <span className="text-muted">{t("candidates.publicLink")}</span>

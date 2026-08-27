@@ -42,7 +42,6 @@ export function PositionsPage() {
       <PageHero
         kicker={t("nav.sectionRecruiting")}
         title={t("positions.title")}
-        description={t("positions.listHint")}
         actions={
           <Button asChild size="sm" className="!bg-white !text-[#151f66] hover:!bg-white/90" data-tour="tour-position-create">
             <Link to="/positions/new">{t("positions.create")}</Link>
@@ -50,6 +49,7 @@ export function PositionsPage() {
         }
       />
       <PageBody>
+      <p className="text-sm text-muted">{t("positions.listHint")}</p>
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden rounded-xl border border-border bg-surface">
         <div className="shrink-0 border-b border-border px-3 py-2 sm:px-4">
           <label className="sr-only" htmlFor="positions-search">

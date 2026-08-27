@@ -177,62 +177,63 @@ export function EvaluationPage() {
       <PageHero
         kicker={position.data?.title ?? t("evaluation.title")}
         title={candidate.data?.displayName ?? t("evaluation.title")}
-        description={t("evaluation.candidateSubtitle")}
         actions={
-          <div className="flex flex-col items-stretch gap-2 sm:items-end">
-            <ScoreBadge
-              score={evaluation.data?.overallScore ?? candidate.data?.overallScore ?? null}
-              label={
-                evaluation.data?.overallScore == null && candidate.data?.overallScore == null
-                  ? t("score.unknown")
-                  : t("evaluation.overallOf100")
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="!border-white/40 !bg-white/10 !text-white hover:!bg-white/20 hover:!text-white"
+            disabled={deleteCandidate.isPending}
+            onClick={() => {
+              if (!window.confirm(t("candidates.deleteConfirm"))) {
+                return;
               }
-            />
-            {coveragePct !== null ? (
-              <p className="text-xs text-white/75">
-                {t("evaluation.coverage")}: <span className="font-semibold tabular-nums">{coveragePct}%</span>
-                {coveragePct < 80 ? (
-                  <span className="ml-1 text-rose-200">· {t("evaluation.coverageWarningShort")}</span>
-                ) : null}
-              </p>
-            ) : null}
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="!text-white/70 hover:!bg-white/10 hover:!text-white"
-              disabled={deleteCandidate.isPending}
-              onClick={() => {
-                if (!window.confirm(t("candidates.deleteConfirm"))) {
-                  return;
-                }
-                deleteCandidate.mutate();
-              }}
-            >
-              {deleteCandidate.isPending ? t("candidates.deleting") : t("candidates.delete")}
-            </Button>
-          </div>
+              deleteCandidate.mutate();
+            }}
+          >
+            {deleteCandidate.isPending ? t("candidates.deleting") : t("candidates.delete")}
+          </Button>
         }
       />
       <PageBody>
-      <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
-        <Link to="/positions" className="font-medium text-brand-6 hover:underline">
-          {t("nav.positions")}
-        </Link>
-        {position.data ? (
-          <>
-            <span aria-hidden="true">/</span>
-            <Link
-              to="/positions/$positionId"
-              params={{ positionId: position.data.id }}
-              className="font-medium text-brand-6 hover:underline"
-            >
-              {position.data.title}
-            </Link>
-          </>
-        ) : null}
-        <span aria-hidden="true">/</span>
-        <span>{candidate.data?.displayName ?? t("evaluation.title")}</span>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
+          <Link to="/positions" className="font-medium text-brand-6 hover:underline">
+            {t("nav.positions")}
+          </Link>
+          {position.data ? (
+            <>
+              <span aria-hidden="true">/</span>
+              <Link
+                to="/positions/$positionId"
+                params={{ positionId: position.data.id }}
+                className="font-medium text-brand-6 hover:underline"
+              >
+                {position.data.title}
+              </Link>
+            </>
+          ) : null}
+          <span aria-hidden="true">/</span>
+          <span>{candidate.data?.displayName ?? t("evaluation.title")}</span>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <ScoreBadge
+            score={evaluation.data?.overallScore ?? candidate.data?.overallScore ?? null}
+            label={
+              evaluation.data?.overallScore == null && candidate.data?.overallScore == null
+                ? t("score.unknown")
+                : t("evaluation.overallOf100")
+            }
+          />
+          {coveragePct !== null ? (
+            <p className="text-xs text-muted">
+              {t("evaluation.coverage")}: <span className="font-semibold tabular-nums">{coveragePct}%</span>
+              {coveragePct < 80 ? (
+                <span className="ml-1 text-danger">· {t("evaluation.coverageWarningShort")}</span>
+              ) : null}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       {isRejected ? (

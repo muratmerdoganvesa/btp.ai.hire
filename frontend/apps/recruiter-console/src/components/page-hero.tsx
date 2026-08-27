@@ -1,6 +1,9 @@
 import { cn } from "@hirelens/ui";
 import type { CSSProperties, ReactNode } from "react";
 
+/** Shared height so sidebar brand + page hero read as one continuous top bar. */
+export const BRAND_BAR_CLASS = "h-[5.75rem]";
+
 /** Same paint as HireLens sidebar brand (inline so it never drops out of the cascade). */
 export const brandSurfaceStyle: CSSProperties = {
   background:
@@ -8,16 +11,16 @@ export const brandSurfaceStyle: CSSProperties = {
   color: "#ffffff"
 };
 
-/** Corporate page header — aligns with the HireLens sidebar brand block. */
+/** Compact page header — same height/paint as HireLens brand (no multi-line body text). */
 export function PageHero({
   kicker,
   title,
-  description,
   actions,
   className
 }: {
   kicker?: string;
   title: string;
+  /** @deprecated Kept for call-site compatibility; rendered in PageBody instead for bar height. */
   description?: string;
   actions?: ReactNode;
   className?: string;
@@ -26,24 +29,24 @@ export function PageHero({
     <header
       style={brandSurfaceStyle}
       className={cn(
-        "relative flex min-h-[5.75rem] shrink-0 items-center overflow-hidden px-5 py-4 sm:px-6 lg:px-7",
+        "relative flex shrink-0 items-center overflow-hidden px-5 sm:px-6 lg:px-7",
+        BRAND_BAR_CLASS,
         className
       )}
     >
       <div className="pointer-events-none absolute -right-8 -top-10 size-32 rounded-full bg-white/10" />
       <div className="pointer-events-none absolute -bottom-12 left-8 size-28 rounded-full bg-[#3d52e0]/28" />
 
-      <div className="relative flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="relative flex w-full items-center justify-between gap-4">
         <div className="min-w-0">
           {kicker ? (
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-white/70">{kicker}</p>
+            <p className="truncate text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-white/70">
+              {kicker}
+            </p>
           ) : null}
-          <h1 className="text-xl font-extrabold tracking-tight text-white sm:text-2xl">{title}</h1>
-          {description ? (
-            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-white/75">{description}</p>
-          ) : null}
+          <h1 className="truncate text-xl font-extrabold tracking-tight text-white sm:text-2xl">{title}</h1>
         </div>
-        {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+        {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
       </div>
     </header>
   );

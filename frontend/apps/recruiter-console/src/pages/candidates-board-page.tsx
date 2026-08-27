@@ -104,7 +104,6 @@ export function CandidatesBoardPage() {
     <AppShell>
       <PageHero
         title={t("candidatesBoard.title")}
-        description={t("candidatesBoard.subtitle")}
         actions={
           <p className="text-sm tabular-nums text-white/80">
             {filtered.length} / {rows.length} {t("candidatesBoard.count")}
@@ -113,6 +112,7 @@ export function CandidatesBoardPage() {
       />
 
       <PageBody className="gap-4 pb-2">
+        <p className="text-sm text-muted">{t("candidatesBoard.subtitle")}</p>
         <section className="rounded-2xl border border-border bg-surface p-4 shadow-card">
           <label className="block text-xs font-bold uppercase tracking-wide text-muted" htmlFor="candidates-search">
             {t("candidatesBoard.search")}
