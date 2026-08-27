@@ -174,6 +174,38 @@ public sealed class InterviewEvaluationMapperTests
     }
 
     [Fact]
+    public void Maps_btp_criterionScores_and_warning_objects()
+    {
+        const string json = """
+            {
+              "rubricId": "r1",
+              "rubricVersion": "v1",
+              "criterionScores": [
+                {
+                  "criterionId": "csharp",
+                  "weight": 100,
+                  "interviewScore": 70,
+                  "cvScore": 78,
+                  "verificationSource": "both",
+                  "rationale": "Somut API anlatımı.",
+                  "confidence": "medium",
+                  "evidence": [{ "quote": "C# API yazdım", "speaker": "Aday" }]
+                }
+              ],
+              "consistency": [],
+              "warnings": [{ "code": "no_cv_match_result", "severity": "info", "detail": "" }]
+            }
+            """;
+
+        var result = InterviewEvaluationMapper.Parse(json);
+        result.OverallScore.Should().BeNull();
+        result.Criteria.Should().ContainSingle();
+        result.Criteria[0].Score.Should().Be(70);
+        result.Criteria[0].Reasoning.Should().Contain("API");
+        result.Warnings.Should().Contain("no_cv_match_result");
+    }
+
+    [Fact]
     public void Transcript_unusable_is_a_valid_payload()
     {
         var result = InterviewEvaluationMapper.Parse("""{"warnings":["transcript_unusable"],"criteria":[],"consistency":[]}""");

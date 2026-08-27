@@ -143,58 +143,32 @@ public sealed class ParseCvJob(
 
     private async Task<bool> TryHostedCvExtractionAsync(string masked, CancellationToken cancellationToken)
     {
-        var variables = new Dictionary<string, string>
-        {
-            ["cv_text"] = masked,
-            ["application_data"] = "yok"
-        };
-
-        var hostedId = aiCoreOptions.Value.CvExtractionDeploymentId;
-        if (!string.IsNullOrWhiteSpace(hostedId))
-        {
-            try
-            {
-                var hosted = await gateway.ExecuteAsync<string>(
-                    AiTaskType.CvExtraction,
-                    new PromptContext(
-                        TaskInput: masked,
-                        PromptVersion: "1",
-                        Variables: variables,
-                        PlaceholdersOnly: true,
-                        DeploymentId: hostedId),
-                    new AiOptions(MaxOutputTokens: 2048, Temperature: 0.1),
-                    cancellationToken);
-                if (CvExtractionMapper.IsUsable(hosted.Value))
-                {
-                    logger.LogInformation("CV extraction used Launchpad deployment {DeploymentId}", hostedId);
-                    return true;
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Launchpad cv-extraction-v1 not ready; falling back to default orchestration");
-            }
-        }
-
         try
         {
             var prompt = prompts.Get("CvExtraction", "1.1.0");
+            var deploymentId = string.IsNullOrWhiteSpace(aiCoreOptions.Value.CvExtractionDeploymentId)
+                ? aiCoreOptions.Value.DeploymentId
+                : aiCoreOptions.Value.CvExtractionDeploymentId;
             var result = await gateway.ExecuteAsync<string>(
                 AiTaskType.CvExtraction,
                 new PromptContext(
                     TaskInput: masked,
                     PromptVersion: prompt.Version,
-                    Variables: variables,
+                    Variables: new Dictionary<string, string>
+                    {
+                        ["cv_text"] = masked,
+                        ["application_data"] = "yok"
+                    },
                     SystemPrompt: prompt.SystemPrompt,
                     UserPrompt: prompt.UserTemplate,
-                    DeploymentId: aiCoreOptions.Value.DeploymentId),
+                    DeploymentId: deploymentId),
                 new AiOptions(MaxOutputTokens: 2048, Temperature: 0.1),
                 cancellationToken);
             return CvExtractionMapper.IsUsable(result.Value);
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Default CV extraction failed");
+            logger.LogWarning(ex, "CV extraction orchestration call failed");
             return false;
         }
     }

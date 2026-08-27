@@ -32,6 +32,7 @@ public static class InterviewEvaluationMapper
             return string.Equals(note, "stub-provider", StringComparison.OrdinalIgnoreCase)
                 || (string.Equals(status, "unknown", StringComparison.OrdinalIgnoreCase)
                     && !root.TryGetProperty("criteria", out _)
+                    && !root.TryGetProperty("criterionScores", out _)
                     && !root.TryGetProperty("warnings", out _));
         }
         catch (JsonException)
@@ -73,8 +74,10 @@ public static class InterviewEvaluationMapper
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
             if (root.TryGetProperty("criteria", out _)
+                || root.TryGetProperty("criterionScores", out _)
                 || root.TryGetProperty("warnings", out _)
-                || root.TryGetProperty("consistency", out _))
+                || root.TryGetProperty("consistency", out _)
+                || root.TryGetProperty("answers", out _))
             {
                 return json;
             }
@@ -121,8 +124,9 @@ public static class InterviewEvaluationMapper
 
     private static InterviewEvaluationResponse Normalize(EvaluationAiPayload payload)
     {
-        var criteria = (payload.Criteria ?? [])
-            .Select(MapCriterion)
+        var criteria = (payload.CriterionScores is { Count: > 0 } scores
+                ? scores.Select(MapCriterionScore)
+                : (payload.Criteria ?? []).Select(MapCriterion))
             .Where(c => c is not null)
             .Select(c => c!)
             .ToList();
@@ -134,7 +138,7 @@ public static class InterviewEvaluationMapper
                 c.CvScore,
                 c.InterviewScore,
                 c.Aligned,
-                string.IsNullOrWhiteSpace(c.Detail) ? null : c.Detail.Trim()))
+                ConsistencyDetail(c)))
             .ToList();
 
         var evidence = (payload.Evidence ?? [])
@@ -142,12 +146,12 @@ public static class InterviewEvaluationMapper
             .Where(e => e is not null)
             .Select(e => e!)
             .ToList();
+        if (evidence.Count == 0)
+        {
+            evidence = criteria.SelectMany(c => c.Evidence).ToList();
+        }
 
-        var warnings = (payload.Warnings ?? [])
-            .Where(w => !string.IsNullOrWhiteSpace(w))
-            .Select(w => w.Trim())
-            .Distinct(StringComparer.Ordinal)
-            .ToList();
+        var warnings = NormalizeWarnings(payload.Warnings);
 
         return new InterviewEvaluationResponse(
             string.IsNullOrWhiteSpace(payload.RubricId) ? null : payload.RubricId.Trim(),
@@ -183,6 +187,63 @@ public static class InterviewEvaluationMapper
             evidence);
     }
 
+    private static InterviewEvaluatedCriterionDto? MapCriterionScore(CriterionScoreAi c) =>
+        MapCriterion(new CriterionAi
+        {
+            CriterionId = c.CriterionId,
+            Score = c.InterviewScore,
+            Confidence = c.Confidence,
+            Status = c.VerificationSource,
+            Reasoning = c.Rationale,
+            Evidence = c.Evidence
+        });
+
+    private static string? ConsistencyDetail(ConsistencyAi c)
+    {
+        if (!string.IsNullOrWhiteSpace(c.Detail))
+        {
+            return c.Detail.Trim();
+        }
+
+        var parts = new[] { c.CvClaim, c.InterviewClaim, c.Severity }
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s!.Trim())
+            .ToList();
+        return parts.Count == 0 ? null : string.Join(" | ", parts);
+    }
+
+    private static IReadOnlyList<string> NormalizeWarnings(JsonElement warnings)
+    {
+        if (warnings.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null or not JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        var list = new List<string>();
+        foreach (var item in warnings.EnumerateArray())
+        {
+            if (item.ValueKind == JsonValueKind.String)
+            {
+                var value = item.GetString();
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    list.Add(value.Trim());
+                }
+            }
+            else if (item.ValueKind == JsonValueKind.Object
+                && item.TryGetProperty("code", out var code))
+            {
+                var value = code.GetString();
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    list.Add(value.Trim());
+                }
+            }
+        }
+
+        return list.Distinct(StringComparer.Ordinal).ToList();
+    }
+
     private static InterviewEvaluationEvidenceDto? MapEvidence(EvidenceAi? e)
     {
         if (e is null || string.IsNullOrWhiteSpace(e.Quote))
@@ -209,11 +270,13 @@ public static class InterviewEvaluationMapper
 
         public List<CriterionAi>? Criteria { get; set; }
 
+        public List<CriterionScoreAi>? CriterionScores { get; set; }
+
         public List<ConsistencyAi>? Consistency { get; set; }
 
         public List<EvidenceAi>? Evidence { get; set; }
 
-        public List<string>? Warnings { get; set; }
+        public JsonElement Warnings { get; set; }
 
         public string? Summary { get; set; }
     }
@@ -235,6 +298,23 @@ public static class InterviewEvaluationMapper
         public List<EvidenceAi>? Evidence { get; set; }
     }
 
+    private sealed class CriterionScoreAi
+    {
+        public string? CriterionId { get; set; }
+
+        public int? InterviewScore { get; set; }
+
+        public int? CvScore { get; set; }
+
+        public string? VerificationSource { get; set; }
+
+        public string? Rationale { get; set; }
+
+        public string? Confidence { get; set; }
+
+        public List<EvidenceAi>? Evidence { get; set; }
+    }
+
     private sealed class ConsistencyAi
     {
         public string? CriterionId { get; set; }
@@ -246,6 +326,12 @@ public static class InterviewEvaluationMapper
         public bool? Aligned { get; set; }
 
         public string? Detail { get; set; }
+
+        public string? CvClaim { get; set; }
+
+        public string? InterviewClaim { get; set; }
+
+        public string? Severity { get; set; }
     }
 
     private sealed class EvidenceAi

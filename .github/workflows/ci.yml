@@ -359,8 +359,8 @@ jobs:
           fi
           ./cf set-env hirelens-api AICORE_CV_EXTRACTION_DEPLOYMENT_ID "d05d3551770ab22b"
           ./cf set-env hirelens-worker AICORE_CV_EXTRACTION_DEPLOYMENT_ID "d05d3551770ab22b"
-          ./cf unset-env hirelens-api AICORE_MATCHING_DEPLOYMENT_ID || true
-          ./cf unset-env hirelens-worker AICORE_MATCHING_DEPLOYMENT_ID || true
+          ./cf set-env hirelens-api AICORE_MATCHING_DEPLOYMENT_ID "dcb0d6d919f15368"
+          ./cf set-env hirelens-worker AICORE_MATCHING_DEPLOYMENT_ID "dcb0d6d919f15368"
           ./cf set-env hirelens-api AICORE_INTERVIEW_EVALUATION_DEPLOYMENT_ID "da115516a621a2e7"
           ./cf set-env hirelens-worker AICORE_INTERVIEW_EVALUATION_DEPLOYMENT_ID "da115516a621a2e7"
           if [ -n "${AICORE_RG}" ]; then

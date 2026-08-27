@@ -1,5 +1,6 @@
 using FluentAssertions;
 using HireLens.AiGateway;
+using HireLens.AiGateway.Prompts;
 using HireLens.AiGateway.Providers;
 using HireLens.Contracts.Interview;
 using HireLens.Contracts.Recruiting;
@@ -15,8 +16,20 @@ namespace HireLens.Unit.Tests;
 
 public sealed class InterviewEvaluationServiceTests
 {
+    private static IPromptRegistry InterviewPrompts()
+    {
+        var prompts = Substitute.For<IPromptRegistry>();
+        prompts.Get("InterviewEvaluation", "1")
+            .Returns(new PromptDefinition(
+                "InterviewEvaluation",
+                "1",
+                "Score from quotes.",
+                "transcript:\n{{?transcript}}"));
+        return prompts;
+    }
+
     [Fact]
-    public async Task Calls_existing_interview_evaluation_task_with_placeholders_only()
+    public async Task Calls_interview_evaluation_with_repo_prompt_like_criteria_extraction()
     {
         PromptContext? captured = null;
         var gateway = Substitute.For<IAiGateway>();
@@ -42,6 +55,7 @@ public sealed class InterviewEvaluationServiceTests
 
         var svc = new InterviewEvaluationService(
             gateway,
+            InterviewPrompts(),
             Options.Create(new SapAiCoreOptions
             {
                 DeploymentId = "d08b1ad950db57c6",
@@ -67,9 +81,9 @@ public sealed class InterviewEvaluationServiceTests
             Arg.Any<CancellationToken>());
 
         captured.Should().NotBeNull();
-        captured!.PlaceholdersOnly.Should().BeTrue();
-        captured.SystemPrompt.Should().BeNull();
-        captured.UserPrompt.Should().BeNull();
+        captured!.PlaceholdersOnly.Should().BeFalse();
+        captured.SystemPrompt.Should().NotBeNullOrWhiteSpace();
+        captured.UserPrompt.Should().NotBeNullOrWhiteSpace();
         captured.DeploymentId.Should().Be("da115516a621a2e7");
         captured.Variables.Should().ContainKey("transcript");
         captured.Variables!["transcript"].Should().Be("[00:03:20] Aday: C# API yazdım.");
@@ -84,6 +98,7 @@ public sealed class InterviewEvaluationServiceTests
         var gateway = Substitute.For<IAiGateway>();
         var svc = new InterviewEvaluationService(
             gateway,
+            InterviewPrompts(),
             Options.Create(new SapAiCoreOptions { DeploymentId = "d08b1ad950db57c6" }),
             NullLogger<InterviewEvaluationService>.Instance);
 

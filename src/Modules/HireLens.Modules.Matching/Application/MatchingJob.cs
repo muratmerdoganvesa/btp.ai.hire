@@ -11,6 +11,7 @@ using HireLens.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using System.Text.Json;
 
 namespace HireLens.Modules.Matching.Application;
 
@@ -117,20 +118,18 @@ public sealed class MatchingJob(
             try
             {
                 var prompt = prompts.Get("JdCvMatching", "1.0.0");
-                var jobDescription = BuildJobDescription(position);
+                var deploymentId = string.IsNullOrWhiteSpace(aiOptions.Value.MatchingDeploymentId)
+                    ? aiOptions.Value.DeploymentId
+                    : aiOptions.Value.MatchingDeploymentId;
                 var aiResult = await gateway.ExecuteAsync<string>(
                     AiTaskType.JdCvMatching,
                     new PromptContext(
                         TaskInput: maskedText,
                         PromptVersion: prompt.Version,
-                        Variables: new Dictionary<string, string>
-                        {
-                            ["job_description"] = jobDescription,
-                            ["cv_text"] = maskedText
-                        },
+                        Variables: BuildMatchingPlaceholders(position, maskedText),
                         SystemPrompt: prompt.SystemPrompt,
                         UserPrompt: prompt.UserTemplate,
-                        DeploymentId: aiOptions.Value.DeploymentId),
+                        DeploymentId: deploymentId),
                     new AiOptions(MaxOutputTokens: 2048, Temperature: 0.1),
                     cancellationToken);
                 var mapped = CriteriaMatchingMapper.TryMap(aiResult.Value, position);
@@ -323,6 +322,29 @@ public sealed class MatchingJob(
         string.IsNullOrWhiteSpace(value)
             ? []
             : value.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+    private static Dictionary<string, string> BuildMatchingPlaceholders(PositionSnapshot position, string maskedText)
+    {
+        var jdStructured = JsonSerializer.Serialize(new
+        {
+            title = position.Title,
+            jobDescription = position.JobDescription
+        });
+        var rubric = JsonSerializer.Serialize(position.Criteria.Select(c => new
+        {
+            criterionId = c.Id.ToString("D"),
+            name = c.Name,
+            description = c.Description,
+            weight = c.Weight
+        }));
+        var profile = JsonSerializer.Serialize(new { cv_text = maskedText });
+        return new Dictionary<string, string>
+        {
+            ["jd_structured"] = jdStructured,
+            ["rubric_criteria"] = rubric,
+            ["candidate_profile"] = profile
+        };
+    }
 
     private static string BuildJobDescription(PositionSnapshot position)
     {

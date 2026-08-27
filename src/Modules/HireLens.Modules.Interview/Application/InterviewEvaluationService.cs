@@ -1,4 +1,5 @@
 using HireLens.AiGateway;
+using HireLens.AiGateway.Prompts;
 using HireLens.AiGateway.Providers;
 using HireLens.Contracts.Interview;
 using HireLens.SharedKernel;
@@ -15,14 +16,16 @@ public interface IInterviewEvaluationService
 }
 
 /// <summary>
-/// Calls the hosted interview-evaluation-v1 orchestration deployment.
-/// Prompt lives in SAP AI Launchpad; this service only sends placeholder strings.
+/// Calls interview-evaluation-v1 like jd-criteria-extraction-v1:
+/// dedicated deployment + repo prompt in config + placeholder values.
 /// </summary>
 public sealed class InterviewEvaluationService(
     IAiGateway gateway,
+    IPromptRegistry prompts,
     IOptions<SapAiCoreOptions> aiCoreOptions,
     ILogger<InterviewEvaluationService> logger) : IInterviewEvaluationService
 {
+    private const string PromptId = "InterviewEvaluation";
     private const string PromptVersion = "1";
 
     public async Task<Result<InterviewEvaluationResponse>> EvaluateAsync(
@@ -40,6 +43,7 @@ public sealed class InterviewEvaluationService(
         var deploymentId = string.IsNullOrWhiteSpace(aiCoreOptions.Value.InterviewEvaluationDeploymentId)
             ? aiCoreOptions.Value.DeploymentId
             : aiCoreOptions.Value.InterviewEvaluationDeploymentId;
+        var prompt = prompts.Get(PromptId, PromptVersion);
 
         try
         {
@@ -47,9 +51,10 @@ public sealed class InterviewEvaluationService(
                 AiTaskType.InterviewEvaluation,
                 new PromptContext(
                     TaskInput: transcript,
-                    PromptVersion: PromptVersion,
+                    PromptVersion: prompt.Version,
                     Variables: variables,
-                    PlaceholdersOnly: true,
+                    SystemPrompt: prompt.SystemPrompt,
+                    UserPrompt: prompt.UserTemplate,
                     DeploymentId: deploymentId),
                 new AiOptions(MaxOutputTokens: 2048, Temperature: 0.1),
                 cancellationToken);
