@@ -58,9 +58,9 @@ export function ScoringGlossary({ className }: { className?: string }) {
         >
           <p className="text-xs font-extrabold tracking-tight text-foreground">{t("score.glossaryTitle")}</p>
           <dl className="mt-2 flex flex-col gap-2.5">
+            <GlossaryItem title={t("score.glossaryHowTitle")} body={t("score.glossaryHowBody")} />
             <GlossaryItem title={t("score.glossaryScoreTitle")} body={t("score.glossaryScoreBody")} />
             <GlossaryItem title={t("score.glossaryCoverageTitle")} body={t("score.glossaryCoverageBody")} />
-            <GlossaryItem title={t("score.glossaryHowTitle")} body={t("score.glossaryHowBody")} />
           </dl>
         </div>
       ) : null}

@@ -5,7 +5,6 @@ import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "../api";
-import { AiDisclosureBanner } from "../components/ai-disclosure-banner";
 import { DecisionPanel } from "../components/decision-panel";
 import { EvaluationAuditPanel } from "../components/evaluation-audit-panel";
 import { InterviewFramesGallery } from "../components/interview-frames-gallery";
@@ -488,8 +487,7 @@ export function EvaluationPage() {
                   </div>
                 ) : null}
 
-                <div className="grid gap-5 lg:grid-cols-2">
-                  <AiDisclosureBanner />
+                <div className="flex flex-col gap-5">
                   <Card>
                     <CardHeader>
                       <CardTitle>{t("interview.askedQuestions")}</CardTitle>
@@ -517,8 +515,10 @@ export function EvaluationPage() {
                       )}
                     </CardContent>
                   </Card>
-                  <InterviewTranscript turns={interview.data.turns} />
-                  <InterviewFramesGallery frames={interview.data.frames ?? []} />
+                  <div className="grid gap-5 lg:grid-cols-2">
+                    <InterviewTranscript turns={interview.data.turns} />
+                    <InterviewFramesGallery frames={interview.data.frames ?? []} />
+                  </div>
                 </div>
               </div>
             ) : null}
