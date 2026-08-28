@@ -270,7 +270,7 @@
     "rankingDisclaimer": "Öneri sıralaması — nihai karar sizindir.",
     "rankingTitle": "Aday sıralaması",
     "rankingHint": "Öneri listesi. Son kararı siz verirsiniz.",
-    "rankingRule": "Üstte duran adayın skoru daha yüksek. Skorlar eşitse CV’si ilanı daha çok karşılayan önde.",
+    "rankingRule": "Üstte duran adayın skoru daha yüksek. Skorlar eşitse daha çok maddede alıntı olan önde.",
     "scoreAndCoverage": "Skor {{score}} · Kapsam {{coverage}}",
     "rankFirstExplain": "En yüksek skor.",
     "rankFirstScoreOnly": "En yüksek skor.",
@@ -555,7 +555,7 @@
     "glossaryCoverageTitle": "Kapsam",
     "glossaryCoverageBody": "İlandaki maddelerin kaçında CV’de hiç alıntı var — yüzde. Kaliteye bakmaz: madde anlatılmış mı, anlatılmamış mı. %30 = 10 maddeden 3’ünde bilgi var; diğer 7’si boş. Bu, o 3 maddedeki skoru değiştirmez.",
     "glossaryHowTitle": "Sıra",
-    "glossaryHowBody": "Önce skora bakılır: 59, 48’in üstündedir. Kapsam sıra değiştirmez — ta ki iki adayın skoru aynı olsun. Skorlar eşitse, kapsamı yüksek olan (CV’si ilanı daha çok dolduran) öne geçer."
+    "glossaryHowBody": "Önce skor: 59, 48’in üstündedir. Kapsam bu sırayı bozmaz. Yalnızca skorlar eşitse, daha çok maddede alıntı olan (kapsamı yüksek olan) öne geçer."
   },
   "interview": {
     "title": "AI ön mülakat",

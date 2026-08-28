@@ -270,7 +270,7 @@
     "rankingDisclaimer": "Suggested ranking — the final call is yours.",
     "rankingTitle": "Candidate ranking",
     "rankingHint": "Suggested list. You make the final call.",
-    "rankingRule": "Higher score ranks first. If scores are equal, the CV that covers more of the job ranks first.",
+    "rankingRule": "Higher score ranks first. If scores are equal, the CV with quotes on more items ranks first.",
     "scoreAndCoverage": "Score {{score}} · Coverage {{coverage}}",
     "rankFirstExplain": "Highest score.",
     "rankFirstScoreOnly": "Highest score.",
@@ -555,7 +555,7 @@
     "glossaryCoverageTitle": "Coverage",
     "glossaryCoverageBody": "How many job items have any CV quote at all — a percentage. It ignores quality: mentioned or not. 30% means 3 of 10 items have text; the other 7 are blank. That does not change the score on those 3 items.",
     "glossaryHowTitle": "Order",
-    "glossaryHowBody": "Score comes first: 59 ranks above 48. Coverage does not change that — until two people have the same score. On a tie, the CV that covers more of the job ranks first."
+    "glossaryHowBody": "Score first: 59 ranks above 48. Coverage does not break that order. Only on a tie does the CV with quotes on more items (higher coverage) rank first."
   },
   "interview": {
     "title": "AI pre-interview",
