@@ -4,18 +4,27 @@ import { useTranslation } from "react-i18next";
 import { ConfidenceMeter } from "./confidence-meter";
 import { EvidenceChip } from "./evidence-chip";
 
-export function ScoreBreakdownTable({ scores }: { scores: CriterionScore[] }) {
+export function ScoreBreakdownTable({
+  scores,
+  evidenceSource = "all"
+}: {
+  scores: CriterionScore[];
+  evidenceSource?: "all" | "cv" | "interview";
+}) {
   const { t } = useTranslation();
 
   return (
     <section className="overflow-hidden rounded-2xl border border-border bg-surface">
       <header className="border-b border-border px-4 py-3 sm:px-5">
         <h2 className="text-base font-extrabold tracking-tight">{t("evaluation.criteriaTitle")}</h2>
-        <p className="mt-0.5 text-sm text-muted">{t("evaluation.criteriaHint")}</p>
+        <p className="mt-0.5 text-sm text-muted">
+          {evidenceSource === "interview" ? t("evaluation.criteriaHintInterview") : t("evaluation.criteriaHint")}
+        </p>
       </header>
       <ul className="divide-y divide-border">
         {scores.map((row) => {
-          const noEvidence = row.score === null || row.evidenceStatus === "Insufficient";
+          const evidence = filterEvidence(row.evidence, evidenceSource);
+          const noEvidence = evidence.length === 0;
           return (
             <li
               key={row.criterionId}
@@ -38,18 +47,24 @@ export function ScoreBreakdownTable({ scores }: { scores: CriterionScore[] }) {
                 </div>
                 <ScoreBadge
                   score={row.score}
-                  label={noEvidence ? t("score.insufficient") : t("score.solid")}
+                  label={
+                    row.score === null || row.evidenceStatus === "Insufficient"
+                      ? t("score.insufficient")
+                      : t("score.solid")
+                  }
                 />
               </div>
               <div className="mt-3">
                 <p className="mb-1.5 text-[0.7rem] font-medium uppercase tracking-wide text-muted">
                   {t("evaluation.evidence")}
                 </p>
-                {row.evidence.length === 0 ? (
-                  <p className="text-sm text-muted">{t("evaluation.noEvidence")}</p>
+                {noEvidence ? (
+                  <p className="text-sm text-muted">
+                    {evidenceSource === "interview" ? t("evaluation.noInterviewEvidence") : t("evaluation.noEvidence")}
+                  </p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
-                    {row.evidence.map((item) => (
+                    {evidence.map((item) => (
                       <EvidenceChip key={`${item.startOffset}-${item.quote}`} evidence={item} />
                     ))}
                   </div>
@@ -61,4 +76,14 @@ export function ScoreBreakdownTable({ scores }: { scores: CriterionScore[] }) {
       </ul>
     </section>
   );
+}
+
+function filterEvidence(evidence: CriterionScore["evidence"], source: "all" | "cv" | "interview") {
+  if (source === "all") {
+    return evidence;
+  }
+  return evidence.filter((item) => {
+    const value = item.source.trim().toLowerCase();
+    return source === "interview" ? value === "interview" : value !== "interview";
+  });
 }

@@ -173,17 +173,17 @@ public sealed class MatchingJob(
                         $"score={overall};coverage={score.CoverageRatio};gaps={gaps.Count}",
                         "v1.0.0"),
                     ct: cancellationToken);
-                summary = string.IsNullOrWhiteSpace(summaryResult.Value.Summary)
-                    ? (overall is null
-                        ? "Insufficient evidence for an overall score."
-                        : "Evidence-bound scores are ready for human review.")
-                    : summaryResult.Value.Summary!;
+                summary = summaryResult.Value.Summary ?? string.Empty;
             }
             catch
             {
-                summary = overall is null
-                    ? "Insufficient evidence for an overall score."
-                    : "Evidence-bound scores are ready for human review.";
+                summary = string.Empty;
+            }
+
+            if (EvaluationNarrative.IsGenericPlaceholder(summary))
+            {
+                var names = position.Criteria.ToDictionary(c => c.Id, c => c.Name);
+                summary = EvaluationNarrative.Build(overall, score.CoverageRatio, proposals, names);
             }
 
             var followUps = (position.InterviewQuestions ?? [])

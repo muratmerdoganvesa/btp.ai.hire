@@ -1,4 +1,4 @@
-import { ApiError } from "@hirelens/api-client";
+import { ApiError, type Evaluation } from "@hirelens/api-client";
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, ScoreBadge } from "@hirelens/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
@@ -24,6 +24,7 @@ export function EvaluationPage() {
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [evaluateError, setEvaluateError] = useState<string | null>(null);
   const [interviewOpen, setInterviewOpen] = useState(false);
+  const [tab, setTab] = useState<"cv" | "interview">("cv");
 
   const candidate = useQuery({
     queryKey: ["candidate", candidateId],
@@ -186,6 +187,10 @@ export function EvaluationPage() {
   const evalMissing =
     evaluation.isError && evaluation.error instanceof ApiError && evaluation.error.status === 404;
   const coveragePct = evaluation.data ? Math.round(evaluation.data.coverageRatio * 100) : null;
+  const summaryText = evaluation.data ? recruiterSummaryText(evaluation.data, t) : "";
+  const interviewEvidenceScores = (evaluation.data?.scores ?? []).filter((row) =>
+    row.evidence.some((item) => item.source.trim().toLowerCase() === "interview")
+  );
 
   return (
     <>
@@ -319,6 +324,39 @@ export function EvaluationPage() {
       {hasEvaluation ? (
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
           <div className="flex min-w-0 flex-col gap-5">
+            <div
+              className="flex rounded-xl border border-border bg-white p-0.5"
+              role="tablist"
+              aria-label={t("evaluation.title")}
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={tab === "cv"}
+                className={cn(
+                  "h-9 flex-1 rounded-lg px-3 text-sm font-bold transition-colors",
+                  tab === "cv" ? "bg-brand-6 text-white" : "text-muted hover:bg-brand-0 hover:text-foreground"
+                )}
+                onClick={() => setTab("cv")}
+              >
+                {t("evaluation.tabCv")}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={tab === "interview"}
+                className={cn(
+                  "h-9 flex-1 rounded-lg px-3 text-sm font-bold transition-colors",
+                  tab === "interview" ? "bg-brand-6 text-white" : "text-muted hover:bg-brand-0 hover:text-foreground"
+                )}
+                onClick={() => setTab("interview")}
+              >
+                {t("evaluation.tabInterview")}
+              </button>
+            </div>
+
+            {tab === "cv" ? (
+              <>
             <Card className="border-border/80">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base font-extrabold tracking-tight">
@@ -327,9 +365,7 @@ export function EvaluationPage() {
                 <p className="text-xs text-muted">{t("evaluation.summaryHint")}</p>
               </CardHeader>
               <CardContent>
-                <p className="text-sm leading-7 text-foreground">
-                  {evaluation.data!.summary?.trim() || t("evaluation.noScore")}
-                </p>
+                <p className="text-sm leading-7 text-foreground">{summaryText}</p>
               </CardContent>
             </Card>
 
@@ -342,29 +378,7 @@ export function EvaluationPage() {
               </div>
             ) : null}
 
-            <ScoreBreakdownTable scores={evaluation.data!.scores} />
-
-            {(evaluation.data!.followUps ?? []).length > 0 ? (
-              <Card className="border-border/80">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base font-extrabold tracking-tight">
-                    {t("evaluation.followUps")}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="flex flex-col gap-2">
-                    {evaluation.data!.followUps.map((item, index) => (
-                      <li
-                        key={`${index}-${item.slice(0, 24)}`}
-                        className="rounded-xl border border-border/70 bg-brand-0/50 px-3 py-2.5 text-sm leading-6"
-                      >
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            ) : null}
+            <ScoreBreakdownTable scores={evaluation.data!.scores} evidenceSource="cv" />
 
             <details
               className="rounded-2xl border border-border bg-surface open:pb-4"
