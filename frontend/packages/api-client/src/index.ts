@@ -63,6 +63,21 @@ export type CriterionScore = components["schemas"]["CriterionScore"];
 export type Evidence = components["schemas"]["Evidence"];
 export type Decision = components["schemas"]["Decision"];
 export type RecordDecision = components["schemas"]["RecordDecision"];
+export type Offer = {
+  id: string;
+  candidateId: string;
+  positionId: string;
+  candidateName: string;
+  positionTitle: string;
+  status: string;
+  packageText: string;
+  note: string | null;
+  scoreSnapshot: number | null;
+  createdAt: string;
+  updatedAt: string;
+  sentAt: string | null;
+  respondedAt: string | null;
+};
 export type JobStatus = components["schemas"]["JobStatus"];
 export type UploadSession = components["schemas"]["UploadSession"];
 export type EvaluationAudit = components["schemas"]["EvaluationAudit"];
@@ -227,6 +242,38 @@ export class ApiClient {
 
   public async recordDecision(candidateId: string, input: RecordDecision): Promise<Decision> {
     return this.send<Decision>(`/api/candidates/${candidateId}/decisions`, "POST", input);
+  }
+
+  public async listOffers(): Promise<Offer[]> {
+    return this.get<Offer[]>("/api/offers");
+  }
+
+  public async listCandidateOffers(candidateId: string): Promise<Offer[]> {
+    return this.get<Offer[]>(`/api/candidates/${candidateId}/offers`);
+  }
+
+  public async createOffer(candidateId: string, input: { packageText: string; note?: string | null }): Promise<Offer> {
+    return this.send<Offer>(`/api/candidates/${candidateId}/offers`, "POST", input);
+  }
+
+  public async updateOffer(offerId: string, input: { packageText: string; note?: string | null }): Promise<Offer> {
+    return this.send<Offer>(`/api/offers/${offerId}`, "PATCH", input);
+  }
+
+  public async sendOffer(offerId: string): Promise<Offer> {
+    return this.send<Offer>(`/api/offers/${offerId}/send`, "POST");
+  }
+
+  public async acceptOffer(offerId: string): Promise<Offer> {
+    return this.send<Offer>(`/api/offers/${offerId}/accept`, "POST");
+  }
+
+  public async declineOffer(offerId: string): Promise<Offer> {
+    return this.send<Offer>(`/api/offers/${offerId}/decline`, "POST");
+  }
+
+  public async withdrawOffer(offerId: string): Promise<Offer> {
+    return this.send<Offer>(`/api/offers/${offerId}/withdraw`, "POST");
   }
 
   public async exportCandidate(candidateId: string): Promise<CandidateExport> {

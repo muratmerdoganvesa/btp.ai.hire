@@ -8,3 +8,22 @@ public sealed record DecisionDto(
     DateTimeOffset DecidedAt);
 
 public sealed record RecordDecisionRequest(string Outcome, string Rationale);
+
+public sealed record OfferDto(
+    Guid Id,
+    Guid CandidateId,
+    Guid PositionId,
+    string CandidateName,
+    string PositionTitle,
+    string Status,
+    string PackageText,
+    string? Note,
+    int? ScoreSnapshot,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    DateTimeOffset? SentAt,
+    DateTimeOffset? RespondedAt);
+
+public sealed record CreateOfferRequest(string PackageText, string? Note);
+
+public sealed record UpdateOfferRequest(string PackageText, string? Note);

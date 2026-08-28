@@ -60,6 +60,7 @@ public sealed class CandidateService(
         var titles = await LoadPositionTitlesAsync(positionIds, cancellationToken);
         var decisions = await LoadLatestDecisionsAsync(ids, cancellationToken);
         var interviews = await LoadInterviewStatusesAsync(ids, cancellationToken);
+        var offers = await LoadLatestOfferStatusesAsync(ids, cancellationToken);
 
         var personKeys = rows.ToDictionary(c => c.Id, c => BuildPersonKey(c.DisplayName));
         var siblingCounts = personKeys.Values
@@ -75,7 +76,8 @@ public sealed class CandidateService(
                 summary?.RecommendedAction,
                 summary?.EvaluationStatus,
                 decisions.GetValueOrDefault(c.Id),
-                interviews.GetValueOrDefault(c.Id));
+                interviews.GetValueOrDefault(c.Id),
+                offers.GetValueOrDefault(c.Id));
 
             return new CandidateBoardItemDto(
                 c.Id,
@@ -260,16 +262,56 @@ public sealed class CandidateService(
         }
     }
 
+    private async Task<Dictionary<Guid, string>> LoadLatestOfferStatusesAsync(
+        IReadOnlyList<Guid> candidateIds,
+        CancellationToken cancellationToken)
+    {
+        if (candidateIds.Count == 0 || db.Database.IsInMemory())
+        {
+            return [];
+        }
+
+        try
+        {
+            var rows = await db.Database
+                .SqlQueryRaw<OfferHintRow>(
+                    """
+                    SELECT "CandidateId", "Status", "UpdatedAt"
+                    FROM "Offers"
+                    WHERE "TenantId" = {0}
+                    """,
+                    tenant.TenantId)
+                .ToListAsync(cancellationToken);
+            var wanted = candidateIds.ToHashSet();
+            return rows
+                .Where(r => wanted.Contains(r.CandidateId))
+                .GroupBy(r => r.CandidateId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderByDescending(x => x.UpdatedAt).First().Status);
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
     private static string ResolvePipelineStage(
         string status,
         string? recommendedAction,
         string? evaluationStatus,
         string? decisionOutcome,
-        string? interviewStatus)
+        string? interviewStatus,
+        string? offerStatus)
     {
         if (string.Equals(decisionOutcome, "reject", StringComparison.OrdinalIgnoreCase))
         {
             return "rejected";
+        }
+
+        if (offerStatus is "draft" or "sent" or "accepted" or "declined")
+        {
+            return "offer";
         }
 
         if (string.Equals(decisionOutcome, "advance", StringComparison.OrdinalIgnoreCase))
@@ -385,5 +427,14 @@ public sealed class CandidateService(
         public Guid CandidateId { get; set; }
 
         public string Status { get; set; } = string.Empty;
+    }
+
+    private sealed class OfferHintRow
+    {
+        public Guid CandidateId { get; set; }
+
+        public string Status { get; set; } = string.Empty;
+
+        public string UpdatedAt { get; set; } = string.Empty;
     }
 }

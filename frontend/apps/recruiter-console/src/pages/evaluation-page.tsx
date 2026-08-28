@@ -9,6 +9,7 @@ import { DecisionPanel } from "../components/decision-panel";
 import { EvaluationAuditPanel } from "../components/evaluation-audit-panel";
 import { InterviewFramesGallery } from "../components/interview-frames-gallery";
 import { InterviewTranscript } from "../components/interview-transcript";
+import { OfferPanel } from "../components/offer-panel";
 import { PageBody, PageHero } from "../components/page-hero";
 import { RiskFlagList } from "../components/risk-flag-list";
 import { ScoreBreakdownTable } from "../components/score-breakdown-table";
@@ -153,6 +154,26 @@ export function EvaluationPage() {
     }
   };
 
+  const shareInviteOnWhatsApp = async () => {
+    let url = inviteUrl;
+    if (!url) {
+      try {
+        const result = await invite.mutateAsync();
+        url = toPublicInterviewUrl(result.inviteUrl);
+      } catch {
+        return;
+      }
+    }
+
+    const name = candidate.data?.displayName?.trim();
+    const text = t("interview.whatsappMessage", {
+      name: name ? ` ${name}` : "",
+      position: position.data?.title?.trim() || t("interview.title"),
+      url
+    });
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+  };
+
   const criterionLabels = useMemo(() => {
     const map: Record<string, string> = {};
     for (const row of evaluation.data?.scores ?? []) {
@@ -160,14 +181,6 @@ export function EvaluationPage() {
     }
     return map;
   }, [evaluation.data?.scores]);
-
-  const missingCriteria = useMemo(
-    () =>
-      (evaluation.data?.scores ?? []).filter(
-        (row) => row.score === null || row.evidenceStatus === "Insufficient"
-      ),
-    [evaluation.data?.scores]
-  );
 
   const latestDecision = useMemo(() => {
     const list = decisions.data ?? [];
@@ -188,7 +201,7 @@ export function EvaluationPage() {
   const evalMissing =
     evaluation.isError && evaluation.error instanceof ApiError && evaluation.error.status === 404;
   const coveragePct = evaluation.data ? Math.round(evaluation.data.coverageRatio * 100) : null;
-  const summaryText = evaluation.data ? recruiterSummaryText(evaluation.data, t) : "";
+  const summary = evaluation.data ? recruiterSummaryParts(evaluation.data) : null;
   const interviewEvidenceScores = (evaluation.data?.scores ?? []).filter((row) =>
     row.evidence.some((item) => item.source.trim().toLowerCase() === "interview")
   );
@@ -365,19 +378,56 @@ export function EvaluationPage() {
                 </CardTitle>
                 <p className="text-xs text-muted">{t("evaluation.summaryHint")}</p>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm leading-7 text-foreground">{summaryText}</p>
+              <CardContent className="flex flex-col gap-4">
+                <p className="text-lg font-extrabold tracking-tight text-foreground">
+                  {evaluation.data!.overallScore == null
+                    ? t("evaluation.noScore")
+                    : t("evaluation.summaryScoreLine", { score: evaluation.data!.overallScore })}
+                  {coveragePct != null ? (
+                    <span className="ml-2 text-sm font-semibold text-muted">
+                      {t("evaluation.summaryCoverageLine", { coverage: coveragePct })}
+                    </span>
+                  ) : null}
+                </p>
+                {summary?.note ? (
+                  <p className="text-sm leading-6 text-muted">{summary.note}</p>
+                ) : null}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/50 px-3.5 py-3">
+                    <p className="text-[0.7rem] font-extrabold uppercase tracking-wide text-emerald-800">
+                      {t("evaluation.summaryStrengthsTitle")}
+                    </p>
+                    {summary && summary.strengths.length > 0 ? (
+                      <ul className="mt-2 flex flex-col gap-1.5">
+                        {summary.strengths.map((item) => (
+                          <li key={item.id} className="text-sm font-semibold leading-5 text-emerald-950">
+                            {item.name}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-2 text-sm text-emerald-900/70">{t("evaluation.summaryNoStrengths")}</p>
+                    )}
+                  </div>
+                  <div className="rounded-xl border border-amber-200/80 bg-amber-50/60 px-3.5 py-3">
+                    <p className="text-[0.7rem] font-extrabold uppercase tracking-wide text-amber-800">
+                      {t("evaluation.summaryGapsTitle")}
+                    </p>
+                    {summary && summary.gaps.length > 0 ? (
+                      <ul className="mt-2 flex flex-col gap-1.5">
+                        {summary.gaps.map((item) => (
+                          <li key={item.id} className="text-sm font-medium leading-5 text-amber-950/90">
+                            {item.name}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-2 text-sm text-amber-900/70">{t("evaluation.summaryNoGaps")}</p>
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
-
-            {missingCriteria.length > 0 ? (
-              <div className="rounded-2xl border border-amber-200/80 bg-amber-50/50 px-4 py-3">
-                <p className="text-sm font-bold text-amber-950">{t("evaluation.missingEvidence")}</p>
-                <p className="mt-1 text-sm text-amber-900/80">
-                  {missingCriteria.map((row) => row.criterionName).join(" · ")}
-                </p>
-              </div>
-            ) : null}
 
             <ScoreBreakdownTable scores={evaluation.data!.scores} evidenceSource="cv" />
               </>
@@ -420,6 +470,9 @@ export function EvaluationPage() {
                         </a>
                         <Button type="button" variant="outline" size="sm" onClick={() => void copyInvite()}>
                           {copied ? t("interview.linkCopied") : t("interview.copyLink")}
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" onClick={() => void shareInviteOnWhatsApp()}>
+                          {t("interview.sendWhatsApp")}
                         </Button>
                       </div>
                     ) : interview.data ? (
@@ -578,10 +631,16 @@ export function EvaluationPage() {
                 setInterviewOpen(true);
                 invite.mutate();
               }}
+              onInviteWhatsApp={() => {
+                setTab("interview");
+                setInterviewOpen(true);
+                void shareInviteOnWhatsApp();
+              }}
               onSubmit={async (input) => {
                 await decide.mutateAsync(input);
               }}
             />
+            <OfferPanel candidateId={candidateId} />
             <RiskFlagList
               flags={[...(evaluation.data!.needsVerification ?? [])]}
               labelById={criterionLabels}
@@ -627,52 +686,40 @@ export function EvaluationPage() {
   );
 }
 
-function recruiterSummaryText(
-  evaluation: Evaluation,
-  t: (key: string, opts?: Record<string, string | number>) => string
-): string {
+function recruiterSummaryParts(evaluation: Evaluation): {
+  strengths: { id: string; name: string }[];
+  gaps: { id: string; name: string }[];
+  note: string | null;
+} {
   const stored = evaluation.summary?.trim() ?? "";
   const placeholder =
     stored.length === 0
     || /Evidence-bound scores are ready/i.test(stored)
-    || /Insufficient evidence for an overall score/i.test(stored);
+    || /Insufficient evidence for an overall score/i.test(stored)
+    || /Skor \d+ \/ 100/.test(stored)
+    || /Score \d+ \/ 100/.test(stored);
 
-  if (!placeholder) {
-    return stored;
-  }
-
-  const coverage = Math.round(evaluation.coverageRatio * 100);
-  const scored = evaluation.scores
-    .filter((row) => row.score != null)
+  const strengths = evaluation.scores
+    .filter((row) => row.score != null && row.evidenceStatus !== "Insufficient")
     .slice()
-    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-  const missing = evaluation.scores.filter(
-    (row) => row.score == null || row.evidenceStatus === "Insufficient"
-  );
-  const strengths = scored.slice(0, 3).map((row) => row.criterionName).join(", ");
-  const gaps = missing.slice(0, 6).map((row) => row.criterionName).join(", ");
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+    .slice(0, 5)
+    .map((row) => ({ id: row.criterionId, name: row.criterionName }));
 
-  if (evaluation.overallScore == null) {
-    return t("evaluation.computedSummaryNoScore", {
-      coverage,
-      gaps: gaps || "—"
-    });
-  }
+  const strengthIds = new Set(strengths.map((row) => row.id));
+  const gaps = evaluation.scores
+    .filter(
+      (row) =>
+        !strengthIds.has(row.criterionId) &&
+        (row.score == null || row.evidenceStatus === "Insufficient")
+    )
+    .map((row) => ({ id: row.criterionId, name: row.criterionName }));
 
-  if (!gaps) {
-    return t("evaluation.computedSummaryNoGaps", {
-      score: evaluation.overallScore,
-      coverage,
-      strengths: strengths || "—"
-    });
-  }
-
-  return t("evaluation.computedSummary", {
-    score: evaluation.overallScore,
-    coverage,
-    strengths: strengths || "—",
-    gaps
-  });
+  return {
+    strengths,
+    gaps,
+    note: placeholder ? null : stored
+  };
 }
 
 function toPublicInterviewUrl(inviteUrl: string): string {

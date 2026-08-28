@@ -800,6 +800,56 @@ public static class SchemaBootstrap
         logger.LogInformation("HireLens interview tables ready.");
     }
 
+    public static async Task EnsureOfferTablesAsync(
+        HireLensDbContext db,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        if (db.Database.IsInMemory())
+        {
+            return;
+        }
+
+        if (await TableExistsAsync(db, "OFFERS", cancellationToken))
+        {
+            logger.LogInformation("HireLens offer table present.");
+            return;
+        }
+
+        logger.LogWarning("Missing Offers table. Creating.");
+        await ExecuteIgnoreDuplicateAsync(
+            db,
+            logger,
+            """
+            CREATE TABLE "Offers" (
+                "Id" NVARCHAR(36) NOT NULL CONSTRAINT "PK_Offers" PRIMARY KEY,
+                "TenantId" NVARCHAR(36) NOT NULL,
+                "CandidateId" NVARCHAR(36) NOT NULL,
+                "PositionId" NVARCHAR(36) NOT NULL,
+                "Status" NVARCHAR(16) NOT NULL,
+                "PackageText" NVARCHAR(2000) NOT NULL,
+                "Note" NVARCHAR(2000) NULL,
+                "ScoreSnapshot" INT NULL,
+                "CreatedAt" NVARCHAR(48) NOT NULL,
+                "UpdatedAt" NVARCHAR(48) NOT NULL,
+                "SentAt" NVARCHAR(48) NULL,
+                "RespondedAt" NVARCHAR(48) NULL
+            )
+            """,
+            cancellationToken);
+        await ExecuteIgnoreDuplicateAsync(
+            db,
+            logger,
+            """CREATE UNIQUE INDEX "IX_Offers_TenantId_Id" ON "Offers" ("TenantId", "Id")""",
+            cancellationToken);
+        await ExecuteIgnoreDuplicateAsync(
+            db,
+            logger,
+            """CREATE INDEX "IX_Offers_TenantId_CandidateId" ON "Offers" ("TenantId", "CandidateId")""",
+            cancellationToken);
+        logger.LogInformation("HireLens offer table ready.");
+    }
+
     public static async Task EnsureInterviewColumnsAsync(
         HireLensDbContext db,
         ILogger logger,

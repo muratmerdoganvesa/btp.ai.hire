@@ -10,6 +10,7 @@ public static class ReviewModule
     public static IServiceCollection AddReviewModule(this IServiceCollection services)
     {
         services.AddScoped<IReviewService, ReviewService>();
+        services.AddScoped<IOfferService, OfferService>();
         return services;
     }
 

@@ -84,6 +84,7 @@ if (!app.Environment.IsEnvironment("Testing")
         await SchemaBootstrap.EnsurePrivacyTablesAsync(db, logger);
         await SchemaBootstrap.EnsureEvaluationAuditColumnsAsync(db, logger);
         await SchemaBootstrap.EnsureInterviewTablesAsync(db, logger);
+        await SchemaBootstrap.EnsureOfferTablesAsync(db, logger);
     }
     catch (Exception ex)
     {

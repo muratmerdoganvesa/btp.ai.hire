@@ -19,11 +19,11 @@ type NavItem = {
   labelKey: string;
   tour?: string;
   /** How to decide active state */
-  match: "exact" | "positions" | "candidates" | "create" | "pipeline" | "interview";
+  match: "exact" | "positions" | "candidates" | "create" | "pipeline" | "interview" | "offers";
   icon: NavIconName;
 };
 
-type NavIconName = "overview" | "jobs" | "add" | "candidates" | "pipeline" | "interview" | "reports";
+type NavIconName = "overview" | "jobs" | "add" | "candidates" | "pipeline" | "interview" | "offers" | "reports";
 
 const primaryNav: NavItem[] = [
   { id: "overview", to: "/", labelKey: "nav.dashboard", match: "exact", tour: "tour-nav-dashboard", icon: "overview" },
@@ -35,6 +35,7 @@ const primaryNav: NavItem[] = [
 const processNav: NavItem[] = [
   { id: "pipeline", to: "/pipeline", labelKey: "nav.pipeline", match: "pipeline", icon: "pipeline" },
   { id: "interview", to: "/interviews", labelKey: "nav.aiInterview", match: "interview", icon: "interview" },
+  { id: "offers", to: "/offers", labelKey: "nav.offers", match: "offers", icon: "offers" },
   { id: "reports", to: "/", labelKey: "nav.reports", match: "exact", icon: "reports" }
 ];
 
@@ -221,6 +222,9 @@ function resolveActiveId(pathname: string): string | null {
   if (pathname === "/interviews" || pathname.startsWith("/interviews/")) {
     return "interview";
   }
+  if (pathname === "/offers" || pathname.startsWith("/offers/")) {
+    return "offers";
+  }
   if (pathname === "/candidates" || pathname.startsWith("/candidates/")) {
     return "candidates";
   }
@@ -284,6 +288,13 @@ function NavIcon({ name }: { name: NavIconName }) {
         <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden>
           <rect x="4" y="5" width="16" height="14" rx="2" stroke="currentColor" strokeWidth="1.8" />
           <path d="M8 3v4M16 3v4M4 10h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      );
+    case "offers":
+      return (
+        <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path d="M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+          <path d="M14 3v5h5M8.5 13.5l2 2 4.5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
     case "reports":
