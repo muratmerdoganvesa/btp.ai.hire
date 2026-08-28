@@ -754,27 +754,63 @@ function recruiterSummaryParts(evaluation: Evaluation): {
     || /Skor \d+ \/ 100/.test(stored)
     || /Score \d+ \/ 100/.test(stored);
 
-  const strengths = evaluation.scores
-    .filter((row) => row.score != null && row.evidenceStatus !== "Insufficient")
-    .slice()
-    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-    .slice(0, 5)
-    .map((row) => ({ id: row.criterionId, name: row.criterionName }));
+  const uniqueScores = uniqueCriteria(evaluation.scores);
 
-  const strengthIds = new Set(strengths.map((row) => row.id));
-  const gaps = evaluation.scores
-    .filter(
-      (row) =>
-        !strengthIds.has(row.criterionId) &&
-        (row.score == null || row.evidenceStatus === "Insufficient")
-    )
-    .map((row) => ({ id: row.criterionId, name: row.criterionName }));
+  const strengths = uniqueByName(
+    uniqueScores
+      .filter((row) => row.score != null && row.evidenceStatus !== "Insufficient")
+      .slice()
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+      .map((row) => ({ id: row.criterionId, name: row.criterionName }))
+  ).slice(0, 5);
+
+  const strengthNames = new Set(strengths.map((row) => normalizeCriterionName(row.name)));
+  const gaps = uniqueByName(
+    uniqueScores
+      .filter(
+        (row) =>
+          !strengthNames.has(normalizeCriterionName(row.criterionName)) &&
+          (row.score == null || row.evidenceStatus === "Insufficient")
+      )
+      .map((row) => ({ id: row.criterionId, name: row.criterionName }))
+  );
 
   return {
     strengths,
     gaps,
     note: placeholder ? null : stored
   };
+}
+
+function normalizeCriterionName(name: string): string {
+  return name.trim().toLocaleLowerCase("tr");
+}
+
+function uniqueByName<T extends { id: string; name: string }>(rows: T[]): T[] {
+  const seen = new Set<string>();
+  const result: T[] = [];
+  for (const row of rows) {
+    const key = normalizeCriterionName(row.name);
+    if (!key || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    result.push(row);
+  }
+  return result;
+}
+
+function uniqueCriteria(scores: Evaluation["scores"]): Evaluation["scores"] {
+  const seen = new Set<string>();
+  const result: Evaluation["scores"] = [];
+  for (const row of scores) {
+    if (seen.has(row.criterionId)) {
+      continue;
+    }
+    seen.add(row.criterionId);
+    result.push(row);
+  }
+  return result;
 }
 
 function toPublicInterviewUrl(inviteUrl: string): string {
