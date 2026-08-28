@@ -301,20 +301,7 @@ export class ApiClient {
   }
 
   public async getInterview(candidateId: string): Promise<InterviewSessionDetail> {
-    questions: { criterionId: string; prompt: string }[];
-    summary: string | null;
-    videoMeetingUrl?: string | null;
-    expiresAt?: string | null;
-    frames?: {
-      id: string;
-      questionId: string | null;
-      turnId: string | null;
-      contentType: string;
-      imageBase64: string;
-      capturedAt: string;
-    }[];
-  }> {
-    return this.get(`/api/candidates/${candidateId}/interview`);
+    return this.get<InterviewSessionDetail>(`/api/candidates/${candidateId}/interview`);
   }
 
   public async listCandidateInterviews(candidateId: string): Promise<InterviewSessionDetail[]> {

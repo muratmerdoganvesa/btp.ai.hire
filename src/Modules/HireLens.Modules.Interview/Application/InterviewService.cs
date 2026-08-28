@@ -986,7 +986,6 @@ public sealed class InterviewService(
             candidateName,
             positionTitle,
             session.CreatedAt);
-    }
 
     private static bool IsFullyAnswered(InterviewSession session)
     {
