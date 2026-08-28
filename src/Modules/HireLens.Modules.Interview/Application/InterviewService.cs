@@ -44,6 +44,8 @@ public interface IInterviewService
 
     Task<Result<InterviewSessionDto>> EvaluateForCandidateAsync(Guid candidateId, CancellationToken cancellationToken);
 
+    Task<Result<InterviewSessionDto>> EvaluateByIdAsync(Guid sessionId, CancellationToken cancellationToken);
+
     Task<Result> SoftDeleteForCandidateAsync(Guid candidateId, CancellationToken cancellationToken);
 }
 
@@ -530,6 +532,34 @@ public sealed class InterviewService(
                 Error.Validation("Aday mülakatı henüz bitirmedi. Değerlendirme recruiter tetiklemesiyle yapılır."));
         }
 
+        return await RunEvaluateAsync(session, cancellationToken);
+    }
+
+    public async Task<Result<InterviewSessionDto>> EvaluateByIdAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken)
+    {
+        RepositoryGuard.RequireTenant(tenant);
+        var session = await db.Set<InterviewSession>()
+            .FirstOrDefaultAsync(s => s.Id == sessionId, cancellationToken);
+        if (session is null)
+        {
+            return Result.Failure<InterviewSessionDto>(Error.NotFound("Interview was not found."));
+        }
+
+        if (!IsFullyAnswered(session))
+        {
+            return Result.Failure<InterviewSessionDto>(
+                Error.Validation("Aday mülakatı henüz bitirmedi. Değerlendirme recruiter tetiklemesiyle yapılır."));
+        }
+
+        return await RunEvaluateAsync(session, cancellationToken);
+    }
+
+    private async Task<Result<InterviewSessionDto>> RunEvaluateAsync(
+        InterviewSession session,
+        CancellationToken cancellationToken)
+    {
         try
         {
             var evaluated = await EvaluateAsync(session, cancellationToken);

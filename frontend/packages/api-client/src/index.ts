@@ -322,6 +322,10 @@ export class ApiClient {
     return this.send(`/api/candidates/${candidateId}/interview/evaluate`, "POST");
   }
 
+  public async evaluateInterviewSession(sessionId: string): Promise<InterviewSessionDetail> {
+    return this.send<InterviewSessionDetail>(`/api/interviews/${sessionId}/evaluate`, "POST");
+  }
+
   public async getInterviewPrep(token: string): Promise<{
     whatToExpect: string;
     estimatedMinutes: number;

@@ -654,6 +654,7 @@ export function EvaluationPage() {
                   <CardTitle className="text-base font-extrabold tracking-tight">
                     {t("evaluation.followUps")}
                   </CardTitle>
+                  <p className="text-xs text-muted">{t("evaluation.followUpsHint")}</p>
                 </CardHeader>
                 <CardContent>
                   <ul className="flex flex-col gap-2">
@@ -662,7 +663,13 @@ export function EvaluationPage() {
                         key={`${index}-${item.slice(0, 24)}`}
                         className="rounded-xl border border-border/70 bg-brand-0/50 px-3 py-2.5 text-sm leading-6"
                       >
-                        {item}
+                        <p className="text-xs font-bold uppercase tracking-wide text-muted">
+                          {t("interview.questionLabel", {
+                            current: index + 1,
+                            total: evaluation.data!.followUps.length
+                          })}
+                        </p>
+                        <p className="mt-1">{item}</p>
                       </li>
                     ))}
                   </ul>

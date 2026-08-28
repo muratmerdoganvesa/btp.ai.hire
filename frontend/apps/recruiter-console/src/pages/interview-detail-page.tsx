@@ -1,7 +1,9 @@
 import { Badge, Button, ScoreBadge } from "@hirelens/ui";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ApiError } from "@hirelens/api-client";
 import { api } from "../api";
 import { InterviewFramesGallery } from "../components/interview-frames-gallery";
 import { InterviewTranscript } from "../components/interview-transcript";
@@ -10,6 +12,8 @@ import { PageBody, PageHero } from "../components/page-hero";
 export function InterviewDetailPage() {
   const { t } = useTranslation();
   const { sessionId } = useParams({ from: "/_app/interviews/$sessionId" });
+  const queryClient = useQueryClient();
+  const [evaluateError, setEvaluateError] = useState<string | null>(null);
 
   const session = useQuery({
     queryKey: ["interview-session", sessionId],
@@ -17,6 +21,29 @@ export function InterviewDetailPage() {
   });
 
   const data = session.data;
+  const canEvaluate =
+    Boolean(data) &&
+    data!.questions.length > 0 &&
+    data!.questions.every((question) =>
+      data!.turns.some((turn) => turn.questionId === question.id && turn.role === "candidate")
+    );
+
+  const evaluate = useMutation({
+    mutationFn: () => api.evaluateInterviewSession(sessionId),
+    onSuccess: async () => {
+      setEvaluateError(null);
+      await queryClient.invalidateQueries({ queryKey: ["interview-session", sessionId] });
+      await queryClient.invalidateQueries({ queryKey: ["interview", data?.candidateId] });
+      await queryClient.invalidateQueries({ queryKey: ["interviews", data?.candidateId] });
+      await queryClient.invalidateQueries({ queryKey: ["evaluation", data?.candidateId] });
+      await queryClient.invalidateQueries({ queryKey: ["interviews-board"] });
+    },
+    onError: (err) => {
+      const message = err instanceof Error ? err.message : "";
+      const detail = err instanceof ApiError ? message : message.replace(/^http_\d+:/, "").replace(/^validation:/, "");
+      setEvaluateError(detail ? `${t("errors.generic")} (${detail})` : t("errors.generic"));
+    }
+  });
 
   return (
     <>
@@ -63,6 +90,20 @@ export function InterviewDetailPage() {
                 ) : null}
               </div>
               <div className="flex flex-wrap gap-2">
+                {canEvaluate ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={evaluate.isPending}
+                    onClick={() => evaluate.mutate()}
+                  >
+                    {evaluate.isPending
+                      ? t("interview.evaluating")
+                      : data.summary || data.interviewScore != null
+                        ? t("interview.evaluateAgain")
+                        : t("interview.evaluate")}
+                  </Button>
+                ) : null}
                 <Button asChild size="sm" variant="outline">
                   <Link to="/candidates/$candidateId" params={{ candidateId: data.candidateId }}>
                     {t("interviewsBoard.openCandidate")}
@@ -75,6 +116,12 @@ export function InterviewDetailPage() {
                 </Button>
               </div>
             </section>
+
+            {evaluateError ? (
+              <p className="text-sm text-danger" role="alert">
+                {evaluateError}
+              </p>
+            ) : null}
 
             {data.summary ? (
               <section className="rounded-2xl border border-border bg-surface p-4 shadow-card">

@@ -35,6 +35,13 @@ public static class InterviewEndpoints
             .WithTags("Interview")
             .RequireAuthorization();
 
+        endpoints.MapPost("/api/interviews/{sessionId:guid}/evaluate", async (
+            Guid sessionId,
+            IInterviewService interviews,
+            CancellationToken ct) => HttpResults.From(await interviews.EvaluateByIdAsync(sessionId, ct)))
+            .WithTags("Interview")
+            .RequireAuthorization();
+
         endpoints.MapGet("/api/candidates/{candidateId:guid}/interview", async (
             Guid candidateId,
             IInterviewService interviews,
