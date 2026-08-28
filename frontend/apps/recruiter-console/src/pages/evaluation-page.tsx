@@ -1,5 +1,5 @@
 import { ApiError, type Evaluation } from "@hirelens/api-client";
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, ScoreBadge } from "@hirelens/ui";
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle, ScoreBadge, cn } from "@hirelens/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
@@ -91,6 +91,7 @@ export function EvaluationPage() {
       setInviteExpiresAt(result.expiresAt);
       setInviteError(null);
       setInterviewOpen(true);
+      setTab("interview");
       await queryClient.invalidateQueries({ queryKey: ["interview", candidateId] });
     },
     onError: (err) => {
@@ -379,7 +380,9 @@ export function EvaluationPage() {
             ) : null}
 
             <ScoreBreakdownTable scores={evaluation.data!.scores} evidenceSource="cv" />
-
+              </>
+            ) : (
+              <>
             <details
               className="rounded-2xl border border-border bg-surface open:pb-4"
               open={interviewOpen}
@@ -536,6 +539,34 @@ export function EvaluationPage() {
                 </div>
               </div>
             ) : null}
+
+            {(evaluation.data!.followUps ?? []).length > 0 ? (
+              <Card className="border-border/80">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base font-extrabold tracking-tight">
+                    {t("evaluation.followUps")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="flex flex-col gap-2">
+                    {evaluation.data!.followUps.map((item, index) => (
+                      <li
+                        key={`${index}-${item.slice(0, 24)}`}
+                        className="rounded-xl border border-border/70 bg-brand-0/50 px-3 py-2.5 text-sm leading-6"
+                      >
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {interviewEvidenceScores.length > 0 ? (
+              <ScoreBreakdownTable scores={interviewEvidenceScores} evidenceSource="interview" />
+            ) : null}
+              </>
+            )}
           </div>
 
           <aside className="flex flex-col gap-4 xl:sticky xl:top-24 xl:self-start">
@@ -543,6 +574,7 @@ export function EvaluationPage() {
               busy={decide.isPending}
               inviteBusy={invite.isPending}
               onInviteInterview={() => {
+                setTab("interview");
                 setInterviewOpen(true);
                 invite.mutate();
               }}
@@ -593,6 +625,54 @@ export function EvaluationPage() {
       </PageBody>
     </>
   );
+}
+
+function recruiterSummaryText(
+  evaluation: Evaluation,
+  t: (key: string, opts?: Record<string, string | number>) => string
+): string {
+  const stored = evaluation.summary?.trim() ?? "";
+  const placeholder =
+    stored.length === 0
+    || /Evidence-bound scores are ready/i.test(stored)
+    || /Insufficient evidence for an overall score/i.test(stored);
+
+  if (!placeholder) {
+    return stored;
+  }
+
+  const coverage = Math.round(evaluation.coverageRatio * 100);
+  const scored = evaluation.scores
+    .filter((row) => row.score != null)
+    .slice()
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  const missing = evaluation.scores.filter(
+    (row) => row.score == null || row.evidenceStatus === "Insufficient"
+  );
+  const strengths = scored.slice(0, 3).map((row) => row.criterionName).join(", ");
+  const gaps = missing.slice(0, 6).map((row) => row.criterionName).join(", ");
+
+  if (evaluation.overallScore == null) {
+    return t("evaluation.computedSummaryNoScore", {
+      coverage,
+      gaps: gaps || "—"
+    });
+  }
+
+  if (!gaps) {
+    return t("evaluation.computedSummaryNoGaps", {
+      score: evaluation.overallScore,
+      coverage,
+      strengths: strengths || "—"
+    });
+  }
+
+  return t("evaluation.computedSummary", {
+    score: evaluation.overallScore,
+    coverage,
+    strengths: strengths || "—",
+    gaps
+  });
 }
 
 function toPublicInterviewUrl(inviteUrl: string): string {
