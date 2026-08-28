@@ -113,6 +113,8 @@ export function OffersPage() {
         <section className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
           {board.isLoading ? (
             <p className="px-6 py-12 text-center text-sm text-muted">{t("offersBoard.loading")}</p>
+          ) : board.isError ? (
+            <p className="px-6 py-12 text-center text-sm text-danger">{t("offersBoard.loadError")}</p>
           ) : filtered.length === 0 ? (
             <p className="px-6 py-12 text-center text-sm text-muted">{t("offersBoard.empty")}</p>
           ) : (

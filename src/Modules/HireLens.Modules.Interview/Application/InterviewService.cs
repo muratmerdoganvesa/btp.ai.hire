@@ -40,6 +40,8 @@ public interface IInterviewService
 
     Task<Result<InterviewSessionDto>> GetForCandidateAsync(Guid candidateId, CancellationToken cancellationToken);
 
+    Task<Result<IReadOnlyList<InterviewSessionDto>>> ListForCandidateAsync(Guid candidateId, CancellationToken cancellationToken);
+
     Task<Result<InterviewSessionDto>> EvaluateForCandidateAsync(Guid candidateId, CancellationToken cancellationToken);
 
     Task<Result> SoftDeleteForCandidateAsync(Guid candidateId, CancellationToken cancellationToken);
@@ -495,23 +497,34 @@ public sealed class InterviewService(
         return Result.Success(ToDto(session, frames));
     }
 
+    public async Task<Result<IReadOnlyList<InterviewSessionDto>>> ListForCandidateAsync(
+        Guid candidateId,
+        CancellationToken cancellationToken)
+    {
+        RepositoryGuard.RequireTenant(tenant);
+        var sessions = await db.Set<InterviewSession>()
+            .Where(s => s.CandidateId == candidateId)
+            .OrderByDescending(s => s.CreatedAt)
+            .ToListAsync(cancellationToken);
+        return Result.Success<IReadOnlyList<InterviewSessionDto>>(sessions.Select(s => ToDto(s)).ToList());
+    }
+
     public async Task<Result<InterviewSessionDto>> EvaluateForCandidateAsync(
         Guid candidateId,
         CancellationToken cancellationToken)
     {
         RepositoryGuard.RequireTenant(tenant);
-        var session = await db.Set<InterviewSession>()
+        var sessions = await db.Set<InterviewSession>()
             .Where(s => s.CandidateId == candidateId)
             .OrderByDescending(s => s.CreatedAt)
-            .FirstOrDefaultAsync(cancellationToken);
-        if (session is null)
+            .ToListAsync(cancellationToken);
+        if (sessions.Count == 0)
         {
             return Result.Failure<InterviewSessionDto>(Error.NotFound("Interview was not found."));
         }
 
-        var unanswered = session.Questions.OrderBy(q => q.Order)
-            .FirstOrDefault(q => session.Turns.Count(t => t.QuestionId == q.Id && t.Role == "candidate") == 0);
-        if (unanswered is not null)
+        var session = sessions.FirstOrDefault(IsFullyAnswered);
+        if (session is null)
         {
             return Result.Failure<InterviewSessionDto>(
                 Error.Validation("Aday mülakatı henüz bitirmedi. Değerlendirme recruiter tetiklemesiyle yapılır."));
@@ -542,20 +555,16 @@ public sealed class InterviewService(
     public async Task<Result> SoftDeleteForCandidateAsync(Guid candidateId, CancellationToken cancellationToken)
     {
         RepositoryGuard.RequireTenant(tenant);
-        var sessions = await db.Set<InterviewSession>()
+        var session = await db.Set<InterviewSession>()
             .Where(s => s.CandidateId == candidateId)
-            .ToListAsync(cancellationToken);
-        if (sessions.Count == 0)
+            .OrderByDescending(s => s.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (session is null)
         {
             return Result.Failure(Error.NotFound("Interview was not found."));
         }
 
-        var now = clock.UtcNow;
-        foreach (var session in sessions)
-        {
-            session.SoftDelete(now);
-        }
-
+        session.SoftDelete(clock.UtcNow);
         await db.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }
@@ -977,6 +986,18 @@ public sealed class InterviewService(
             candidateName,
             positionTitle,
             session.CreatedAt);
+    }
+
+    private static bool IsFullyAnswered(InterviewSession session)
+    {
+        if (session.Questions.Count == 0)
+        {
+            return false;
+        }
+
+        return session.Questions.All(question =>
+            session.Turns.Any(turn => turn.QuestionId == question.Id && turn.Role == "candidate"));
+    }
 
     private List<InterviewFrame> BuildFrames(
         InterviewSession session,

@@ -68,6 +68,10 @@ export function EvaluationPage() {
       }
     }
   });
+  const interviewHistory = useQuery({
+    queryKey: ["interviews", candidateId],
+    queryFn: () => api.listCandidateInterviews(candidateId)
+  });
 
   const decide = useMutation({
     mutationFn: (input: { outcome: "advance" | "hold" | "reject"; rationale: string }) =>
@@ -94,6 +98,8 @@ export function EvaluationPage() {
       setInterviewOpen(true);
       setTab("interview");
       await queryClient.invalidateQueries({ queryKey: ["interview", candidateId] });
+      await queryClient.invalidateQueries({ queryKey: ["interviews", candidateId] });
+      await queryClient.invalidateQueries({ queryKey: ["interviews-board"] });
     },
     onError: (err) => {
       const message = err instanceof Error ? err.message : "";
@@ -108,6 +114,7 @@ export function EvaluationPage() {
       setInviteExpiresAt(null);
       setEvaluateError(null);
       await queryClient.invalidateQueries({ queryKey: ["interview", candidateId] });
+      await queryClient.invalidateQueries({ queryKey: ["interviews", candidateId] });
     }
   });
 
@@ -116,6 +123,7 @@ export function EvaluationPage() {
     onSuccess: async () => {
       setEvaluateError(null);
       await queryClient.invalidateQueries({ queryKey: ["interview", candidateId] });
+      await queryClient.invalidateQueries({ queryKey: ["interviews", candidateId] });
       await queryClient.invalidateQueries({ queryKey: ["evaluation", candidateId] });
       await queryClient.invalidateQueries({ queryKey: ["candidates-board"] });
     },
@@ -202,6 +210,11 @@ export function EvaluationPage() {
     evaluation.isError && evaluation.error instanceof ApiError && evaluation.error.status === 404;
   const coveragePct = evaluation.data ? Math.round(evaluation.data.coverageRatio * 100) : null;
   const summary = evaluation.data ? recruiterSummaryParts(evaluation.data) : null;
+  const pastInterviews = useMemo(() => {
+    const rows = interviewHistory.data ?? [];
+    const currentId = interview.data?.id;
+    return currentId ? rows.filter((row) => row.id !== currentId) : rows;
+  }, [interviewHistory.data, interview.data?.id]);
   const interviewEvidenceScores = (evaluation.data?.scores ?? []).filter((row) =>
     row.evidence.some((item) => item.source.trim().toLowerCase() === "interview")
   );
@@ -591,6 +604,48 @@ export function EvaluationPage() {
                   </div>
                 </div>
               </div>
+            ) : null}
+
+            {pastInterviews.length > 0 ? (
+              <Card className="border-border/80">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base font-extrabold tracking-tight">
+                    {t("interview.historyTitle")}
+                  </CardTitle>
+                  <p className="text-xs text-muted">{t("interview.historyHint")}</p>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-3">
+                  {pastInterviews.map((row) => (
+                    <article key={row.id} className="rounded-xl border border-border bg-white px-4 py-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm font-bold">
+                          {row.createdAt ? new Date(row.createdAt).toLocaleString() : "—"}
+                          <span className="ml-2 text-xs font-semibold text-muted">
+                            {interviewStatusLabel(row.status, t)}
+                          </span>
+                        </p>
+                        <div className="flex items-center gap-2">
+                          {row.interviewScore != null ? (
+                            <span className="text-xs font-bold tabular-nums">{row.interviewScore} / 100</span>
+                          ) : null}
+                          <Link
+                            to="/interviews/$sessionId"
+                            params={{ sessionId: row.id }}
+                            className="text-xs font-bold text-brand-7 hover:underline"
+                          >
+                            {t("interview.historyOpen")}
+                          </Link>
+                        </div>
+                      </div>
+                      {row.summary ? (
+                        <p className="mt-2 text-sm leading-6 text-foreground">{row.summary}</p>
+                      ) : (
+                        <p className="mt-2 text-sm text-muted">{t("interview.historyNoSummary")}</p>
+                      )}
+                    </article>
+                  ))}
+                </CardContent>
+              </Card>
             ) : null}
 
             {(evaluation.data!.followUps ?? []).length > 0 ? (

@@ -300,10 +300,7 @@ export class ApiClient {
     return this.get<InterviewSessionDetail>(`/api/interviews/${sessionId}`);
   }
 
-  public async getInterview(candidateId: string): Promise<{
-    status: string;
-    interviewScore: number | null;
-    turns: { role: string; text: string }[];
+  public async getInterview(candidateId: string): Promise<InterviewSessionDetail> {
     questions: { criterionId: string; prompt: string }[];
     summary: string | null;
     videoMeetingUrl?: string | null;
@@ -318,6 +315,10 @@ export class ApiClient {
     }[];
   }> {
     return this.get(`/api/candidates/${candidateId}/interview`);
+  }
+
+  public async listCandidateInterviews(candidateId: string): Promise<InterviewSessionDetail[]> {
+    return this.get<InterviewSessionDetail[]>(`/api/candidates/${candidateId}/interviews`);
   }
 
   public async deleteInterview(candidateId: string): Promise<void> {
